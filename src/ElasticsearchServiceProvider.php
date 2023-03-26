@@ -4,7 +4,7 @@ namespace Mawebcoder\Elasticsearch;
 
 use Illuminate\Support\ServiceProvider;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Mawebcoder\Elasticsearch\Http\ElasticHttpRequest;
+use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
 
 class ElasticsearchServiceProvider extends ServiceProvider
@@ -12,8 +12,7 @@ class ElasticsearchServiceProvider extends ServiceProvider
 
     public function register()
     {
-        $this->app->bind(ElasticHttpRequestInterface::class, ElasticHttpRequest::class);
-
+        $this->app->bind(ElasticHttpRequestInterface::class, ElasticApiService::class);
     }
 
     public function boot()

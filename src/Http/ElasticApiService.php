@@ -13,7 +13,7 @@ use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionClass;
 use ReflectionException;
 
-class ElasticHttpRequest implements ElasticHttpRequestInterface
+class ElasticApiService implements ElasticHttpRequestInterface
 {
     public string $index;
 

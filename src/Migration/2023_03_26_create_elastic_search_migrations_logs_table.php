@@ -11,7 +11,7 @@ return new class extends Migration {
         Schema::create('elastic_search_migrations_logs', function (Blueprint $table) {
             $table->id();
             $table->integer('batch');
-            $table->string('migrations');
+            $table->string('migrations')->index('elastic_search_migrations_logs_migration');
         });
     }
 

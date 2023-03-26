@@ -4,7 +4,7 @@ namespace Mawebcoder\Elasticsearch\Facade;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Facade;
-use Mawebcoder\Elasticsearch\Http\ElasticHttpRequest;
+use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
 
 /**
@@ -12,7 +12,7 @@ use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
  * @method static Response get(?string $path = null)
  * @method static Response put(?string $path = null, array $data = [])
  * @method static Response delete(?string $path = null, array $data = [])
- * @method static ElasticHttpRequest setModel(string $modelName)
+ * @method static ElasticApiService setModel(string $modelName)
  * @method static void loadMigrationsFrom(string $directory)
  * @method static Response dropModelIndex()
  * @method static array getAllIndexes()
