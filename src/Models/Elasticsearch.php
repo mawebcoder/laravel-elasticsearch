@@ -18,11 +18,4 @@ abstract class Elasticsearch
 
     abstract public function getIndex(): string;
 
-
-    public function generateIndex()
-    {
-
-    }
-
-
 }

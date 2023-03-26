@@ -31,29 +31,6 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
         return $response;
     }
 
-    /**
-     * @throws ReflectionException
-     */
-    private function generateFullPath(?string $path = null): string
-    {
-        /**
-         * @type Elasticsearch $elasticModelObject
-         */
-        $elasticModelObject = new ReflectionClass($this->elasticModel);
-
-        $fullPath = trim(config('elasticsearch')) . '/' . $elasticModelObject->getIndex() . '/_doc';
-
-        if ($path) {
-            $fullPath .= '/' . $path;
-        }
-
-        return $fullPath;
-    }
-
-    public function setModel(string $modelName)
-    {
-        $this->elasticModel = $modelName;
-    }
 
     /**
      * @throws RequestException
@@ -74,15 +51,55 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
      * @throws RequestException
      * @throws ReflectionException
      */
-    public function put(?string $path = null): Response
+    public function put(?string $path = null, array $data = []): Response
     {
         $path = $this->generateFullPath($path);
 
-        $response = Http::delete($path);
+        $response = Http::put($path, $data);
 
         $response->throw();
 
         return $response;
+    }
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function delete(?string $path = null, array $data = []): Response
+    {
+        $path = $this->generateFullPath($path);
+
+        $response = Http::delete($path, $data);
+
+        $response->throw();
+
+        return $response;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    private function generateFullPath(?string $path = null): string
+    {
+        /**
+         * @type Elasticsearch $elasticModelObject
+         */
+        $elasticModelObject = new ReflectionClass($this->elasticModel);
+
+        $fullPath = trim(config('elasticsearch')) . '/' . $elasticModelObject->getIndex() . '/_doc';
+
+        if ($path) {
+            $fullPath .= '/' . $path;
+        }
+
+        return $fullPath;
+    }
+
+    public function setModel(string $modelName): static
+    {
+        $this->elasticModel = $modelName;
+        return $this;
     }
 
 }
