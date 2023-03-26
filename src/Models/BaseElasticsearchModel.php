@@ -2,7 +2,7 @@
 
 namespace Mawebcoder\Elasticsearch\Models;
 
-abstract class Elasticsearch
+abstract class BaseElasticsearchModel
 {
 
     public array $search = [
@@ -10,7 +10,6 @@ abstract class Elasticsearch
             "sort" => [],
             "bool" => [
                 "must" => [
-
                 ],
             ]
         ]

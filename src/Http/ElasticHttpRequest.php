@@ -8,12 +8,14 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
-use Mawebcoder\Elasticsearch\Models\Elasticsearch;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionClass;
 use ReflectionException;
 
 class ElasticHttpRequest implements ElasticHttpRequestInterface
 {
+    public string $index;
 
     public static array $migrationsPath = [];
 
@@ -27,7 +29,7 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
      */
     public function post(?string $path = null, array $data = []): Response
     {
-        $path = $this->generateFullPath($path);
+        $path = $this->generateIndexPath($path);
 
         $response = Http::post($path, $data);
 
@@ -43,7 +45,7 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
      */
     public function get(?string $path = null): Response
     {
-        $path = $this->generateFullPath($path);
+        $path = $this->generateIndexPath($path);
 
         $response = Http::get($path);
 
@@ -58,7 +60,7 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
      */
     public function put(?string $path = null, array $data = []): Response
     {
-        $path = $this->generateFullPath($path);
+        $path = $this->generateIndexPath($path);
 
         $response = Http::put($path, $data);
 
@@ -73,7 +75,7 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
      */
     public function delete(?string $path = null, array $data = []): Response
     {
-        $path = $this->generateFullPath($path);
+        $path = $this->generateIndexPath($path);
 
         $response = Http::delete($path, $data);
 
@@ -85,14 +87,16 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      */
-    private function generateFullPath(?string $path = null): string
+    private function generateIndexPath(?string $path = null): string
     {
         /**
-         * @type Elasticsearch $elasticModelObject
+         * @type BaseElasticsearchModel $elasticModelObject
          */
         $elasticModelObject = new ReflectionClass($this->elasticModel);
 
-        $fullPath = trim(config('elasticsearch')) . '/' . $elasticModelObject->getIndex() . '/_doc';
+        $fullPath = trim(
+                config('elasticsearch.host') . ":" . config("elasticsearch.port")
+            ) . '/' . $elasticModelObject->getIndex() . '/_doc';
 
         if ($path) {
             $fullPath .= '/' . $path;
@@ -108,6 +112,19 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
     }
 
     /**
+     * @throws ReflectionException
+     */
+    public function getIndex(): string
+    {
+        /**
+         * @type BaseElasticsearchModel $modelObject
+         */
+        $modelObject = (new ReflectionClass($this->elasticModel))->newInstance();
+
+        return $modelObject->getIndex();
+    }
+
+    /**
      * @throws DirectoryNotFoundException
      */
     public function loadMigrationsFrom(string $directory)
@@ -120,6 +137,38 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
             ...self::$migrationsPath,
             ...[$directory]
         ];
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function dropModelIndex(): Response
+    {
+        $fullPath = $this->generateIndexPath();
+
+        $response = Http::delete($fullPath);
+
+        $response->throw();
+
+        return $response;
+    }
+
+
+    /**
+     * @throws RequestException
+     */
+    public function getAllIndexes():array
+    {
+        $path = trim(config('elasticsearch.host') . ":" . config("elasticsearch.port"), '/') . '/_aliases';
+
+        $response = Http::get($path);
+
+        $response->throw();
+
+        $result = $response->json();
+
+        return array_keys($result);
     }
 
 }

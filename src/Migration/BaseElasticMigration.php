@@ -141,6 +141,23 @@ abstract class BaseElasticMigration
      * @throws ReflectionException
      * @throws RequestException
      */
+    public function down(): void
+    {
+        if ($this->isCreationState()) {
+            Elasticsearch::setModel($this->getModel())->dropModelIndex();
+            return;
+        }
+
+        /**
+         * @todo we need to reindex
+         */
+        $this->alterDown();
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function alterIndex(): void
     {
         Elasticsearch::setModel($this->getModel())
