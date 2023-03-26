@@ -6,7 +6,7 @@ use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 
-abstract class ElasticMigration
+abstract class BaseElasticMigration
 {
     public array $schema = [];
 
@@ -33,6 +33,7 @@ abstract class ElasticMigration
             $this->schema['mapping']['properties'][$field] = ['type' => 'boolean'];
             return;
         }
+
         $this->schema['properties'][$field] = ['type' => 'boolean'];
     }
 

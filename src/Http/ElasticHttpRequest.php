@@ -2,15 +2,20 @@
 
 namespace Mawebcoder\Elasticsearch\Http;
 
+use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch;
 use ReflectionClass;
 use ReflectionException;
 
 class ElasticHttpRequest implements ElasticHttpRequestInterface
 {
+
+    public static array $migrationsPath = [];
 
     public Response $connection;
 
@@ -100,6 +105,21 @@ class ElasticHttpRequest implements ElasticHttpRequestInterface
     {
         $this->elasticModel = $modelName;
         return $this;
+    }
+
+    /**
+     * @throws DirectoryNotFoundException
+     */
+    public function loadMigrationsFrom(string $directory)
+    {
+        if (!is_dir($directory)) {
+            throw new DirectoryNotFoundException(message: 'directory ' . $directory . ' not found');
+        }
+
+        self::$migrationsPath = [
+            ...self::$migrationsPath,
+            ...[$directory]
+        ];
     }
 
 }

@@ -13,7 +13,10 @@ use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
  * @method static Response put(?string $path = null,array $data = [])
  * @method static Response delete(?string $path = null,array $data = [])
  * @method static ElasticHttpRequest setModel(string $modelName)
+ * @method static void loadMigrationsFrom(string $directory)
  */
+
+
 class Elasticsearch extends Facade
 {
     protected static function getFacadeAccessor(): string
