@@ -14,7 +14,7 @@ use Throwable;
 
 class MigrateElasticsearchMigrationsCommand extends Command
 {
-    protected $signature = 'elastic:migrate';
+    protected $signature = 'elastic:migrate {--reset} {--fresh} {--rollback=1}';
 
     protected $description = 'migrate all loaded elasticsearch migrations';
 
