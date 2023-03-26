@@ -18,7 +18,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
     protected $description = 'migrate all loaded elasticsearch migrations';
 
-
     /**
      * @throws ReflectionException
      * @throws RequestException
@@ -26,7 +25,12 @@ class MigrateElasticsearchMigrationsCommand extends Command
      */
     public function handle(): void
     {
+        $options = $this->options();
+
+        //@todo if options are more than one throw an exception.we can just do one of them at the same time
+
         $migrationsPath = ElasticApiService::$migrationsPath;
+
         if (empty($migrationsPath)) {
             $this->info('nothing to migrate');
         }
@@ -42,22 +46,34 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
         $latestBatch += 1;
 
-
         foreach ($migrationsPath as $path) {
             $files = File::files($path);
 
             foreach ($files as $file) {
-                $fileName = $file->getFilename();
-
-                if ($this->isMigratedAlready($fileName)) {
+                if ($this->isMigratedAlready($file->getFilename())) {
                     continue;
                 }
                 try {
                     DB::beginTransaction();
 
+                    $path = $file->getPath() . '/' . $file->getFilename();
+
+                    /**
+                     * @type BaseElasticMigration $result
+                     */
+                    $result = require_once $path;
+
+                    if (!$result instanceof BaseElasticMigration) {
+                        continue;
+                    }
+
+                    $this->info('migrating => ' . $file->getFilename());
+
                     $this->registerMigrationIntoLog($file, $latestBatch);
 
-                    $this->runUpMethod($file);
+                    $result->up();
+
+                    $this->info('migrated => ' . $file->getFilename());
 
                     DB::commit();
                 } catch (Throwable $exception) {
@@ -73,21 +89,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
         return boolval(DB::table('elastic_search_migrations_logs')->where('migration', $fileName)->first());
     }
 
-    /**
-     * @throws RequestException
-     * @throws ReflectionException
-     */
-    public function runUpMethod(SplFileInfo $file)
-    {
-        $path = $file->getPath() . '/' . $file->getFilename();
-
-        /**
-         * @type BaseElasticMigration $result
-         */
-        $result = require_once $path;
-
-        $result->up();
-    }
 
     private function registerMigrationIntoLog(SplFileInfo $file, int $latestBatch)
     {

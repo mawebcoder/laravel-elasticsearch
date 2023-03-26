@@ -126,8 +126,7 @@ abstract class BaseElasticMigration
      */
     public function up(): void
     {
-        $this->schema();
-
+        $this->schema($this);
 
         if ($this->isCreationState()) {
             $this->createIndexAndSchema();
@@ -174,5 +173,5 @@ abstract class BaseElasticMigration
             ->post(data: $this->schema);
     }
 
-    abstract public function schema(): array;
+    abstract public function schema(BaseElasticMigration $mapper);
 }
