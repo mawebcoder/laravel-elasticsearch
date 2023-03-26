@@ -59,13 +59,18 @@ abstract class ElasticMigration
 
     public function datetime(string $field): void
     {
-        $this->schema['mapping']['properties'][$field] = ['type' => 'text'];
+        $this->schema['mapping']['properties'][$field] = ['type' => 'date'];
     }
 
     public function up(): void
     {
         $this->schema();
-        //create index and apply mapper to index while creating the index
+
+        $this->applySchemaOnElastic();
+    }
+
+    private function applySchemaOnElastic()
+    {
     }
 
     abstract public function schema(): array;
