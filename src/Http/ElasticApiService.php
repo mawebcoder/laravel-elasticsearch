@@ -45,7 +45,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function get(?string $path = null): Response
     {
-        $path = $this->generateIndexPath($path);
+        $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
 
         $response = Http::get($path);
 
@@ -100,7 +100,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
 
         if ($path) {
-            $fullPath .= '/' . $path;
+            $fullPath .= '/' . trim($path, '/');
         }
 
         return $fullPath;
@@ -172,6 +172,19 @@ class ElasticApiService implements ElasticHttpRequestInterface
         return array_keys($result);
     }
 
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function getFields(): array
+    {
+        $response = $this->get('_mapping');
+
+        $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
+
+        return array_keys($response->json()[$index]['mappings']['properties']);
+    }
 
 
 }

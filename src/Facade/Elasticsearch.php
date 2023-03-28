@@ -16,6 +16,7 @@ use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
  * @method static void loadMigrationsFrom(string $directory)
  * @method static Response dropModelIndex()
  * @method static array getAllIndexes()
+ * @method static array getFields()
  */
 class Elasticsearch extends Facade
 {
