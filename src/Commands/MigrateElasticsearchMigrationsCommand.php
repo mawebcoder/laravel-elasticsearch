@@ -4,6 +4,8 @@ namespace Mawebcoder\Elasticsearch\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
@@ -25,9 +27,14 @@ class MigrateElasticsearchMigrationsCommand extends Command
      */
     public function handle(): void
     {
-        $options = $this->options();
+        if ($this->option('reset')) {
+            $this->reset();
+            return;
+        }
 
-        //@todo if options are more than one throw an exception.we can just do one of them at the same time
+        if ($this->option('fresh')) {
+            $this->fresh();
+        }
 
         $migrationsPath = ElasticApiService::$migrationsPath;
 
@@ -49,38 +56,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
         foreach ($migrationsPath as $path) {
             $files = File::files($path);
 
-            foreach ($files as $file) {
-                if ($this->isMigratedAlready($file->getFilename())) {
-                    continue;
-                }
-                try {
-                    DB::beginTransaction();
-
-                    $path = $file->getPath() . '/' . $file->getFilename();
-
-                    /**
-                     * @type BaseElasticMigration $result
-                     */
-                    $result = require_once $path;
-
-                    if (!$result instanceof BaseElasticMigration) {
-                        continue;
-                    }
-
-                    $this->info('migrating => ' . $file->getFilename());
-
-                    $this->registerMigrationIntoLog($file, $latestBatch);
-
-                    $result->up();
-
-                    $this->info('migrated => ' . $file->getFilename());
-
-                    DB::commit();
-                } catch (Throwable $exception) {
-                    DB::rollBack();
-                    throw  $exception;
-                }
-            }
+            $this->setMigration($files, $latestBatch);
         }
     }
 
@@ -90,11 +66,136 @@ class MigrateElasticsearchMigrationsCommand extends Command
     }
 
 
-    private function registerMigrationIntoLog(SplFileInfo $file, int $latestBatch)
+    private function registerMigrationIntoLog(string $path, int $latestBatch)
     {
         DB::table('elastic_search_migrations_logs')->insert([
             'batch' => $latestBatch,
-            'migration' => $file->getFilename()
+            'migration' => $path
         ]);
     }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function reset(): void
+    {
+        try {
+            DB::beginTransaction();
+
+            $migrations = DB::table('elastic_search_migrations_logs')
+                ->orderBy('batch')
+                ->get();
+
+            foreach ($migrations as $migration) {
+                $this->info('reset => ' . $migration);
+
+                $path = $migrations->migration;
+
+                /**
+                 * @type BaseElasticMigration $result
+                 */
+                $result = require_once $path;
+
+                $result->down();
+
+                $this->info('reset done => ' . $migration);
+            }
+
+            DB::commit();
+        } catch (Throwable $exception) {
+            DB::rollBack();
+            throw  $exception;
+        }
+    }
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws Throwable
+     */
+    public function fresh()
+    {
+        try {
+            DB::beginTransaction();
+
+            $this->reset();
+
+            $this->warn('dropping all indices');
+
+            DB::table('elastic_search_migrations_logs')
+                ->delete();
+
+            $this->info('migrating.please wait to finish');
+
+            Artisan::call('elastic:migrate');
+
+            $this->info('migrating done');
+
+            DB::commit();
+        } catch (Throwable $exception) {
+            DB::rollBack();
+            throw $exception;
+        }
+
+        $this->info('dropping all indices done');
+    }
+
+    /**
+     * @throws Throwable
+     */
+
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function setMigration(array $files, int $latestBatch)
+    {
+        foreach ($files as $file) {
+            if ($this->isMigratedAlready($file->getFilename())) {
+                continue;
+            }
+            try {
+                DB::beginTransaction();
+
+                $path = $file->getPath() . '/' . $file->getFilename();
+
+                /**
+                 * @type BaseElasticMigration $result
+                 */
+                $result = require_once $path;
+
+                if (!$result instanceof BaseElasticMigration) {
+                    continue;
+                }
+
+                $this->info('migrating => ' . $path);
+
+                $this->registerMigrationIntoLog($path, $latestBatch);
+
+                $result->up();
+
+                $this->info('migrated => ' . $path);
+
+                DB::commit();
+            } catch (Throwable $exception) {
+                DB::rollBack();
+                throw  $exception;
+            }
+        }
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getMigrationsLogs(): Collection
+    {
+        return DB::table('elastic_search_migrations_logs')
+            ->get();
+    }
+
+
 }
