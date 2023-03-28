@@ -4,6 +4,7 @@ namespace Mawebcoder\Elasticsearch\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -57,16 +58,14 @@ class MigrateElasticsearchMigrationsCommand extends Command
         $latestBatch += 1;
 
 
-        foreach ($migrationsPath as $path) {
-            $files = File::files($path);
-
-            $this->setMigration($files, $latestBatch);
+        foreach ($unMigratedFiles as $path) {
+            $this->setMigration($path, $latestBatch);
         }
     }
 
-    private function isMigratedAlready(string $fileName): bool
+    private function isMigratedAlready(string $path): bool
     {
-        return boolval(DB::table('elastic_search_migrations_logs')->where('migrations', $fileName)->first());
+        return boolval(DB::table('elastic_search_migrations_logs')->where('migrations', $path)->first());
     }
 
     private function getUnMigratedFiles(array $migrationsPath): array
@@ -174,40 +173,35 @@ class MigrateElasticsearchMigrationsCommand extends Command
      * @throws RequestException
      * @throws Throwable
      */
-    public function setMigration(array $files, int $latestBatch)
+    public function setMigration(string $path, int $latestBatch):void
     {
-        foreach ($files as $file) {
-            if ($this->isMigratedAlready($file->getFilename())) {
-                continue;
+        if ($this->isMigratedAlready($path)) {
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+            /**
+             * @type BaseElasticMigration $result
+             */
+            $result = require_once $path;
+
+            if (!$result instanceof BaseElasticMigration) {
+                return;
             }
 
-            try {
-                DB::beginTransaction();
+            $this->info('migrating => ' . $path);
 
-                $path = $file->getPath() . '/' . $file->getFilename();
+            $this->registerMigrationIntoLog($path, $latestBatch);
 
-                /**
-                 * @type BaseElasticMigration $result
-                 */
-                $result = require_once $path;
+            $result->up();
 
-                if (!$result instanceof BaseElasticMigration) {
-                    continue;
-                }
+            $this->info('migrated => ' . $path);
 
-                $this->info('migrating => ' . $path);
-
-                $this->registerMigrationIntoLog($path, $latestBatch);
-
-                $result->up();
-
-                $this->info('migrated => ' . $path);
-
-                DB::commit();
-            } catch (Throwable $exception) {
-                DB::rollBack();
-                throw  $exception;
-            }
+            DB::commit();
+        } catch (Throwable $exception) {
+            DB::rollBack();
+            throw  $exception;
         }
     }
 

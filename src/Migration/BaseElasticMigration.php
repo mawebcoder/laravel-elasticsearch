@@ -20,7 +20,7 @@ abstract class BaseElasticMigration
     public function integer(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'integer'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'integer'];
             return;
         }
 
@@ -30,7 +30,7 @@ abstract class BaseElasticMigration
     public function boolean(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'boolean'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'boolean'];
             return;
         }
 
@@ -40,7 +40,7 @@ abstract class BaseElasticMigration
     public function smallInteger(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'short'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'short'];
             return;
         }
         $this->schema['properties'][$field] = ['type' => 'short'];
@@ -49,7 +49,7 @@ abstract class BaseElasticMigration
     public function bigInteger(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'long'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'long'];
             return;
         }
 
@@ -59,7 +59,7 @@ abstract class BaseElasticMigration
     public function double(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'double'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'double'];
             return;
         }
 
@@ -69,7 +69,7 @@ abstract class BaseElasticMigration
     public function float(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'float'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'float'];
             return;
         }
 
@@ -79,7 +79,7 @@ abstract class BaseElasticMigration
     public function tinyInt(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'byte'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'byte'];
             return;
         }
 
@@ -89,7 +89,7 @@ abstract class BaseElasticMigration
     public function string(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'keyword'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'keyword'];
             return;
         }
 
@@ -99,7 +99,7 @@ abstract class BaseElasticMigration
     public function text(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'text'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'text'];
             return;
         }
         $this->schema['properties'][$field] = ['type' => 'text'];
@@ -108,7 +108,7 @@ abstract class BaseElasticMigration
     public function datetime(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mapping']['properties'][$field] = ['type' => 'date'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'date'];
             return;
         }
 
@@ -161,7 +161,7 @@ abstract class BaseElasticMigration
     public function alterIndex(): void
     {
         Elasticsearch::setModel($this->getModel())
-            ->post(path: '_mapping', data: $this->schema);
+            ->put(path: '_mappingss', data: $this->schema);
     }
 
     /**
@@ -171,7 +171,7 @@ abstract class BaseElasticMigration
     private function createIndexAndSchema(): void
     {
         Elasticsearch::setModel($this->getModel())
-            ->post(data: $this->schema);
+            ->put(data: $this->schema);
     }
 
     abstract public function schema(BaseElasticMigration $mapper);

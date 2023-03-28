@@ -60,7 +60,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function put(?string $path = null, array $data = []): Response
     {
-        $path = $this->generateIndexPath($path);
+        $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
 
         $response = Http::put($path, $data);
 
@@ -159,7 +159,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws RequestException
      */
-    public function getAllIndexes():array
+    public function getAllIndexes(): array
     {
         $path = trim(config('elasticsearch.host') . ":" . config("elasticsearch.port"), '/') . '/_aliases';
 
