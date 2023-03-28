@@ -163,7 +163,9 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
                 $this->warn('migrated : ' . $path);
             }
+
             $this->info('migrating done');
+
             DB::commit();
         } catch (Throwable $exception) {
             DB::rollBack();
@@ -245,7 +247,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
         }
 
         $latestBatch += 1;
-
 
         foreach ($unMigratedFiles as $path) {
             $this->setMigration($path, $latestBatch);
