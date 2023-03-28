@@ -4,9 +4,7 @@ namespace Mawebcoder\Elasticsearch\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
@@ -14,7 +12,6 @@ use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use ReflectionClass;
 use ReflectionException;
-use Symfony\Component\Finder\SplFileInfo;
 use Throwable;
 
 class MigrateElasticsearchMigrationsCommand extends Command
