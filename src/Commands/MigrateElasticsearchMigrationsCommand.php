@@ -165,8 +165,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
                 $result->up();
 
                 $this->warn('migrated : ' . $path);
-
-
             }
             $this->info('migrating done');
             DB::commit();
