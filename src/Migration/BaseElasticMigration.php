@@ -130,6 +130,7 @@ abstract class BaseElasticMigration
         $this->schema($this);
 
         if ($this->isCreationState()) {
+
             $this->createIndexAndSchema();
             return;
         }
@@ -162,7 +163,7 @@ abstract class BaseElasticMigration
     public function alterIndex(): void
     {
         Elasticsearch::setModel($this->getModel())
-            ->put(path: '_mappingss', data: $this->schema);
+            ->put(path: '_mappings', data: $this->schema);
     }
 
     /**

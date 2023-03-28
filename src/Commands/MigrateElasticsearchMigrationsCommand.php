@@ -9,8 +9,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
+use ReflectionClass;
 use ReflectionException;
 use Symfony\Component\Finder\SplFileInfo;
 use Throwable;
@@ -37,30 +39,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
             return;
         }
 
-        $migrationsPath = ElasticApiService::$migrationsPath;
-
-        $unMigratedFiles = $this->getUnMigratedFiles($migrationsPath);
-
-        if (empty($migrationsPath) || empty($unMigratedFiles)) {
-            $this->info('nothing to migrate');
-            return;
-        }
-
-        $latestBatch = 0;
-
-        $latestMigrationRecord = DB::table('elastic_search_migrations_logs')
-            ->orderBy('batch', 'desc')->first();
-
-        if ($latestMigrationRecord) {
-            $latestBatch = $latestMigrationRecord->batch;
-        }
-
-        $latestBatch += 1;
-
-
-        foreach ($unMigratedFiles as $path) {
-            $this->setMigration($path, $latestBatch);
-        }
+        $this->implementMigrating();
     }
 
     private function isMigratedAlready(string $path): bool
@@ -105,6 +84,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
         $migrations = DB::table('elastic_search_migrations_logs')
             ->orderBy('batch')
             ->get();
+
         foreach ($migrations as $migration) {
             try {
                 DB::beginTransaction();
@@ -144,26 +124,56 @@ class MigrateElasticsearchMigrationsCommand extends Command
         try {
             DB::beginTransaction();
 
-            $this->reset();
 
             $this->warn('dropping all indices');
 
             DB::table('elastic_search_migrations_logs')
                 ->delete();
 
-            $this->info('migrating.please wait to finish');
+            $allMigrationsPath = $this->getUnMigratedFiles(ElasticApiService::$migrationsPath);
 
-            Artisan::call('elastic:migrate');
+            $allIndices = Elasticsearch::getAllIndexes();
 
+            /**
+             * remove indices from elasticsearch
+             */
+            foreach ($allMigrationsPath as $path) {
+                /**
+                 * @type BaseElasticMigration $migrationObject
+                 */
+                $migrationObject = require $path;
+
+                $index = (new ReflectionClass($migrationObject->getModel()))->newInstance()->getIndex();
+
+                if (!in_array($index, $allIndices)) {
+                    continue;
+                }
+
+                $migrationObject->down();
+            }
+
+            $this->info('all indices dropped');
+
+            foreach ($allMigrationsPath as $path) {
+
+                $result = require $path;
+
+                $this->info('migrating : ' . $path);
+
+                $this->registerMigrationIntoLog($path, 1);
+
+                $result->up();
+
+                $this->warn('migrated : ' . $path);
+
+
+            }
             $this->info('migrating done');
-
             DB::commit();
         } catch (Throwable $exception) {
             DB::rollBack();
             throw $exception;
         }
-
-        $this->info('dropping all indices done');
     }
 
 
@@ -211,6 +221,40 @@ class MigrateElasticsearchMigrationsCommand extends Command
     {
         return DB::table('elastic_search_migrations_logs')
             ->get();
+    }
+
+    /**
+     * @return void
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function implementMigrating(): void
+    {
+        $migrationsPath = ElasticApiService::$migrationsPath;
+
+        $unMigratedFiles = $this->getUnMigratedFiles($migrationsPath);
+
+        if (empty($migrationsPath) || empty($unMigratedFiles)) {
+            $this->info('nothing to migrate');
+            return;
+        }
+
+        $latestBatch = 0;
+
+        $latestMigrationRecord = DB::table('elastic_search_migrations_logs')
+            ->orderBy('batch', 'desc')->first();
+
+        if ($latestMigrationRecord) {
+            $latestBatch = $latestMigrationRecord->batch;
+        }
+
+        $latestBatch += 1;
+
+
+        foreach ($unMigratedFiles as $path) {
+            $this->setMigration($path, $latestBatch);
+        }
     }
 
 
