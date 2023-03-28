@@ -43,9 +43,9 @@ abstract class BaseElasticsearchModel
      * @throws ReflectionException
      * @throws FieldNotDefinedInIndexException
      */
-    public static function create(array $options): static
+    public function create(array $options): static
     {
-
+        //@todo check if id exists so define costum id for it
         $object = new static();
 
         foreach ($options as $key => $value) {
@@ -57,12 +57,97 @@ abstract class BaseElasticsearchModel
         return $object;
     }
 
+    public function update(array $options)
+    {
+        //@todo
+    }
+
+
+    public function delete(array $options)
+    {
+        //@todo
+    }
+
+    public function find(int $id)
+    {
+    }
+
+    public function first()
+    {
+    }
+
+    public function get()
+    {
+    }
+
+
+    public function where()
+    {
+    }
+
+    public function whereIn()
+    {
+    }
+
+    public function whereNotIn()
+    {
+    }
+
+    public function whereBetween()
+    {
+    }
+
+    public function whereNotBetween()
+    {
+    }
+
+    public function orWhere()
+    {
+    }
+
+    public function orWhereIn()
+    {
+    }
+
+    public function orWhereNotIn()
+    {
+    }
+
+    public function orWhereBetween()
+    {
+    }
+
+    public function orWhereNotBetween()
+    {
+    }
+
+    public function select()
+    {
+    }
+
+
+    public function orderBy()
+    {
+    }
+
+    public function take()
+    {
+    }
+
+    public function limit()
+    {
+    }
+
+    public function destroy()
+    {
+    }
+
     /**
      * @throws RequestException
      * @throws ReflectionException
      * @throws FieldNotDefinedInIndexException
      */
-    public static function checkMapping(array $options): void
+    public function checkMapping(array $options): void
     {
         $fields = Elasticsearch::setModel(static::class)
             ->getFields();
@@ -83,7 +168,7 @@ abstract class BaseElasticsearchModel
      */
     public function save(): static
     {
-        static::checkMapping($this->attributes);
+        $this->checkMapping($this->attributes);
 
         Elasticsearch::setModel(static::class)->post(data: $this->attributes);
 
