@@ -38,8 +38,11 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
         $migrationsPath = ElasticApiService::$migrationsPath;
 
-        if (empty($migrationsPath)) {
+        $unMigratedFiles = $this->getUnMigratedFiles($migrationsPath);
+
+        if (empty($migrationsPath) || empty($unMigratedFiles)) {
             $this->info('nothing to migrate');
+            return;
         }
 
         $latestBatch = 0;
@@ -53,6 +56,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
         $latestBatch += 1;
 
+
         foreach ($migrationsPath as $path) {
             $files = File::files($path);
 
@@ -62,7 +66,25 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
     private function isMigratedAlready(string $fileName): bool
     {
-        return boolval(DB::table('elastic_search_migrations_logs')->where('migration', $fileName)->first());
+        return boolval(DB::table('elastic_search_migrations_logs')->where('migrations', $fileName)->first());
+    }
+
+    private function getUnMigratedFiles(array $migrationsPath): array
+    {
+        $migratedFiles = DB::table('elastic_search_migrations_logs')->select('migrations')
+            ->get()->pluck('migrations')->toArray();
+
+        $migrations = [];
+
+        foreach ($migrationsPath as $path) {
+            $files = File::files($path);
+
+            foreach ($files as $file) {
+                $migrations[] = $file->getPath() . '/' . $file->getFilename();
+            }
+        }
+
+        return array_diff($migrations, $migratedFiles);
     }
 
 
@@ -70,7 +92,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
     {
         DB::table('elastic_search_migrations_logs')->insert([
             'batch' => $latestBatch,
-            'migration' => $path
+            'migrations' => $path
         ]);
     }
 
@@ -158,6 +180,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
             if ($this->isMigratedAlready($file->getFilename())) {
                 continue;
             }
+
             try {
                 DB::beginTransaction();
 

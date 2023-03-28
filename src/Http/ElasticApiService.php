@@ -92,11 +92,12 @@ class ElasticApiService implements ElasticHttpRequestInterface
         /**
          * @type BaseElasticsearchModel $elasticModelObject
          */
-        $elasticModelObject = new ReflectionClass($this->elasticModel);
+        $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
 
         $fullPath = trim(
                 config('elasticsearch.host') . ":" . config("elasticsearch.port")
             ) . '/' . $elasticModelObject->getIndex() . '/_doc';
+
 
         if ($path) {
             $fullPath .= '/' . $path;

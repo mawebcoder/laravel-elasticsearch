@@ -117,7 +117,7 @@ abstract class BaseElasticMigration
 
     private function isCreationState(): bool
     {
-        return $this instanceof AlterElasticIndexMigrationInterface;
+        return !$this instanceof AlterElasticIndexMigrationInterface;
     }
 
     /**
@@ -126,6 +126,7 @@ abstract class BaseElasticMigration
      */
     public function up(): void
     {
+
         $this->schema($this);
 
         if ($this->isCreationState()) {
