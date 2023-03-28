@@ -143,8 +143,9 @@ abstract class BaseElasticMigration
      */
     public function down(): void
     {
+
         if ($this->isCreationState()) {
-            Elasticsearch::setModel($this->getModel())->dropModelIndex();
+            Elasticsearch::setModel($this->getModel())->delete();
             return;
         }
 

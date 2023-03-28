@@ -17,8 +17,7 @@ use Throwable;
 
 class MigrateElasticsearchMigrationsCommand extends Command
 {
-    protected $signature = 'elastic:migrate {--reset} {--fresh} {--rollback=1}';
-
+    protected $signature = 'elastic:migrate {--reset} {--fresh}';
     protected $description = 'migrate all loaded elasticsearch migrations';
 
     /**
@@ -35,6 +34,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
         if ($this->option('fresh')) {
             $this->fresh();
+            return;
         }
 
         $migrationsPath = ElasticApiService::$migrationsPath;
@@ -102,32 +102,35 @@ class MigrateElasticsearchMigrationsCommand extends Command
      */
     public function reset(): void
     {
-        try {
-            DB::beginTransaction();
+        $migrations = DB::table('elastic_search_migrations_logs')
+            ->orderBy('batch')
+            ->get();
+        foreach ($migrations as $migration) {
+            try {
+                DB::beginTransaction();
 
-            $migrations = DB::table('elastic_search_migrations_logs')
-                ->orderBy('batch')
-                ->get();
+                $this->warn('reset : ' . $migration->migrations);
 
-            foreach ($migrations as $migration) {
-                $this->info('reset => ' . $migration);
-
-                $path = $migrations->migration;
+                $path = $migration->migrations;
 
                 /**
                  * @type BaseElasticMigration $result
                  */
                 $result = require_once $path;
 
+                DB::table('elastic_search_migrations_logs')
+                    ->where('migrations', $migration->migrations)
+                    ->delete();
+
                 $result->down();
 
-                $this->info('reset done => ' . $migration);
-            }
+                $this->info('reset done : ' . $migration->migrations);
 
-            DB::commit();
-        } catch (Throwable $exception) {
-            DB::rollBack();
-            throw  $exception;
+                DB::commit();
+            } catch (Throwable $exception) {
+                DB::rollBack();
+                throw $exception;
+            }
         }
     }
 
@@ -163,17 +166,13 @@ class MigrateElasticsearchMigrationsCommand extends Command
         $this->info('dropping all indices done');
     }
 
-    /**
-     * @throws Throwable
-     */
-
 
     /**
      * @throws ReflectionException
      * @throws RequestException
      * @throws Throwable
      */
-    public function setMigration(string $path, int $latestBatch):void
+    public function setMigration(string $path, int $latestBatch): void
     {
         if ($this->isMigratedAlready($path)) {
             return;
@@ -190,13 +189,13 @@ class MigrateElasticsearchMigrationsCommand extends Command
                 return;
             }
 
-            $this->info('migrating => ' . $path);
+            $this->warn('migrating : ' . $path);
 
             $this->registerMigrationIntoLog($path, $latestBatch);
 
             $result->up();
 
-            $this->info('migrated => ' . $path);
+            $this->info('migrated : ' . $path);
 
             DB::commit();
         } catch (Throwable $exception) {

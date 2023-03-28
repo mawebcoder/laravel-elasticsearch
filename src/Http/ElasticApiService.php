@@ -75,7 +75,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function delete(?string $path = null, array $data = []): Response
     {
-        $path = $this->generateIndexPath($path);
+        $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
 
         $response = Http::delete($path, $data);
 
