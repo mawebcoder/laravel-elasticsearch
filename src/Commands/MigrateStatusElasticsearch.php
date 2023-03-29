@@ -6,7 +6,13 @@ use Illuminate\Console\Command;
 
 class MigrateStatusElasticsearch extends Command
 {
-    protected $signature = '';
+    protected $signature = 'elastic:migrate-status';
 
-    protected $description = '';
+    protected $description = 'get status of the migrations';
+
+
+    public function handle()
+    {
+        //@todo
+    }
 }
