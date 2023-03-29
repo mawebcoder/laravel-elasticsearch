@@ -141,15 +141,29 @@ abstract class BaseElasticsearchModel
 
     public function select()
     {
+        //@todo
     }
 
 
-    public function orderBy()
+    public function orderBy(string $field, string $direction = 'asc'): void
     {
+        $this->search['sort'][] = [
+            $field => [
+                'order' => $direction
+            ]
+        ];
     }
 
-    public function take()
+    public function take(int $limit): void
     {
+        $this->search['size'] = $limit;
+    }
+
+    public function offset(int $value): void
+    {
+        $this->search['from'] = [
+            "from" => $value
+        ];
     }
 
     public function refreshSearch(): static
@@ -159,8 +173,9 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function limit()
+    public function limit(int $limit): void
     {
+        $this->search['size'] = $limit;
     }
 
     /**
