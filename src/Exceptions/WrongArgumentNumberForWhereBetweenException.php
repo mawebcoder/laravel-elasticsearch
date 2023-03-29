@@ -4,6 +4,6 @@ namespace Mawebcoder\Elasticsearch\Exceptions;
 
 use Exception;
 
-class FieldNotDefinedInIndexException extends Exception
+class WrongArgumentNumberForWhereBetweenException extends Exception
 {
 }

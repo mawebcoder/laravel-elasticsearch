@@ -6,6 +6,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use PHPUnit\Runner\FileDoesNotExistException;
 use ReflectionException;
@@ -241,20 +242,60 @@ abstract class BaseElasticsearchModel
         }
     }
 
-    public function whereIn()
+    public function whereIn(string $field, array $values): void
     {
+        $this->search['query']['bool']['must'][] = [
+            'terms' => [
+                $field => $values
+            ]
+        ];
     }
 
-    public function whereNotIn()
+    public function whereNotIn(string $field, array $values): void
     {
+        $this->search['query']['bool']['must_not'][] = [
+            'terms' => [
+                $field => $values
+            ]
+        ];
     }
 
-    public function whereBetween()
+    /**
+     * @throws WrongArgumentNumberForWhereBetweenException
+     */
+    public function whereBetween(string $field, array $values): void
     {
+        if (count($values) != 2) {
+            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
+        }
+
+        $this->search['query']['bool']['must'][] = [
+            'range' => [
+                $field => [
+                    'gte' => $values[0],
+                    'lte' => $values[1]
+                ]
+            ]
+        ];
     }
 
-    public function whereNotBetween()
+    /**
+     * @throws WrongArgumentNumberForWhereBetweenException
+     */
+    public function whereNotBetween(string $field, array $values): void
     {
+        if (count($values) != 2) {
+            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
+        }
+
+        $this->search['query']['bool']['must'][] = [
+            'range' => [
+                $field => [
+                    'lt' => $values[0],
+                    'gt' => $values[1]
+                ]
+            ]
+        ];
     }
 
     public function orWhere()
