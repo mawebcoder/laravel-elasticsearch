@@ -72,10 +72,10 @@ abstract class BaseElasticsearchModel
      * @throws ReflectionException
      * @throws RequestException
      */
-    public static function find($id): static
+    public function find($id): static
     {
         $response = Elasticsearch::setModel(static::class)
-            ->get($id . '/_source', true);
+            ->get("_doc/" . $id . '/_source');
 
         $response->throw();
 
@@ -152,12 +152,36 @@ abstract class BaseElasticsearchModel
     {
     }
 
+    public function refreshSearch(): static
+    {
+        $this->search = [];
+
+        return $this;
+    }
+
     public function limit()
     {
     }
 
-    public function destroy()
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function destroy(array $ids): true
     {
+        $this->refreshSearch()
+            ->search['query']['bool']['must'][] = [
+            'ids' => [
+                'values' => $ids
+            ]
+        ];
+
+        $result = Elasticsearch::setModel(static::class)
+            ->post("_doc/_delete_by_query", $this->search);
+
+        $result->throw();
+
+        return true;
     }
 
     /**

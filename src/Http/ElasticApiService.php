@@ -29,7 +29,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function post(?string $path = null, array $data = []): Response
     {
-        $path = $this->generateIndexPath($path);
+        $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
         $response = Http::post($path, $data);
 
@@ -43,14 +43,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws RequestException
      * @throws ReflectionException
      */
-    public function get(?string $path = null, bool $hasType = false): Response
+    public function get(?string $path = null): Response
     {
-        if (!$hasType) {
-            $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
-        } else {
-           $path= $this->generateIndexPath($path);
-        }
-
+        $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
         $response = Http::get($path);
 
@@ -65,7 +60,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function put(?string $path = null, array $data = []): Response
     {
-        $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
+        $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
         $response = Http::put($path, $data);
 
@@ -80,7 +75,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function delete(?string $path = null, array $data = []): Response
     {
-        $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
+        $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
         $response = Http::delete($path, $data);
 
@@ -92,23 +87,16 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      */
-    private function generateIndexPath(?string $path = null): string
+    private function generateBaseIndexPath(): string
     {
         /**
          * @type BaseElasticsearchModel $elasticModelObject
          */
         $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
 
-        $fullPath = trim(
+        return trim(
                 config('elasticsearch.host') . ":" . config("elasticsearch.port")
-            ) . '/' . $elasticModelObject->getIndex() . '/_doc';
-
-
-        if ($path) {
-            $fullPath .= '/' . trim($path, '/');
-        }
-
-        return $fullPath;
+            ) . '/' . $elasticModelObject->getIndex();
     }
 
     public function setModel(string $modelName): static
@@ -151,7 +139,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function dropModelIndex(): Response
     {
-        $fullPath = $this->generateIndexPath();
+        $fullPath = $this->generateBaseIndexPath();
 
         $response = Http::delete($fullPath);
 
