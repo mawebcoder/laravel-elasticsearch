@@ -3,6 +3,7 @@
 namespace Mawebcoder\Elasticsearch\Models;
 
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
@@ -90,8 +91,62 @@ abstract class BaseElasticsearchModel
         return $object;
     }
 
-    public function first()
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function first(): null|static
     {
+        $this->search['size'] = 1;
+
+        $result = $this->requestForSearch();
+
+        return $this->mapResultToModelObject($result);
+    }
+
+    public function mapResultToCollection(array $result): Collection
+    {
+        $total = $result['hits']['total']['value'];
+
+        if (!$total) {
+            return collect();
+        }
+
+        $results = $result['hits']['hits'];
+
+        $collection = collect();
+
+        foreach ($results as $value) {
+            $collection->add($this->mapResultToModelObject($value));
+        }
+
+        return $collection;
+    }
+
+    public function mapResultToModelObject(array $result): null|static
+    {
+        $object = new static();
+
+        foreach ($result as $key => $value) {
+            $object->{$key} = $value;
+        }
+
+        return $object;
+    }
+
+    /**
+     * @return array|mixed
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function requestForSearch(): mixed
+    {
+        $response = Elasticsearch::setModel(static::class)
+            ->post('_doc/_search/_source', $this->search);
+
+        $response->throw();
+
+        return $response->json();
     }
 
     public function get()
