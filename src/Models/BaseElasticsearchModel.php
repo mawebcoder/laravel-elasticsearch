@@ -108,7 +108,7 @@ abstract class BaseElasticsearchModel
             return null;
         }
 
-        $result = $result['hits']['hits'][0];
+        $result = $result['hits']['hits'][0]['_source'];
 
         return $this->mapResultToModelObject($result);
     }
@@ -126,7 +126,7 @@ abstract class BaseElasticsearchModel
         $collection = collect();
 
         foreach ($results as $value) {
-            $collection->add($this->mapResultToModelObject($value));
+            $collection->add($this->mapResultToModelObject($value['_source']));
         }
 
         return $collection;
@@ -158,13 +158,87 @@ abstract class BaseElasticsearchModel
         return $response->json();
     }
 
-    public function get()
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function get(): Collection
     {
+        $response = $this->requestForSearch();
+
+        return $this->mapResultToCollection($response);
     }
 
 
-    public function where()
+    public function where(string $field, ?string $operation = null, ?string $value = null): void
     {
+        if (!$value) {
+            $value = $operation;
+            $operation = '=';
+        }
+        if (!$operation) {
+            $operation = '=';
+        }
+
+        switch ($operation) {
+            case "<>":
+            case "!=":
+                $this->search['query']['bool']['must_not'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case ">":
+                $this->search['query']['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "gt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case ">=":
+                $this->search['query']['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "gte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "<":
+                $this->search['query']['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "lt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "<=":
+                $this->search['query']['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "lte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case '=':
+            default:
+                $this->search['query']['bool']['must'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
     }
 
     public function whereIn()
