@@ -16,8 +16,9 @@ abstract class BaseElasticsearchModel
     public array $attributes = [];
 
     public array $search = [
+        "sort" => [],
         "query" => [
-            "sort" => [],
+
             "bool" => [
                 "must" => [
                 ],
@@ -100,6 +101,14 @@ abstract class BaseElasticsearchModel
         $this->search['size'] = 1;
 
         $result = $this->requestForSearch();
+
+        $resultCount = $result['hits']['total']['value'];
+
+        if (!$resultCount) {
+            return null;
+        }
+
+        $result = $result['hits']['hits'][0];
 
         return $this->mapResultToModelObject($result);
     }
