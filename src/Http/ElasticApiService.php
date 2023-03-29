@@ -43,9 +43,14 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws RequestException
      * @throws ReflectionException
      */
-    public function get(?string $path = null): Response
+    public function get(?string $path = null, bool $hasType = false): Response
     {
-        $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
+        if (!$hasType) {
+            $path = trim(str_replace('_doc', '', $this->generateIndexPath($path)), '/');
+        } else {
+           $path= $this->generateIndexPath($path);
+        }
+
 
         $response = Http::get($path);
 

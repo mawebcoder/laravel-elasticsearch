@@ -68,8 +68,26 @@ abstract class BaseElasticsearchModel
         //@todo
     }
 
-    public function find(int $id)
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public static function find($id): static
     {
+        $response = Elasticsearch::setModel(static::class)
+            ->get($id . '/_source', true);
+
+        $response->throw();
+
+        $result = $response->json();
+
+        $object = new static();
+
+        foreach ($result as $key => $value) {
+            $object->{$key} = $value;
+        }
+
+        return $object;
     }
 
     public function first()
