@@ -3,6 +3,7 @@
 namespace Mawebcoder\Elasticsearch\Models;
 
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
@@ -16,13 +17,27 @@ abstract class BaseElasticsearchModel
 
     public array $attributes = [];
 
+    const MUST_INDEX = 0;
+    const MUST_NOT_INDEX = 1;
     public array $search = [
-        "sort" => [],
         "query" => [
-
             "bool" => [
-                "must" => [
-                ],
+                "should" => [
+                    self::MUST_INDEX => [
+                        "bool" => [
+                            "must" => [
+
+                            ]
+                        ]
+                    ],
+                    self::MUST_NOT_INDEX => [
+                        "bool" => [
+                            "must_not" => [
+
+                            ]
+                        ]
+                    ]
+                ]
             ]
         ]
     ];
@@ -48,8 +63,11 @@ abstract class BaseElasticsearchModel
      */
     public function create(array $options): static
     {
-        //@todo check if id exists so define costum id for it
         $object = new static();
+
+        if (array_key_exists('id', $options)) {
+            $object->id = $options['id'];
+        }
 
         foreach ($options as $key => $value) {
             $object->{$key} = $value;
@@ -171,7 +189,7 @@ abstract class BaseElasticsearchModel
     }
 
 
-    public function where(string $field, ?string $operation = null, ?string $value = null): void
+    public function where(string $field, ?string $operation = null, ?string $value = null): static
     {
         if (!$value) {
             $value = $operation;
@@ -184,7 +202,7 @@ abstract class BaseElasticsearchModel
         switch ($operation) {
             case "<>":
             case "!=":
-                $this->search['query']['bool']['must_not'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX][]['bool']['must_not'][] = [
                     "term" => [
                         $field => [
                             'value' => $value
@@ -194,7 +212,7 @@ abstract class BaseElasticsearchModel
                 break;
 
             case ">":
-                $this->search['query']['bool']['must'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     'range' => [
                         $field => [
                             "gt" => $value
@@ -203,7 +221,7 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
             case ">=":
-                $this->search['query']['bool']['must'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     'range' => [
                         $field => [
                             "gte" => $value
@@ -212,7 +230,7 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
             case "<":
-                $this->search['query']['bool']['must'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     'range' => [
                         $field => [
                             "lt" => $value
@@ -221,7 +239,7 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
             case "<=":
-                $this->search['query']['bool']['must'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     'range' => [
                         $field => [
                             "lte" => $value
@@ -231,7 +249,7 @@ abstract class BaseElasticsearchModel
                 break;
             case '=':
             default:
-                $this->search['query']['bool']['must'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $field => [
                             'value' => $value
@@ -240,30 +258,72 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
         }
+
+        return $this;
     }
 
-    public function whereIn(string $field, array $values): void
+    public function whereTerm(string $field, ?string $operation = null, ?string $value = null): static
+    {
+        if (!$value) {
+            $value = $operation;
+            $operation = '=';
+        }
+        if (!$operation) {
+            $operation = '=';
+        }
+
+        switch ($operation) {
+            case "<>":
+            case "!=":
+                $this->search['query']['bool']['should'][self::MUST_INDEX][]['bool']['must_not'][] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+            case '=':
+            default:
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
+
+        return $this;
+    }
+
+    public function whereIn(string $field, array $values): static
     {
         $this->search['query']['bool']['must'][] = [
             'terms' => [
                 $field => $values
             ]
         ];
+
+        return $this;
     }
 
-    public function whereNotIn(string $field, array $values): void
+    public function whereNotIn(string $field, array $values): static
     {
         $this->search['query']['bool']['must_not'][] = [
             'terms' => [
                 $field => $values
             ]
         ];
+
+        return $this;
     }
 
     /**
      * @throws WrongArgumentNumberForWhereBetweenException
      */
-    public function whereBetween(string $field, array $values): void
+    public function whereBetween(string $field, array $values): static
     {
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
@@ -277,12 +337,14 @@ abstract class BaseElasticsearchModel
                 ]
             ]
         ];
+
+        return $this;
     }
 
     /**
      * @throws WrongArgumentNumberForWhereBetweenException
      */
-    public function whereNotBetween(string $field, array $values): void
+    public function whereNotBetween(string $field, array $values): static
     {
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
@@ -296,6 +358,8 @@ abstract class BaseElasticsearchModel
                 ]
             ]
         ];
+
+        return $this;
     }
 
     public function orWhere()
@@ -324,25 +388,30 @@ abstract class BaseElasticsearchModel
     }
 
 
-    public function orderBy(string $field, string $direction = 'asc'): void
+    public function orderBy(string $field, string $direction = 'asc'): static
     {
         $this->search['sort'][] = [
             $field => [
                 'order' => $direction
             ]
         ];
+
+        return $this;
     }
 
-    public function take(int $limit): void
+    public function take(int $limit): static
     {
         $this->search['size'] = $limit;
+        return $this;
     }
 
-    public function offset(int $value): void
+    public function offset(int $value): static
     {
         $this->search['from'] = [
             "from" => $value
         ];
+
+        return $this;
     }
 
     public function refreshSearch(): static
@@ -352,9 +421,9 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function limit(int $limit): void
+    public function limit(int $limit): static
     {
-        $this->search['size'] = $limit;
+        return $this->take($limit);
     }
 
     /**
@@ -404,9 +473,15 @@ abstract class BaseElasticsearchModel
      */
     public function save(): static
     {
-        $this->checkMapping($this->attributes);
+        $this->checkMapping(Arr::except($this->attributes, 'id'));
 
-        Elasticsearch::setModel(static::class)->post(data: $this->attributes);
+        $path = array_key_exists('id', $this->attributes) ?
+            "_doc/" . $this->attributes['id'] : '_doc';
+
+        Elasticsearch::setModel(static::class)->post(
+            path: $path,
+            data: Arr::except($this->attributes, 'id')
+        );
 
         return $this;
     }
