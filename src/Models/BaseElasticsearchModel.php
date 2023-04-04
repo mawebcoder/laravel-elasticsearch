@@ -531,9 +531,13 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function select()
+    public function select(...$args): void
     {
-        //@todo
+        $selections = func_get_args();
+
+        foreach ($selections as $selection) {
+            $this->search['fields'][] = $selection;
+        }
     }
 
 
@@ -624,11 +628,9 @@ abstract class BaseElasticsearchModel
     {
         $this->checkMapping(Arr::except($this->attributes, 'id'));
 
-        $path = array_key_exists('id', $this->attributes) ?
-            "_doc/" . $this->attributes['id'] : '_doc';
-
         Elasticsearch::setModel(static::class)->post(
-            path: $path,
+            path: array_key_exists('id', $this->attributes) ?
+                "_doc/" . $this->attributes['id'] : '_doc',
             data: Arr::except($this->attributes, 'id')
         );
 
