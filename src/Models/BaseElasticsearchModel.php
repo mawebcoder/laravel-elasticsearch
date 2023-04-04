@@ -79,9 +79,21 @@ abstract class BaseElasticsearchModel
     /**
      * @throws ReflectionException
      * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
      */
     public function update(array $options): void
     {
+        $this->checkMapping($options);
+
+
+        foreach ($options as $key => $value) {
+            $this->search['script']['source'] .= "ctx._source.$key=params." . $key . ';';
+
+            $this->search['script']['source']['params'][$key] = $value;
+        }
+
+        $this->search['script']['source'] = trim($this->search['script']['source'], ';');
+
         $response = Elasticsearch::setModel(static::class)
             ->post('_update_by_query', $this->search);
 

@@ -6,7 +6,6 @@ use Illuminate\Support\ServiceProvider;
 use Mawebcoder\Elasticsearch\Commands\MigrateElasticsearchMigrationsCommand;
 use Mawebcoder\Elasticsearch\Commands\MigrateStatusElasticsearch;
 use Mawebcoder\Elasticsearch\Commands\MigrationRollbackElasticsearchCommand;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
 
@@ -18,7 +17,7 @@ class ElasticsearchServiceProvider extends ServiceProvider
         $this->commands([
             MigrateElasticsearchMigrationsCommand::class,
             MigrationRollbackElasticsearchCommand::class,
-            MigrateStatusElasticsearch::class
+            MigrateStatusElasticsearch::class,
         ]);
 
         $this->app->bind(ElasticHttpRequestInterface::class, ElasticApiService::class);

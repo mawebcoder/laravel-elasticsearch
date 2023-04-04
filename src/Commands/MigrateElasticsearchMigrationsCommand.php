@@ -37,6 +37,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
             return;
         }
 
+
         $this->implementMigrating();
     }
 
@@ -215,7 +216,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
             /**
              * @type BaseElasticMigration $result
              */
-            $result = require_once $path;
+            $result = require $path;
 
             if (!$result instanceof BaseElasticMigration) {
                 return;
@@ -259,10 +260,12 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
         $unMigratedFiles = $this->getUnMigratedFiles($migrationsPath);
 
+
         if (empty($migrationsPath) || empty($unMigratedFiles)) {
             $this->info('nothing to migrate');
             return;
         }
+
 
         $latestBatch = 0;
 
@@ -274,6 +277,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
         }
 
         $latestBatch += 1;
+
 
         foreach ($unMigratedFiles as $path) {
             $this->setMigration($path, $latestBatch);
