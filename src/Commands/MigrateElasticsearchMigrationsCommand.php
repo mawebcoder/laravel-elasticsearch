@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\File;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionClass;
 use ReflectionException;
 use Throwable;
@@ -54,8 +55,14 @@ class MigrateElasticsearchMigrationsCommand extends Command
         foreach ($migrationsPath as $path) {
             $files = File::files($path);
 
+
             foreach ($files as $file) {
-                $migrations[] = $file->getPath() . '/' . $file->getFilename();
+                $migrationObject = require $file->getRealPath();
+
+                if (!$migrationObject instanceof BaseElasticMigration) {
+                    continue;
+                }
+                $migrations[] = $file->getRealPath();
             }
         }
 
@@ -63,11 +70,12 @@ class MigrateElasticsearchMigrationsCommand extends Command
     }
 
 
-    private function registerMigrationIntoLog(string $path, int $latestBatch)
+    private function registerMigrationIntoLog(string $path, int $latestBatch, string $index)
     {
         DB::table('elastic_search_migrations_logs')->insert([
             'batch' => $latestBatch,
-            'migrations' => $path
+            'migrations' => $path,
+            'index' => $index
         ]);
     }
 
@@ -152,12 +160,16 @@ class MigrateElasticsearchMigrationsCommand extends Command
             $this->info('all indices dropped');
 
             foreach ($allMigrationsPath as $path) {
-
+                /**
+                 * @type BaseElasticMigration $result
+                 */
                 $result = require $path;
+
+                $index = $this->getIndex($result->getModel());
 
                 $this->info('migrating : ' . $path);
 
-                $this->registerMigrationIntoLog($path, 1);
+                $this->registerMigrationIntoLog($path, 1, $index);
 
                 $result->up();
 
@@ -171,6 +183,19 @@ class MigrateElasticsearchMigrationsCommand extends Command
             DB::rollBack();
             throw $exception;
         }
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    private function getIndex(string $model): string
+    {
+        /**
+         * @type BaseElasticsearchModel $object
+         */
+        $object = (new ReflectionClass($model))->newInstance();
+
+        return $object->getIndex();
     }
 
 
@@ -196,9 +221,11 @@ class MigrateElasticsearchMigrationsCommand extends Command
                 return;
             }
 
+            $index = $this->getIndex($result->getModel());
+
             $this->warn('migrating : ' . $path);
 
-            $this->registerMigrationIntoLog($path, $latestBatch);
+            $this->registerMigrationIntoLog($path, $latestBatch, $index);
 
             $result->up();
 
