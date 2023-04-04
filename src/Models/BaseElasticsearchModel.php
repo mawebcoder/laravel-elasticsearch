@@ -5,18 +5,16 @@ namespace Mawebcoder\Elasticsearch\Models;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use PHPUnit\Runner\FileDoesNotExistException;
 use ReflectionException;
+use Throwable;
 
 abstract class BaseElasticsearchModel
 {
-
     public array $attributes = [];
-
     const MUST_INDEX = 0;
     const MUST_NOT_INDEX = 1;
     public array $search = [
@@ -78,15 +76,74 @@ abstract class BaseElasticsearchModel
         return $object;
     }
 
-    public function update(array $options)
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function update(array $options): void
     {
-        //@todo
+        $response = Elasticsearch::setModel(static::class)
+            ->post('_update_by_query', $this->search);
+
+        $response->throw();
+
+        $this->refreshQueryBuilder();
+    }
+
+    private function refreshQueryBuilder(): void
+    {
+        $this->search = [];
     }
 
 
-    public function delete(array $options)
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function delete(): void
     {
-        //@todo
+        $mustDeleteIndex = false;
+
+        if (!isset($this->search['query'])) {
+            $mustDeleteIndex = true;
+        }
+
+        if (!isset($this->search['query']['bool'])) {
+            $mustDeleteIndex = true;
+        }
+
+        if (!isset($this->search['query']['bool']['should'])) {
+            $mustDeleteIndex = true;
+        }
+
+        if (empty($this->search['query']['bool']['should'])) {
+            $mustDeleteIndex = true;
+        }
+
+        try {
+            if ($mustDeleteIndex) {
+                DB::table('elastic_search_migrations_logs')
+                    ->where('index', $this->getIndex())
+                    ->delete();
+
+
+                Elasticsearch::setModel(static::class)
+                    ->delete();
+
+                return;
+            }
+
+            $response = Elasticsearch::setModel(static::class)
+                ->post('_delete_by_query', $this->search);
+
+            $response->throw();
+
+            DB::commit();
+        } catch (Throwable $exception) {
+            DB::rollBack();
+            throw  $exception;
+        }
     }
 
     /**
@@ -95,8 +152,16 @@ abstract class BaseElasticsearchModel
      */
     public function find($id): static
     {
+        $this->search['query']['bool']['should'] = [];
+
+        $this->search['query']['bool']['should'][] = [
+            'ids' => [
+                'values' => [$id]
+            ]
+        ];
+
         $response = Elasticsearch::setModel(static::class)
-            ->get("_doc/" . $id . '/_source');
+            ->post('_search', $this->search);
 
         $response->throw();
 
@@ -191,18 +256,12 @@ abstract class BaseElasticsearchModel
 
     public function where(string $field, ?string $operation = null, ?string $value = null): static
     {
-        if (!$value) {
-            $value = $operation;
-            $operation = '=';
-        }
-        if (!$operation) {
-            $operation = '=';
-        }
+        list($value, $operation) = $this->getOperationValue($value, $operation);
 
         switch ($operation) {
             case "<>":
             case "!=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX][]['bool']['must_not'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                     "term" => [
                         $field => [
                             'value' => $value
@@ -264,18 +323,12 @@ abstract class BaseElasticsearchModel
 
     public function whereTerm(string $field, ?string $operation = null, ?string $value = null): static
     {
-        if (!$value) {
-            $value = $operation;
-            $operation = '=';
-        }
-        if (!$operation) {
-            $operation = '=';
-        }
+        list($value, $operation) = $this->getOperationValue($value, $operation);
 
         switch ($operation) {
             case "<>":
             case "!=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX][]['bool']['must_not'][] = [
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                     "match" => [
                         $field => [
                             'query' => $value
@@ -300,7 +353,7 @@ abstract class BaseElasticsearchModel
 
     public function whereIn(string $field, array $values): static
     {
-        $this->search['query']['bool']['must'][] = [
+        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
                 $field => $values
             ]
@@ -311,7 +364,7 @@ abstract class BaseElasticsearchModel
 
     public function whereNotIn(string $field, array $values): static
     {
-        $this->search['query']['bool']['must_not'][] = [
+        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
                 $field => $values
             ]
@@ -329,7 +382,7 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
-        $this->search['query']['bool']['must'][] = [
+        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $field => [
                     'gte' => $values[0],
@@ -350,7 +403,7 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
-        $this->search['query']['bool']['must'][] = [
+        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'range' => [
                 $field => [
                     'lt' => $values[0],
@@ -362,24 +415,120 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function orWhere()
+    public function orWhere(string $field, ?string $operation = null, ?string $value = null): static
     {
+        list($value, $operation) = $this->getOperationValue($value, $operation);
+
+        switch ($operation) {
+            case "<>":
+            case "!=":
+                $this->search['query']['bool']['should'][]['bool']['must_not'] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case ">":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "gt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case ">=":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "gte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "<":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "lt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "<=":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "lte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case '=':
+            default:
+                $this->search['query']['bool']['should'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
+        return $this;
     }
 
-    public function orWhereIn()
+    public function orWhereIn(string $field, array $values): static
     {
+        $this->search['query']['bool']['should'][] = [
+            'terms' => [
+                $field => $values
+            ]
+        ];
+
+        return $this;
     }
 
-    public function orWhereNotIn()
+    public function orWhereNotIn(string $field, array $values): static
     {
+        $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+            'terms' => [
+                $field => $values
+            ]
+        ];
+
+        return $this;
     }
 
-    public function orWhereBetween()
+    public function orWhereBetween(string $field, array $values): static
     {
+        $this->search['query']['bool']['should'][] = [
+            'range' => [
+                $field => [
+                    'lt' => $values[0],
+                    'gt' => $values[1]
+                ]
+            ]
+        ];
+
+        return $this;
     }
 
-    public function orWhereNotBetween()
+    public function orWhereNotBetween(string $field, array $values): static
     {
+        $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+            'range' => [
+                $field => [
+                    'lt' => $values[0],
+                    'gt' => $values[1]
+                ]
+            ]
+        ];
+
+        return $this;
     }
 
     public function select()
@@ -484,5 +633,22 @@ abstract class BaseElasticsearchModel
         );
 
         return $this;
+    }
+
+    /**
+     * @param string|null $value
+     * @param string|null $operation
+     * @return null[]|string[]
+     */
+    public function getOperationValue(?string $value, ?string $operation): array
+    {
+        if (!$value) {
+            $value = $operation;
+            $operation = '=';
+        }
+        if (!$operation) {
+            $operation = '=';
+        }
+        return array($value, $operation);
     }
 }
