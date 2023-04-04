@@ -85,11 +85,12 @@ abstract class BaseElasticsearchModel
     {
         $this->checkMapping($options);
 
+        $this->search['script']['source'] = '';
 
         foreach ($options as $key => $value) {
             $this->search['script']['source'] .= "ctx._source.$key=params." . $key . ';';
 
-            $this->search['script']['source']['params'][$key] = $value;
+            $this->search['script']['params'][$key] = $value;
         }
 
         $this->search['script']['source'] = trim($this->search['script']['source'], ';');
@@ -625,7 +626,7 @@ abstract class BaseElasticsearchModel
         foreach ($options as $field => $option) {
             if (!in_array($field, $fields)) {
                 throw new FieldNotDefinedInIndexException(
-                    message: "field with name " . $field . "not defined in model index"
+                    message: "field with name " . $field . " not defined in model index"
                 );
             }
         }

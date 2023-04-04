@@ -17,7 +17,7 @@ class ElasticsearchServiceProvider extends ServiceProvider
         $this->commands([
             MigrateElasticsearchMigrationsCommand::class,
             MigrationRollbackElasticsearchCommand::class,
-            MigrateStatusElasticsearch::class,
+            MigrateStatusElasticsearch::class
         ]);
 
         $this->app->bind(ElasticHttpRequestInterface::class, ElasticApiService::class);
