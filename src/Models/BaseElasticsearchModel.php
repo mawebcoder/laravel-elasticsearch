@@ -108,7 +108,6 @@ abstract class BaseElasticsearchModel
         $this->search = [];
     }
 
-
     /**
      * @throws ReflectionException
      * @throws RequestException
@@ -546,11 +545,7 @@ abstract class BaseElasticsearchModel
 
     public function select(...$args): void
     {
-        $selections = func_get_args();
-
-        foreach ($selections as $selection) {
-            $this->search['fields'][] = $selection;
-        }
+        $this->search['fields'] = $args;
     }
 
 
