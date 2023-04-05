@@ -15,8 +15,8 @@ use Throwable;
 abstract class BaseElasticsearchModel
 {
     public array $attributes = [];
-    const MUST_INDEX = 0;
-    const MUST_NOT_INDEX = 1;
+    public const MUST_INDEX = 0;
+    public const MUST_NOT_INDEX = 1;
     public array $search = [
         "query" => [
             "bool" => [
@@ -24,13 +24,6 @@ abstract class BaseElasticsearchModel
                     self::MUST_INDEX => [
                         "bool" => [
                             "must" => [
-
-                            ]
-                        ]
-                    ],
-                    self::MUST_NOT_INDEX => [
-                        "bool" => [
-                            "must_not" => [
 
                             ]
                         ]
@@ -593,7 +586,7 @@ abstract class BaseElasticsearchModel
      * @throws ReflectionException
      * @throws RequestException
      */
-    public function destroy(array $ids): true
+    public function destroy(array $ids): bool
     {
         $this->refreshSearch()
             ->search['query']['bool']['must'][] = [
