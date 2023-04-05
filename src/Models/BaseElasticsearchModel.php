@@ -108,7 +108,6 @@ abstract class BaseElasticsearchModel
         $this->search = [];
     }
 
-
     /**
      * @throws ReflectionException
      * @throws RequestException
@@ -271,6 +270,7 @@ abstract class BaseElasticsearchModel
     {
         list($value, $operation) = $this->getOperationValue($value, $operation);
 
+
         switch ($operation) {
             case "<>":
             case "!=":
@@ -374,6 +374,7 @@ abstract class BaseElasticsearchModel
 
         return $this;
     }
+
 
     public function whereNotIn(string $field, array $values): static
     {
@@ -546,11 +547,7 @@ abstract class BaseElasticsearchModel
 
     public function select(...$args): void
     {
-        $selections = func_get_args();
-
-        foreach ($selections as $selection) {
-            $this->search['fields'][] = $selection;
-        }
+        $this->search['fields'] = $args;
     }
 
 
