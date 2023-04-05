@@ -270,6 +270,7 @@ abstract class BaseElasticsearchModel
     {
         list($value, $operation) = $this->getOperationValue($value, $operation);
 
+
         switch ($operation) {
             case "<>":
             case "!=":
@@ -373,6 +374,7 @@ abstract class BaseElasticsearchModel
 
         return $this;
     }
+
 
     public function whereNotIn(string $field, array $values): static
     {
