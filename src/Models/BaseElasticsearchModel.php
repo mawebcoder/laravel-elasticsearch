@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Throwable;
@@ -261,7 +262,7 @@ abstract class BaseElasticsearchModel
 
     public function where(string $field, ?string $operation = null, ?string $value = null): static
     {
-        list($value, $operation) = $this->getOperationValue($value, $operation);
+        [$value, $operation] = $this->getOperationValue($value, $operation);
 
 
         switch ($operation) {
@@ -381,12 +382,20 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param int[] $values
      * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
      */
     public function whereBetween(string $field, array $values): static
     {
-        if (count($values) != 2) {
+        if (count($values) != 2)
+        {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
+        }
+
+        if (!$this->isNumericArray($values))
+        {
+            throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
@@ -403,11 +412,17 @@ abstract class BaseElasticsearchModel
 
     /**
      * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
      */
     public function whereNotBetween(string $field, array $values): static
     {
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
+        }
+
+        if (!$this->isNumericArray($values))
+        {
+            throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
@@ -655,5 +670,10 @@ abstract class BaseElasticsearchModel
             $operation = '=';
         }
         return array($value, $operation);
+    }
+
+    private function isNumericArray(array $values): bool
+    {
+        return is_numeric(implode('', $values));
     }
 }
