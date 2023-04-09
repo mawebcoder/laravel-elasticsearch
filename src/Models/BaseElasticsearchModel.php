@@ -359,6 +359,36 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    public function orWhereTerm(string $field, ?string $operation = null, ?string $value = null): static
+    {
+        list($value, $operation) = $this->getOperationValue($value, $operation);
+
+        switch ($operation) {
+            case "<>":
+            case "!=":
+                $this->search['query']['bool']['should'][]['bool']['must_not'] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+            case '=':
+            default:
+                $this->search['query']['bool']['should'][] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
+
+        return $this;
+    }
+
     public function whereIn(string $field, array $values): static
     {
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
