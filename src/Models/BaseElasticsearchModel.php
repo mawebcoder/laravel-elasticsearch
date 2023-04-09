@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
@@ -525,8 +526,21 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    /**
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
+     */
     public function orWhereBetween(string $field, array $values): static
     {
+        if (count($values) != 2) {
+            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
+        }
+
+        if (!$this->isNumericArray($values))
+        {
+            throw new WrongArgumentType(message: 'values must be numeric.');
+        }
+
         $this->search['query']['bool']['should'][] = [
             'range' => [
                 $field => [
@@ -539,8 +553,21 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    /**
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
+     */
     public function orWhereNotBetween(string $field, array $values): static
     {
+        if (count($values) != 2) {
+            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
+        }
+
+        if (!$this->isNumericArray($values))
+        {
+            throw new WrongArgumentType(message: 'values must be numeric.');
+        }
+
         $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
             'range' => [
                 $field => [
@@ -553,14 +580,22 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function select(...$args): void
+    public function select(): void
     {
-        $this->search['fields'] = $args;
+        $this->search['fields'] = array_merge([], ...func_get_args());
     }
 
 
+    /**
+     * @throws InvalidSortDirection
+     */
     public function orderBy(string $field, string $direction = 'asc'): static
     {
+        if ($direction && !in_array($direction, ['asc', 'desc']))
+        {
+            throw new InvalidSortDirection(message: 'sort direction must be either asc or desc.');
+        }
+
         $this->search['sort'][] = [
             $field => [
                 'order' => $direction
@@ -578,9 +613,7 @@ abstract class BaseElasticsearchModel
 
     public function offset(int $value): static
     {
-        $this->search['from'] = [
-            "from" => $value
-        ];
+        $this->search['from'] = $value;
 
         return $this;
     }
