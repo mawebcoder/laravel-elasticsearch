@@ -324,8 +324,6 @@ class ElasticQueryBuilderTest extends TestCase
 
         $elastic->whereBetween($field, $values);
 
-        $expected = [];
-
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $field => [
@@ -678,8 +676,6 @@ class ElasticQueryBuilderTest extends TestCase
         $values = [1, 9];
 
         $elastic->orWhereBetween($field, $values);
-
-        $expected = [];
 
         $this->expected['query']['bool']['should'][] = [
             'range' => [
