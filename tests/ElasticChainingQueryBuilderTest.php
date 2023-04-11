@@ -25,27 +25,32 @@ class ElasticChainingQueryBuilderTest extends TestCase
         ]
     ];
 
+    public string $field        = 'test_field';
+    public string $value        = 'test';
+    public string $dateField    = 'test_date';
+    public array $betweenValues = [1, 9];
+    public string $otherField   = 'test_id';
+    public array $exceptions    = ['foo', 'bar', 'xyz'];
+    public array $values        = ['foo', 'bar', 'xyz'];
+
     public function test_elastic_chaining_where_or_where(): void
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-
-        $elastic->where($field, $value)->orWhere($field, $value);
+        $elastic->where($this->field, $this->value)->orWhere($this->field, $this->value);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
@@ -57,23 +62,20 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-
-        $elastic->orWhere($field, $value)->where($field, $value);
+        $elastic->orWhere($this->field, $this->value)->where($this->field, $this->value);
 
         $this->expected['query']['bool']['should'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
@@ -85,23 +87,20 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-
-        $elastic->where($field, $value)->orWhereTerm($field, $value);
+        $elastic->where($this->field, $this->value)->orWhereTerm($this->field, $this->value);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][] = [
                     "match" => [
-                        $field => [
-                            'query' => $value
+                        $this->field => [
+                            'query' => $this->value
                         ]
                     ]
                 ];
@@ -113,24 +112,22 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
         $operation = '<>';
 
-        $elastic->whereTerm($field, $operation, $value)->orWhere($field, $value);
+        $elastic->whereTerm($this->field, $operation, $this->value)->orWhere($this->field, $this->value);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                     "match" => [
-                        $field => [
-                            'query' => $value
+                        $this->field => [
+                            'query' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
@@ -142,24 +139,19 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-        $otherField = 'test_id';
-        $values = ['foo', 'bar', 'xyz'];
-
-        $elastic->whereTerm($field, $value)->whereIn($otherField, $values);
+        $elastic->whereTerm($this->field, $this->value)->whereIn($this->otherField, $this->values);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "match" => [
-                        $field => [
-                            'query' => $value
+                        $this->field => [
+                            'query' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
-                $otherField => $values
+                $this->otherField => $this->values
             ]
         ];
 
@@ -170,24 +162,19 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-        $otherField = 'test_id';
-        $values = ['foo', 'bar', 'xyz'];
-
-        $elastic->whereTerm($field, $value)->whereNotIn($otherField, $values);
+        $elastic->whereTerm($this->field, $this->value)->whereNotIn($this->otherField, $this->values);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "match" => [
-                        $field => [
-                            'query' => $value
+                        $this->field => [
+                            'query' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
-                $otherField => $values
+                $this->otherField => $this->values
             ]
         ];
 
@@ -198,24 +185,19 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-        $otherField = 'test_id';
-        $values = ['foo', 'bar', 'xyz'];
-
-        $elastic->where($field, $value)->whereNotIn($otherField, $values);
+        $elastic->where($this->field, $this->value)->whereNotIn($this->otherField, $this->values);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
-                $otherField => $values
+                $this->otherField => $this->values
             ]
         ];
 
@@ -230,27 +212,98 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $values = ['foo', 'bar', 'xyz'];
-        $dateField = 'test_date';
-        $betweenValues = [1, 9];
-
-        $elastic->whereIn($field, $values)->whereNotBetween($dateField, $betweenValues);
+        $elastic->whereIn($this->field, $this->values)->whereNotBetween($this->dateField, $this->betweenValues);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
-                $field => $values
+                $this->field => $this->values
             ]
         ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'range' => [
-                $dateField => [
-                    'lt' => $betweenValues[0],
-                    'gt' => $betweenValues[1]
+                $this->dateField => [
+                    'lt' => $this->betweenValues[0],
+                    'gt' => $this->betweenValues[1]
                 ]
             ]
         ];
+
+        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+    }
+
+    /**
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
+     */
+    public function test_elastic_chaining_where_in_or_where_between_or_where(): void
+    {
+        $elastic = new Elasticsearch();
+
+        $elastic->whereIn($this->field, $this->values)
+            ->orWhereBetween($this->dateField, $this->betweenValues)
+            ->orWhere($this->otherField, $this->value);
+
+        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+            'terms' => [
+                $this->field => $this->values
+            ]
+        ];
+
+        $this->expected['query']['bool']['should'][] = [
+            'range' => [
+                $this->dateField => [
+                    'lt' => $this->betweenValues[0],
+                    'gt' => $this->betweenValues[1]
+                ]
+            ]
+        ];
+
+        $this->expected['query']['bool']['should'][] = [
+                    "term" => [
+                        $this->otherField => [
+                            'value' => $this->value
+                        ]
+                    ]
+                ];
+
+        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+    }
+
+    /**
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
+     */
+    public function test_elastic_chaining_where_not_in_and_where_not_between_and_where(): void
+    {
+        $elastic = new Elasticsearch();
+
+        $elastic->whereNotIn($this->field, $this->values)
+            ->orWhereNotBetween($this->dateField, $this->betweenValues)
+            ->where($this->otherField, $this->value);
+
+        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+            'terms' => [
+                $this->otherField => $this->exceptions
+            ]
+        ];
+
+        $this->expected['query']['bool']['should'][]['bool']['must_not'][] = [
+            'range' => [
+                $this->dateField => [
+                    'lt' => $this->betweenValues[0],
+                    'gt' => $this->betweenValues[1]
+                ]
+            ]
+        ];
+
+        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+                    "term" => [
+                        $this->field => [
+                            'value' => $this->value
+                        ]
+                    ]
+                ];
 
         $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
     }
@@ -263,46 +316,39 @@ class ElasticChainingQueryBuilderTest extends TestCase
     {
         $elastic = new Elasticsearch();
 
-        $field = 'test_field';
-        $value = 'test';
-        $dateField = 'test_date';
-        $betweenValues = [1, 9];
-        $otherField = 'test_id';
-        $exceptions = ['foo', 'bar', 'xyz'];
-
-        $elastic->where($field, $value)
-            ->orWhereTerm($field, $value)
-            ->whereBetween($dateField, $betweenValues)
-            ->whereNotIn($otherField, $exceptions);
+        $elastic->where($this->field, $this->value)
+            ->orWhereTerm($this->field, $this->value)
+            ->whereBetween($this->dateField, $this->betweenValues)
+            ->whereNotIn($this->otherField, $this->exceptions);
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
-                        $field => [
-                            'value' => $value
+                        $this->field => [
+                            'value' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][] = [
                     "match" => [
-                        $field => [
-                            'query' => $value
+                        $this->field => [
+                            'query' => $this->value
                         ]
                     ]
                 ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
             'range' => [
-                $field => [
-                    'gte' => $betweenValues[0],
-                    'lte' => $betweenValues[1]
+                $this->field => [
+                    'gte' => $this->betweenValues[0],
+                    'lte' => $this->betweenValues[1]
                 ]
             ]
         ];
 
         $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
-                $otherField => $exceptions
+                $this->otherField => $this->exceptions
             ]
         ];
 
