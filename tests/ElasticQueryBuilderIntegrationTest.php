@@ -14,7 +14,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
      * @throws \ReflectionException
      * @throws FieldNotDefinedInIndexException
      */
-    public function test_elastic_create()
+    public function test_elastic_create(): void
     {
         $mock = $this->getMockBuilder(Elasticsearch::class)
             ->disableOriginalConstructor()

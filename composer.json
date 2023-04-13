@@ -21,5 +21,8 @@
         "Mawebcoder\\Elasticsearch\\ElasticsearchServiceProvider"
       ]
     }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit tests --colors --testdox"
   }
 }
