@@ -32,14 +32,19 @@ class ElasticChainingQueryBuilderTest extends TestCase
     public string $otherField   = 'test_id';
     public array $exceptions    = ['foo', 'bar', 'xyz'];
     public array $values        = ['foo', 'bar', 'xyz'];
+    
+    protected Elasticsearch $elastic;
+    
+    protected function setUp(): void
+    {
+        $this->elastic = new Elasticsearch();
+    }
 
     public function test_elastic_chaining_where_or_where(): void
     {
-        $elastic = new Elasticsearch();
+        $this->elastic->where($this->field, $this->value)->orWhere($this->field, $this->value);
 
-        $elastic->where($this->field, $this->value)->orWhere($this->field, $this->value);
-
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $this->field => [
                             'value' => $this->value
@@ -55,14 +60,12 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_or_where_before_where(): void
     {
-        $elastic = new Elasticsearch();
-
-        $elastic->orWhere($this->field, $this->value)->where($this->field, $this->value);
+        $this->elastic->orWhere($this->field, $this->value)->where($this->field, $this->value);
 
         $this->expected['query']['bool']['should'][] = [
                     "term" => [
@@ -72,7 +75,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $this->field => [
                             'value' => $this->value
@@ -80,16 +83,14 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_or_where_term(): void
     {
-        $elastic = new Elasticsearch();
+        $this->elastic->where($this->field, $this->value)->orWhereTerm($this->field, $this->value);
 
-        $elastic->where($this->field, $this->value)->orWhereTerm($this->field, $this->value);
-
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $this->field => [
                             'value' => $this->value
@@ -105,18 +106,16 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_term_or_where(): void
     {
-        $elastic = new Elasticsearch();
-
         $operation = '<>';
 
-        $elastic->whereTerm($this->field, $operation, $this->value)->orWhere($this->field, $this->value);
+        $this->elastic->whereTerm($this->field, $operation, $this->value)->orWhere($this->field, $this->value);
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                     "match" => [
                         $this->field => [
                             'query' => $this->value
@@ -132,16 +131,14 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_term_and_where_in(): void
     {
-        $elastic = new Elasticsearch();
+        $this->elastic->whereTerm($this->field, $this->value)->whereIn($this->otherField, $this->values);
 
-        $elastic->whereTerm($this->field, $this->value)->whereIn($this->otherField, $this->values);
-
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "match" => [
                         $this->field => [
                             'query' => $this->value
@@ -149,22 +146,20 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
                 $this->otherField => $this->values
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_term_and_where_not_in(): void
     {
-        $elastic = new Elasticsearch();
+        $this->elastic->whereTerm($this->field, $this->value)->whereNotIn($this->otherField, $this->values);
 
-        $elastic->whereTerm($this->field, $this->value)->whereNotIn($this->otherField, $this->values);
-
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "match" => [
                         $this->field => [
                             'query' => $this->value
@@ -172,22 +167,20 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
                 $this->otherField => $this->values
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_and_where_not_in(): void
     {
-        $elastic = new Elasticsearch();
+        $this->elastic->where($this->field, $this->value)->whereNotIn($this->otherField, $this->values);
 
-        $elastic->where($this->field, $this->value)->whereNotIn($this->otherField, $this->values);
-
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $this->field => [
                             'value' => $this->value
@@ -195,13 +188,13 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
                 $this->otherField => $this->values
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     /**
@@ -210,17 +203,15 @@ class ElasticChainingQueryBuilderTest extends TestCase
      */
     public function test_elastic_where_in_where_not_between(): void
     {
-        $elastic = new Elasticsearch();
+        $this->elastic->whereIn($this->field, $this->values)->whereNotBetween($this->dateField, $this->betweenValues);
 
-        $elastic->whereIn($this->field, $this->values)->whereNotBetween($this->dateField, $this->betweenValues);
-
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
                 $this->field => $this->values
             ]
         ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'range' => [
                 $this->dateField => [
                     'lt' => $this->betweenValues[0],
@@ -229,7 +220,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     /**
@@ -238,13 +229,11 @@ class ElasticChainingQueryBuilderTest extends TestCase
      */
     public function test_elastic_chaining_where_in_or_where_between_or_where(): void
     {
-        $elastic = new Elasticsearch();
-
-        $elastic->whereIn($this->field, $this->values)
+        $this->elastic->whereIn($this->field, $this->values)
             ->orWhereBetween($this->dateField, $this->betweenValues)
             ->orWhere($this->otherField, $this->value);
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
                 $this->field => $this->values
             ]
@@ -267,7 +256,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     /**
@@ -276,13 +265,11 @@ class ElasticChainingQueryBuilderTest extends TestCase
      */
     public function test_elastic_chaining_where_not_in_and_where_not_between_and_where(): void
     {
-        $elastic = new Elasticsearch();
-
-        $elastic->whereNotIn($this->field, $this->values)
+        $this->elastic->whereNotIn($this->field, $this->values)
             ->orWhereNotBetween($this->dateField, $this->betweenValues)
             ->where($this->otherField, $this->value);
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
                 $this->otherField => $this->exceptions
             ]
@@ -297,7 +284,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $this->field => [
                             'value' => $this->value
@@ -305,7 +292,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 
     /**
@@ -314,14 +301,12 @@ class ElasticChainingQueryBuilderTest extends TestCase
      */
     public function test_elastic_chaining_where_or_where_term_and_where_between_where_not_in(): void
     {
-        $elastic = new Elasticsearch();
-
-        $elastic->where($this->field, $this->value)
+        $this->elastic->where($this->field, $this->value)
             ->orWhereTerm($this->field, $this->value)
             ->whereBetween($this->dateField, $this->betweenValues)
             ->whereNotIn($this->otherField, $this->exceptions);
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
                         $this->field => [
                             'value' => $this->value
@@ -337,7 +322,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $this->field => [
                     'gte' => $this->betweenValues[0],
@@ -346,12 +331,12 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->expected['query']['bool']['should'][$elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
                 $this->otherField => $this->exceptions
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $elastic->search);
+        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
     }
 }
