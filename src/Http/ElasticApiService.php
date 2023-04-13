@@ -176,7 +176,14 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
 
-        return array_keys($response->json()[$index]['mappings']['properties']);
+        $jsonResponse = $response->json();
+
+        if (array_key_exists('properties', $jsonResponse[$index]['mappings']))
+        {
+            return array_keys($jsonResponse[$index]['mappings']['properties']);
+        }
+
+        return array_keys($jsonResponse[$index]['mappings']);
     }
 
 

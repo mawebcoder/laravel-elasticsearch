@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests;
+namespace Tests\Unit;
 
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch;
 use PHPUnit\Framework\TestCase;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 
 class ElasticQueryBuilderTest extends TestCase
 {

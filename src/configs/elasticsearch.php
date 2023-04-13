@@ -2,5 +2,5 @@
 
 return [
     'host' => 'http://localhost',
-    "port" => 9200
+    'port' => 9200
 ];

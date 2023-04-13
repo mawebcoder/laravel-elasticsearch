@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests;
+namespace Tests\Unit;
 
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
-use PHPUnit\Framework\TestCase;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch;
+use PHPUnit\Framework\TestCase;
 
 class ElasticChainingQueryBuilderTest extends TestCase
 {

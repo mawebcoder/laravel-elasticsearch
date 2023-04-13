@@ -7,6 +7,6 @@ class Elasticsearch extends BaseElasticsearchModel
 
     public function getIndex(): string
     {
-        // TODO: Implement getIndex() method.
+        return 'test';
     }
 }
