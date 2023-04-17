@@ -71,7 +71,6 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     {
     }
 
-
     public function testCanUpdateData()
     {
     }
@@ -142,6 +141,71 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     }
 
     public function testOrWhereNotTerm()
+    {
+    }
+
+    public function testWhereEqual()
+    {
+    }
+
+    public function testOrWhereEqual()
+    {
+    }
+
+
+    public function testWhereNotEqual()
+    {
+    }
+
+    public function testOrWhereNotEqual()
+    {
+    }
+
+    public function testWhereGreaterThan()
+    {
+    }
+
+    public function testOrWhereGreaterThan()
+    {
+    }
+
+    public function testWhereLessThan()
+    {
+    }
+
+    public function testOrWhereLessThan()
+    {
+    }
+
+    public function testWhereLike()
+    {
+    }
+
+    public function testWhereNotLike()
+    {
+    }
+
+    public function testOrWhereLike()
+    {
+    }
+
+    public function testOrWhereNotLike()
+    {
+    }
+
+    public function testWhereGTE()
+    {
+    }
+
+    public function testOrWhereGTE()
+    {
+    }
+
+    public function testWhereLTE()
+    {
+    }
+
+    public function testOrWhereLTE()
     {
     }
 
