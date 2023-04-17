@@ -25,12 +25,12 @@ class ElasticsearchServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        $this->mergeConfigFrom(__DIR__ . '/configs/elasticsearch.php', 'elasticsearch');
 
         $this->publishes([
             __DIR__ . '/Migration/2023_03_26_create_elastic_search_migrations_logs_table.php' => database_path(
                 'migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
-            )
+            ),
+            __DIR__ . '/configs/elasticsearch.php' => config_path('elasticsearch.php')
         ], 'elastic');
     }
 
