@@ -432,7 +432,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_operation_not_equal(): void
@@ -455,8 +455,8 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
-        $this->assertEqualsCanonicalizing($this->expected, $clone->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $clone->search);
     }
 
     public function test_elastic_or_where_operation_greater_than(): void
@@ -475,7 +475,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_operation_greater_than_equal(): void
@@ -494,13 +494,13 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_operation_less_than(): void
     {
         $field = 'test_field';
-        $operation = '>';
+        $operation = '<';
         $value = 'test';
 
         $this->elastic->orWhere($field, $operation, $value);
@@ -513,7 +513,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_operation_less_than_equal(): void
@@ -532,7 +532,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_in(): void
@@ -548,7 +548,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_not_in(): void
@@ -564,7 +564,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
@@ -629,7 +629,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
@@ -688,13 +688,13 @@ class ElasticQueryBuilderTest extends TestCase
         $this->expected['query']['bool']['should'][]['bool']['must_not'][] = [
             'range' => [
                 $field => [
-                    'gt' => $values[0],
-                    'lt' => $values[1]
+                    'gt' => $values[1],
+                    'lt' => $values[0]
                 ]
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_select(): void
@@ -705,7 +705,7 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expected['fields'] = $args;
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
@@ -723,7 +723,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
@@ -744,7 +744,7 @@ class ElasticQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
 
         $direction = 'asc';
 
@@ -752,7 +752,7 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expected['sort'][0][$field]['order'] = $direction;
 
-        $this->assertEqualsCanonicalizing($this->expected, $clone->search);
+        $this->assertEquals($this->expected, $clone->search);
     }
 
     public function test_elastic_order_by_invalid(): void
@@ -777,8 +777,8 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expected['size'] = $limit;
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
-        $this->assertEqualsCanonicalizing($this->expected, $clone->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $clone->search);
     }
 
     public function test_elastic_offset(): void
@@ -789,7 +789,7 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expected['from'] = $offset;
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_refresh_search(): void
@@ -798,6 +798,6 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expected = [];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 }
