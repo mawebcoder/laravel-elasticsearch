@@ -32,9 +32,9 @@ class ElasticChainingQueryBuilderTest extends TestCase
     public string $otherField   = 'test_id';
     public array $exceptions    = ['foo', 'bar', 'xyz'];
     public array $values        = ['foo', 'bar', 'xyz'];
-    
+
     protected Elasticsearch $elastic;
-    
+
     protected function setUp(): void
     {
         $this->elastic = new Elasticsearch();
@@ -60,7 +60,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_or_where_before_where(): void
@@ -83,7 +83,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_or_where_term(): void
@@ -106,7 +106,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_term_or_where(): void
@@ -131,7 +131,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_term_and_where_in(): void
@@ -152,7 +152,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_term_and_where_not_in(): void
@@ -173,7 +173,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     public function test_elastic_chaining_where_and_where_not_in(): void
@@ -220,7 +220,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
@@ -256,7 +256,7 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
@@ -271,9 +271,10 @@ class ElasticChainingQueryBuilderTest extends TestCase
 
         $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
-                $this->otherField => $this->exceptions
+                $this->field => $this->values
             ]
         ];
+
 
         $this->expected['query']['bool']['should'][]['bool']['must_not'][] = [
             'range' => [
@@ -286,13 +287,13 @@ class ElasticChainingQueryBuilderTest extends TestCase
 
         $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
                     "term" => [
-                        $this->field => [
+                        $this->otherField => [
                             'value' => $this->value
                         ]
                     ]
                 ];
 
-        $this->assertEqualsCanonicalizing($this->expected, $this->elastic->search);
+        $this->assertEquals($this->expected, $this->elastic->search);
     }
 
     /**
