@@ -102,7 +102,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                 /**
                  * @type BaseElasticMigration $result
                  */
-                $result = require_once $path;
+                $result = require $path;
 
                 DB::table('elastic_search_migrations_logs')
                     ->where('migrations', $migration->migrations)
