@@ -888,7 +888,7 @@ class ElasticQueryBuilderTest extends TestCase
     }
 
 
-    public function testNotLike()
+    public function testWhereNotLike()
     {
         $elasticsearch = new Elasticsearch();
 
@@ -910,7 +910,7 @@ class ElasticQueryBuilderTest extends TestCase
         $this->assertEquals($this->expected, $elasticsearch->search);
     }
 
-    public function testLike()
+    public function testWhereLike()
     {
         $elasticsearch = new Elasticsearch();
 
@@ -922,6 +922,52 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expected['query']['bool']['should']
         [$elasticsearch::MUST_INDEX]['bool']['must'][] = [
+            "match_phrase_prefix" => [
+                $field => [
+                    'query' => $value
+                ]
+            ]
+        ];
+
+        $this->assertEquals($this->expected, $elasticsearch->search);
+    }
+
+
+    public function testOrWhereNotLike()
+    {
+        $elasticsearch = new Elasticsearch();
+
+        $field = 'name';
+
+        $value = 'ali nasi';
+
+        $elasticsearch->orWhere($field, 'not like', $value);
+
+        $this->expected['query']['bool']['should']
+        []['bool']['must_not'][] = [
+            "match_phrase_prefix" => [
+                $field => [
+                    'query' => $value
+                ]
+            ]
+        ];
+
+
+        $this->assertEquals($this->expected, $elasticsearch->search);
+    }
+
+    public function testOrWhereLike()
+    {
+        $elasticsearch = new Elasticsearch();
+
+        $field = 'name';
+
+        $value = 'ali nasi';
+
+        $elasticsearch->orWhere($field, 'like', $value);
+
+        $this->expected['query']['bool']['should'][]
+        = [
             "match_phrase_prefix" => [
                 $field => [
                     'query' => $value
