@@ -577,8 +577,8 @@ abstract class BaseElasticsearchModel
         $this->search['query']['bool']['should'][] = [
             'range' => [
                 $field => [
-                    'lt' => $values[0],
-                    'gt' => $values[1]
+                    'gte' => $values[0],
+                    'lte' => $values[1]
                 ]
             ]
         ];
