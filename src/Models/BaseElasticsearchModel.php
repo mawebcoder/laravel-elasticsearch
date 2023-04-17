@@ -543,6 +543,28 @@ abstract class BaseElasticsearchModel
                     ]
                 ];
                 break;
+            case "like":
+
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+
+                break;
+
+            case "not like":
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+
             case '=':
             default:
                 $this->search['query']['bool']['should'][] = [
