@@ -22,7 +22,8 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     ]
                 ]
             ]
-        ]
+        ],
+        'fields'=>[]
     ];
 
     public string $field        = 'test_field';

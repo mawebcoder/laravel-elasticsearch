@@ -24,7 +24,8 @@ class ElasticQueryBuilderTest extends TestCase
                     ]
                 ]
             ]
-        ]
+        ],
+        'fields' => []
     ];
 
     protected Elasticsearch $elastic;
@@ -881,8 +882,53 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->expectExceptionMessage('sort direction must be either asc or desc.');
 
-        $wrongDirection='wrong';
+        $wrongDirection = 'wrong';
 
         $elastic->orderBy('id', $wrongDirection);
+    }
+
+
+    public function testNotLike()
+    {
+        $elasticsearch = new Elasticsearch();
+
+        $field = 'name';
+
+        $value = 'ali nasi';
+
+        $elasticsearch->where($field, 'not like', $value);
+
+        $this->expected['query']['bool']['should']
+        [$elasticsearch::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+            "match_phrase_prefix" => [
+                $field => [
+                    'query' => $value
+                ]
+            ]
+        ];
+
+        $this->assertEquals($this->expected, $elasticsearch->search);
+    }
+
+    public function testLike()
+    {
+        $elasticsearch = new Elasticsearch();
+
+        $field = 'name';
+
+        $value = 'ali nasi';
+
+        $elasticsearch->where($field, 'like', $value);
+
+        $this->expected['query']['bool']['should']
+        [$elasticsearch::MUST_INDEX]['bool']['must'][] = [
+            "match_phrase_prefix" => [
+                $field => [
+                    'query' => $value
+                ]
+            ]
+        ];
+
+        $this->assertEquals($this->expected, $elasticsearch->search);
     }
 }
