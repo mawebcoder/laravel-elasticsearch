@@ -453,8 +453,7 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
-        if (!$this->isNumericArray($values))
-        {
+        if (!$this->isNumericArray($values)) {
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
@@ -568,8 +567,7 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
-        if (!$this->isNumericArray($values))
-        {
+        if (!$this->isNumericArray($values)) {
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
@@ -595,8 +593,7 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
-        if (!$this->isNumericArray($values))
-        {
+        if (!$this->isNumericArray($values)) {
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
@@ -659,8 +656,7 @@ abstract class BaseElasticsearchModel
      */
     public function orderBy(string $field, string $direction = 'asc'): static
     {
-        if ($direction && !in_array($direction, ['asc', 'desc']))
-        {
+        if ($direction && !in_array($direction, ['asc', 'desc'])) {
             throw new InvalidSortDirection(message: 'sort direction must be either asc or desc.');
         }
 
