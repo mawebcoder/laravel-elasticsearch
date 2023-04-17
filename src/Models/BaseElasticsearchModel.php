@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
@@ -32,7 +33,8 @@ abstract class BaseElasticsearchModel
                     ]
                 ]
             ]
-        ]
+        ],
+        'fields' => [],
     ];
 
     abstract public function getIndex(): string;
@@ -266,7 +268,6 @@ abstract class BaseElasticsearchModel
         [$value, $operation] = $this->getOperationValue($value, $operation);
 
 
-
         switch ($operation) {
             case "<>":
             case "!=":
@@ -422,13 +423,11 @@ abstract class BaseElasticsearchModel
      */
     public function whereBetween(string $field, array $values): static
     {
-        if (count($values) != 2)
-        {
+        if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
-        if (!$this->isNumericArray($values))
-        {
+        if (!$this->isNumericArray($values)) {
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
@@ -613,9 +612,45 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function select(): void
+    /**
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     */
+    public function select(): static
     {
-        $this->search['fields'] = array_merge([], ...func_get_args());
+        $this->validateIncomeSelection(func_get_args());
+
+        $fields = [];
+
+
+        foreach ($this->search['fields'] as $field) {
+            $fields[] = $field;
+        }
+
+        foreach (func_get_args() as $field) {
+            $fields[] = $field;
+        }
+
+        $fields = array_unique($fields);
+
+
+        $this->search['fields'] = $fields;
+
+
+        return $this;
+    }
+
+    /**
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     */
+    public function validateIncomeSelection(array $incomeSelections): void
+    {
+        foreach ($incomeSelections as $value) {
+            if (is_array($value) || is_object($value)) {
+                throw new SelectInputsCanNotBeArrayOrObjectException(
+                    message: 'select inputs can not be array or objects.just scalar types are valid'
+                );
+            }
+        }
     }
 
 

@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch;
@@ -810,5 +811,78 @@ class ElasticQueryBuilderTest extends TestCase
         $elastic->take($size);
 
         $this->assertEquals($size, $elastic->search['size']);
+    }
+
+    /**
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     */
+    public function test_elastic_select_method()
+    {
+        $elastic = new Elasticsearch();
+
+        $elastic->select('id', 'name', 'value')
+            ->select('home', 'car');
+
+        $expectation = [
+            'id',
+            'name',
+            'value',
+            'home',
+            'car'
+        ];
+
+        $this->assertEquals($expectation, $elastic->search['fields']);
+    }
+
+    public function test_encounter_exception_if_select_input_is_no_scalar_type()
+    {
+        $elastic = new Elasticsearch();
+
+        $this->expectException(SelectInputsCanNotBeArrayOrObjectException::class);
+
+        $this->expectExceptionMessage('select inputs can not be array or objects.just scalar types are valid');
+
+        $elastic->select(['name']);
+    }
+
+
+    /**
+     * @throws InvalidSortDirection
+     */
+    public function test_order_by_method()
+    {
+        $elastic = new Elasticsearch();
+
+        $elastic->orderBy('id', 'desc')
+            ->orderBy('value');
+
+        $expectation = [
+            [
+                'id' => [
+                    'order' => 'desc'
+                ]
+            ],
+            [
+                'value' => [
+                    'order' => 'asc'
+                ]
+            ]
+
+        ];
+
+        $this->assertEquals($expectation, $elastic->search['sort']);
+    }
+
+    public function test_sort_direction_exception()
+    {
+        $elastic = new Elasticsearch();
+
+        $this->expectException(InvalidSortDirection::class);
+
+        $this->expectExceptionMessage('sort direction must be either asc or desc.');
+
+        $wrongDirection='wrong';
+
+        $elastic->orderBy('id', $wrongDirection);
     }
 }
