@@ -800,4 +800,15 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->assertEquals($this->expected, $this->elastic->search);
     }
+
+    public function test_elastic_take_method()
+    {
+        $elastic = new Elasticsearch();
+
+        $size = 10;
+
+        $elastic->take($size);
+
+        $this->assertEquals($size, $elastic->search['size']);
+    }
 }
