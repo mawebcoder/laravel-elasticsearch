@@ -266,6 +266,7 @@ abstract class BaseElasticsearchModel
         [$value, $operation] = $this->getOperationValue($value, $operation);
 
 
+
         switch ($operation) {
             case "<>":
             case "!=":
@@ -279,6 +280,7 @@ abstract class BaseElasticsearchModel
                 break;
 
             case ">":
+
                 $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     'range' => [
                         $field => [
@@ -297,6 +299,7 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
             case "<":
+
                 $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                     'range' => [
                         $field => [
