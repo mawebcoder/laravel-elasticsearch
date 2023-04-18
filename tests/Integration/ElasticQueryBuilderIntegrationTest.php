@@ -3,8 +3,11 @@
 namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Illuminate\Foundation\Testing\TestCase;
+use ReflectionException;
 use Tests\CreatesApplication;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 
@@ -56,12 +59,80 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->artisan('elastic:migrate --reset');
     }
 
-    public function testCanCreateData()
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function testFindMethod()
     {
+        $data = [
+            'id' => 1,
+            'name' => 'mohammad amiri',
+            'is_active' => true,
+            'details' => 'this is test text'
+        ];
+
+        $this->elastic->create($data);
+
+        /**
+         * elastic implements creating ,updating and deleting action as  asynchronous
+         * so we wait 2 seconds to be sure that elasticsearch added the data
+         */
+        sleep(2);
+
+        $record = $this->elastic->find($data['id']);
+
+        $this->assertEquals($data, $record->getAttributes());
     }
 
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws FieldNotDefinedInIndexException
+     */
+    public function testCanCreateData()
+    {
+        $data = [
+            'id' => 1,
+            'name' => 'mohammad amiri',
+            'is_active' => true,
+            'details' => 'this is test text'
+        ];
+
+        $result = $this->elastic->create($data);
+
+
+        sleep(2);
+
+        $attributes = $result->attributes;
+
+        $this->assertEquals($attributes, $data);
+
+        $record = $this->elastic->find($data['id']);
+
+        $this->assertEquals($data, $record->getAttributes());
+
+    }
+
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws FieldNotDefinedInIndexException
+     */
     public function testSetNullForUndefinedMappedData()
     {
+        $data = [
+            'id' => 1,
+            'name' => 'mohammad amiri',
+            'is_active' => true,
+            'details' => 'this is test text'
+        ];
+
+        $result = $this->elastic->create($data);
     }
 
     public function testCanNotDefineUnMappedData()
