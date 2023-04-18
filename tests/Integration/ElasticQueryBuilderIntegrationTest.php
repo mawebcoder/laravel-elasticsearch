@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\TestCase;
 use ReflectionException;
 use Tests\CreatesApplication;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Throwable;
 
 
 class ElasticQueryBuilderIntegrationTest extends TestCase
@@ -227,8 +228,32 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $model->update($newData);
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws Throwable
+     */
     public function testCanDeleteData()
     {
+        $data = [
+            'id' => 1,
+            'details' => 'this is test text'
+        ];
+
+        $this->elastic->create($data);
+
+        sleep(2);
+
+        $model = $this->elastic->find(1);
+
+        $model->delete();
+
+        sleep(2);
+
+        $model = $this->elastic->find(1);
+
+        $this->assertEquals(null, $model);
     }
 
 
