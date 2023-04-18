@@ -136,34 +136,26 @@ abstract class BaseElasticsearchModel
      */
     public function delete(): void
     {
-        $mustDeleteIndex = false;
-
-        if (!isset($this->search['query'])) {
-            $mustDeleteIndex = true;
-        }
-
-        if (!isset($this->search['query']['bool'])) {
-            $mustDeleteIndex = true;
-        }
-
-        if (!isset($this->search['query']['bool']['should'])) {
-            $mustDeleteIndex = true;
-        }
-
-        if (empty($this->search['query']['bool']['should'])) {
-            $mustDeleteIndex = true;
-        }
-
         try {
-            if ($mustDeleteIndex) {
+            DB::beginTransaction();
+
+            if ($this->mustDeleteJustSpecificRecord()) {
+                $this->refreshQueryBuilder();
+
+                $this->search['query']['bool']['should'][] = [
+                    'ids' => [
+                        'values' => [$this->id]
+                    ]
+                ];
+
+            } elseif ($this->mustDeleteIndexWhileCallingDeleteMethod()) {
                 DB::table('elastic_search_migrations_logs')
                     ->where('index', $this->getIndex())
                     ->delete();
 
-
                 Elasticsearch::setModel(static::class)
                     ->delete();
-
+                DB::commit();
                 return;
             }
 
@@ -172,11 +164,38 @@ abstract class BaseElasticsearchModel
 
             $response->throw();
 
+
             DB::commit();
         } catch (Throwable $exception) {
             DB::rollBack();
             throw  $exception;
         }
+    }
+
+    private function mustDeleteJustSpecificRecord(): bool
+    {
+        return boolval(count($this->attributes));
+    }
+
+    private function mustDeleteIndexWhileCallingDeleteMethod(): bool
+    {
+        if (!isset($this->search['query'])) {
+            return true;
+        }
+
+        if (!isset($this->search['query']['bool'])) {
+            return true;
+        }
+
+        if (!isset($this->search['query']['bool']['should'])) {
+            return true;
+        }
+
+        if (!empty($this->search['query']['bool']['should'])) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

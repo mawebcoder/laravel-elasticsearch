@@ -234,7 +234,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
      * @throws ReflectionException
      * @throws Throwable
      */
-    public function testCanDeleteData()
+    public function testCanDeleteDataByModelRecord()
     {
         $data = [
             'id' => 1,
