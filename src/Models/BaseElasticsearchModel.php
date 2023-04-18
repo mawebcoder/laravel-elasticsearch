@@ -6,6 +6,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
@@ -147,7 +148,6 @@ abstract class BaseElasticsearchModel
                         'values' => [$this->id]
                     ]
                 ];
-
             } elseif ($this->mustDeleteIndexWhileCallingDeleteMethod()) {
                 DB::table('elastic_search_migrations_logs')
                     ->where('index', $this->getIndex())
@@ -305,7 +305,7 @@ abstract class BaseElasticsearchModel
     public function requestForSearch(): mixed
     {
         $response = Elasticsearch::setModel(static::class)
-            ->post('_doc/_search/_source', $this->search);
+            ->post('_doc/_search', $this->search);
 
         $response->throw();
 
@@ -714,10 +714,16 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @return $this
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
      * @throws SelectInputsCanNotBeArrayOrObjectException
      */
     public function select(): static
     {
+        if (empty(func_get_args())) {
+            throw  new AtLeastOneArgumentMustBeChooseInSelect();
+        }
+
         $this->validateIncomeSelection(func_get_args());
 
         $fields = [];

@@ -4,7 +4,9 @@ namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Illuminate\Foundation\Testing\TestCase;
 use ReflectionException;
@@ -78,7 +80,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->elastic->create($data);
 
         /**
-         * elastic implements creating ,updating and deleting action as  asynchronous
+         * elastic implements creating ,updating and deleting action as  asynchronous,
          * so we wait 2 seconds to be sure that elasticsearch added the data
          */
         sleep(2);
@@ -257,8 +259,29 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     }
 
 
+    /**
+     * @return void
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     */
     public function testSelect()
     {
+        $data = [
+            'id' => 1,
+            'details' => 'this is test text'
+        ];
+
+        $this->elastic->create($data);
+
+        sleep(2);
+
+        $results = $this->elastic->select('name', 'details')
+            ->get();
+
+        dump($results);
     }
 
     public function testTake()
