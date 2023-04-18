@@ -18,6 +18,10 @@ use Throwable;
 abstract class BaseElasticsearchModel
 {
     public array $attributes = [];
+
+    const SOURCE_KEY = '_source';
+
+    const FIELD_ID = 'id';
     public const MUST_INDEX = 0;
     public const MUST_NOT_INDEX = 1;
     public array $search = [
@@ -159,7 +163,7 @@ abstract class BaseElasticsearchModel
      * @throws ReflectionException
      * @throws RequestException
      */
-    public function find($id): static
+    public function find($id): ?static
     {
         $this->search['query']['bool']['should'] = [];
 
@@ -176,13 +180,33 @@ abstract class BaseElasticsearchModel
 
         $result = $response->json();
 
+
+
+        $result = $result['hits']['hits'];
+
+
+
+        if (!count($result)) {
+            return null;
+        }
+
         $object = new static();
+
+        $object->{self::FIELD_ID} = $result[0]['_id'];
+
+        $result = $result[0]['_source'];
 
         foreach ($result as $key => $value) {
             $object->{$key} = $value;
         }
 
         return $object;
+    }
+
+
+    public function getAttributes(): array
+    {
+        return $this->attributes;
     }
 
     /**
@@ -201,7 +225,7 @@ abstract class BaseElasticsearchModel
             return null;
         }
 
-        $result = $result['hits']['hits'][0]['_source'];
+        $result = $result['hits']['hits'][0][static::SOURCE_KEY];
 
         return $this->mapResultToModelObject($result);
     }
@@ -219,7 +243,7 @@ abstract class BaseElasticsearchModel
         $collection = collect();
 
         foreach ($results as $value) {
-            $collection->add($this->mapResultToModelObject($value['_source']));
+            $collection->add($this->mapResultToModelObject($value[static::SOURCE_KEY]));
         }
 
         return $collection;
