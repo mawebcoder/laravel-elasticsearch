@@ -114,7 +114,6 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $record = $this->elastic->find($data['id']);
 
         $this->assertEquals($data, $record->getAttributes());
-
     }
 
 
@@ -127,12 +126,17 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     {
         $data = [
             'id' => 1,
-            'name' => 'mohammad amiri',
-            'is_active' => true,
             'details' => 'this is test text'
         ];
 
-        $result = $this->elastic->create($data);
+        $this->elastic->create($data);
+
+        sleep(2);
+
+        $result = $this->elastic->find(1);
+
+        $this->assertEquals(['name' => null, 'is_active' => null, 'id' => 1, 'details' => 'this is test text'],
+            $result->attributes);
     }
 
     public function testCanNotDefineUnMappedData()

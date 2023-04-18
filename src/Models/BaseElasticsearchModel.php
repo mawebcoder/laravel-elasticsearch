@@ -64,6 +64,19 @@ abstract class BaseElasticsearchModel
     {
         $object = new static();
 
+        $this->checkMapping(Arr::except($options, 'id'));
+
+        $fields = $this->getFields();
+
+        $notValuedFields = array_values(array_diff($fields, array_keys($options)));
+
+        /**
+         * ignore id
+         */
+        if (in_array('id', $notValuedFields)) {
+            unset($notValuedFields[array_search('id', $notValuedFields)]);
+        }
+
         if (array_key_exists('id', $options)) {
             $object->id = $options['id'];
         }
@@ -71,6 +84,12 @@ abstract class BaseElasticsearchModel
         foreach ($options as $key => $value) {
             $object->{$key} = $value;
         }
+
+        foreach ($notValuedFields as $notValuedField) {
+            $object->{$notValuedField} = null;
+        }
+
+
 
         $object->save();
 
@@ -181,9 +200,7 @@ abstract class BaseElasticsearchModel
         $result = $response->json();
 
 
-
         $result = $result['hits']['hits'];
-
 
 
         if (!count($result)) {
@@ -789,8 +806,7 @@ abstract class BaseElasticsearchModel
      */
     public function checkMapping(array $options): void
     {
-        $fields = Elasticsearch::setModel(static::class)
-            ->getFields();
+        $fields = $this->getFields();
 
         foreach ($options as $field => $option) {
             if (!in_array($field, $fields)) {
@@ -802,14 +818,22 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function getFields(): array
+    {
+        return Elasticsearch::setModel(static::class)
+            ->getFields();
+    }
+
+
+    /**
      * @throws ReflectionException
      * @throws RequestException
-     * @throws FieldNotDefinedInIndexException
      */
     public function save(): static
     {
-        $this->checkMapping(Arr::except($this->attributes, 'id'));
-
         Elasticsearch::setModel(static::class)->post(
             path: array_key_exists('id', $this->attributes) ?
                 "_doc/" . $this->attributes['id'] : '_doc',
