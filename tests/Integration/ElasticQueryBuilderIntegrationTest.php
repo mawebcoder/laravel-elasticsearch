@@ -199,8 +199,32 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     }
 
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testCanNotUpdateUndefinedFields()
     {
+        $data = [
+            'id' => 1,
+            'details' => 'this is test text'
+        ];
+
+        $this->elastic->create($data);
+
+        sleep(2);
+
+        $model = $this->elastic->find(1);
+
+        $newData = [
+            'not_defined' => 'mohammad',
+            'is_active' => true,
+        ];
+
+        $this->expectException(FieldNotDefinedInIndexException::class);
+
+        $model->update($newData);
     }
 
     public function testCanDeleteData()
