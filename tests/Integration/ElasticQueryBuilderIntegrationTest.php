@@ -139,8 +139,24 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             $result->attributes);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     */
     public function testCanNotDefineUnMappedData()
     {
+        $data = [
+            'id' => 1,
+            'name' => 'mohammad amiri',
+            'is_active' => true,
+            'details' => 'this is test text',
+            'not_defined_field' => 'value'
+        ];
+
+        $this->expectException(FieldNotDefinedInIndexException::class);
+
+        $this->elastic->create($data);
     }
 
     public function testCanUpdateData()
