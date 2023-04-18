@@ -159,7 +159,47 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->elastic->create($data);
     }
 
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws FieldNotDefinedInIndexException
+     */
     public function testCanUpdateData()
+    {
+        $data = [
+            'id' => 1,
+            'details' => 'this is test text'
+        ];
+
+        $this->elastic->create($data);
+
+        sleep(2);
+
+        $model = $this->elastic->find(1);
+
+        $newData = [
+            'name' => 'mohammad',
+            'is_active' => true,
+        ];
+
+        $model->update($newData);
+
+        sleep(2);
+
+        $model = $this->elastic->find(1);
+
+        $expectation = [
+            "id" => "1",
+            "is_active" => true,
+            "name" => "mohammad",
+            "details" => "this is test text"
+        ];
+
+        $this->assertEquals($expectation, $model->getAttributes());
+    }
+
+
+    public function testCanNotUpdateUndefinedFields()
     {
     }
 

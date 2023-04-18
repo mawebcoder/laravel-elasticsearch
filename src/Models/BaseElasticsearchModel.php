@@ -90,7 +90,6 @@ abstract class BaseElasticsearchModel
         }
 
 
-
         $object->save();
 
         return $object;
@@ -101,7 +100,7 @@ abstract class BaseElasticsearchModel
      * @throws RequestException
      * @throws FieldNotDefinedInIndexException
      */
-    public function update(array $options): void
+    public function update(array $options): bool
     {
         $this->checkMapping($options);
 
@@ -121,6 +120,8 @@ abstract class BaseElasticsearchModel
         $response->throw();
 
         $this->refreshQueryBuilder();
+
+        return true;
     }
 
     private function refreshQueryBuilder(): void
