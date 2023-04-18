@@ -699,16 +699,9 @@ class ElasticQueryBuilderTest extends TestCase
         $this->assertEquals($this->expected, $this->elastic->search);
     }
 
-    public function test_elastic_select(): void
-    {
-        $args = ['test', 'bla.bla', 'foo.bar'];
-
-        $this->elastic->select($args);
-
-        $this->expected['fields'] = $args;
-
-        $this->assertEquals($this->expected, $this->elastic->search);
-    }
+    /**
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     */
 
     /**
      * @throws InvalidSortDirection

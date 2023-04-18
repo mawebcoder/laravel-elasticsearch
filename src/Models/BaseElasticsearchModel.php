@@ -336,7 +336,7 @@ abstract class BaseElasticsearchModel
                     "match_phrase_prefix" => [
                         $field => [
                             'query' => $value
-                        ]
+                        ],
                     ]
                 ];
                 break;

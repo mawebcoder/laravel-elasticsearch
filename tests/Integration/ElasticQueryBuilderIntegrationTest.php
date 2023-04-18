@@ -3,14 +3,11 @@
 namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
-use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Illuminate\Foundation\Testing\TestCase;
-use ReflectionException;
 use Tests\CreatesApplication;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+
 
 class ElasticQueryBuilderIntegrationTest extends TestCase
 {

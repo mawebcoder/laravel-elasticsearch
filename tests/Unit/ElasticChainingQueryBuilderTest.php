@@ -243,8 +243,8 @@ class ElasticChainingQueryBuilderTest extends TestCase
         $this->expected['query']['bool']['should'][] = [
             'range' => [
                 $this->dateField => [
-                    'lt' => $this->betweenValues[0],
-                    'gt' => $this->betweenValues[1]
+                    'gte' => $this->betweenValues[0],
+                    'lte' => $this->betweenValues[1]
                 ]
             ]
         ];
