@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
@@ -25,7 +26,7 @@ class ElasticQueryBuilderTest extends TestCase
                 ]
             ]
         ],
-        'fields' => []
+        '_source' => []
     ];
 
     protected Elasticsearch $elastic;
@@ -825,9 +826,14 @@ class ElasticQueryBuilderTest extends TestCase
             'car'
         ];
 
-        $this->assertEquals($expectation, $elastic->search['fields']);
+        $this->assertEquals($expectation, $elastic->search['_source']);
     }
 
+    /**
+     * @return void
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     */
     public function test_encounter_exception_if_select_input_is_no_scalar_type()
     {
         $elastic = new Elasticsearch();
