@@ -39,7 +39,7 @@ abstract class BaseElasticsearchModel
                 ]
             ]
         ],
-        'fields' => [],
+        self::SOURCE_KEY => [],
     ];
 
     abstract public function getIndex(): string;
@@ -262,7 +262,9 @@ abstract class BaseElasticsearchModel
             return null;
         }
 
+
         $result = $result['hits']['hits'][0][static::SOURCE_KEY];
+
 
         return $this->mapResultToModelObject($result);
     }
@@ -277,10 +279,17 @@ abstract class BaseElasticsearchModel
 
         $results = $result['hits']['hits'];
 
+
         $collection = collect();
 
-        foreach ($results as $value) {
-            $collection->add($this->mapResultToModelObject($value[static::SOURCE_KEY]));
+        foreach ($results as $result) {
+
+            $data = [
+                ...$result[self::SOURCE_KEY],
+                ...['id'=>$result['_id']]
+            ];
+
+            $collection->add($this->mapResultToModelObject($data));
         }
 
         return $collection;
@@ -728,8 +737,7 @@ abstract class BaseElasticsearchModel
 
         $fields = [];
 
-
-        foreach ($this->search['fields'] as $field) {
+        foreach ($this->search['_source'] as $field) {
             $fields[] = $field;
         }
 
@@ -739,9 +747,7 @@ abstract class BaseElasticsearchModel
 
         $fields = array_unique($fields);
 
-
-        $this->search['fields'] = $fields;
-
+        $this->search['_source'] = $fields;
 
         return $this;
     }

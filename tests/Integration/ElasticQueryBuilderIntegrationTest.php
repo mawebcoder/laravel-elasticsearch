@@ -271,17 +271,35 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     {
         $data = [
             'id' => 1,
-            'details' => 'this is test text'
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'name' => 'ali',
+            'details' => 'number 3'
         ];
 
         $this->elastic->create($data);
 
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
         sleep(2);
 
-        $results = $this->elastic->select('name', 'details')
+        $results = $this->elastic->select('name', 'id')
             ->get();
 
-        dump($results);
+
+        $firstResultAttributes = $results[0]->getAttributes();
+
+        $this->assertEquals(['name','id'], array_keys($firstResultAttributes));
     }
 
     public function testTake()
