@@ -299,15 +299,83 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $firstResultAttributes = $results[0]->getAttributes();
 
-        $this->assertEquals(['name','id'], array_keys($firstResultAttributes));
+        $this->assertEquals(['name', 'id'], array_keys($firstResultAttributes));
     }
 
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
     public function testTake()
     {
+        $data = [
+            'id' => 1,
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'name' => 'ali',
+            'details' => 'number 3'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic->take(1)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
     }
 
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
     public function testOffset()
     {
+        $data = [
+            'id' => 1,
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'name' => 'ali',
+            'details' => 'number 3'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic->offset(1)
+            ->take(1)
+            ->get();
+
+
+        $this->assertEquals(2, $results[0]->getAttributes()['id']);
     }
 
     public function testWhereCondition()
