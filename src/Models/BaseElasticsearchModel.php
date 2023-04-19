@@ -568,7 +568,7 @@ abstract class BaseElasticsearchModel
         switch ($operation) {
             case "<>":
             case "!=":
-                $this->search['query']['bool']['should'][]['bool']['must_not'] = [
+                $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                     "term" => [
                         $field => [
                             'value' => $value
