@@ -378,11 +378,52 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertEquals(2, $results[0]->getAttributes()['id']);
     }
 
-    public function testWhereCondition()
+    /**
+     * @return void
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     */
+    public function testWhereEqualCondition()
     {
+        $data = [
+            'id' => 1,
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'name' => 'ali',
+            'details' => 'number 3'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic->where('name', 'ali')
+            ->select('name')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $firstResult = $results[0]->attributes['name'];
+
+        $this->assertEquals('ali', $firstResult);
     }
 
-    public function testWhereNotCondition()
+    public function testWhereNotEqualCondition()
     {
     }
 
