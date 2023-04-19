@@ -521,12 +521,10 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertEquals('second', $results[0]->attributes['name']);
     }
 
-    public function testOrWhereNotCondition()
-    {
-    }
 
     public function testWhereBetweenCondition()
     {
+
     }
 
     public function testNotBetweenCondition()
