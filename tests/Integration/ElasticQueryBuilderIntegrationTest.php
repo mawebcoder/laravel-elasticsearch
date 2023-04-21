@@ -1007,11 +1007,44 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertEquals(2, $results->count());
 
         $this->assertTrue($results->contains(fn($row) => $row->age === 19));
+
         $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereLessThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '<', 19)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
     public function testOrWhereLessThan()
