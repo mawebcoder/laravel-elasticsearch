@@ -470,7 +470,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === 'ali'));
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'first'));
 
         $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
