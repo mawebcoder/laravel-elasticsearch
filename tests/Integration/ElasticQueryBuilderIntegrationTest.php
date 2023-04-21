@@ -1047,8 +1047,42 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testOrWhereLessThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 19)
+            ->orWhere('age', '<', 19)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
     }
 
     public function testWhereLike()
