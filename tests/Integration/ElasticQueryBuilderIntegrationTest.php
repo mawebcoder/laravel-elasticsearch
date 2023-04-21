@@ -809,7 +809,8 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         sleep(2);
 
-        $results = $this->elastic->whereTerm('name', 'second')
+        $results = $this->elastic
+            ->whereTerm('name', 'second')
             ->get();
 
         $this->assertEquals(1, $results->count());
@@ -818,9 +819,44 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testOrWhereTerm()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
 
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('name','first')
+            ->orWhereTerm('name', 'second')
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'first'));
     }
 
     public function testWhereNotTerm()
