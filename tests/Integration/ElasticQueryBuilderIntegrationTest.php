@@ -78,7 +78,8 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text'
+            'details' => 'this is test text',
+            'age'=>13
         ];
 
         $this->elastic->create($data);
@@ -106,7 +107,8 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text'
+            'details' => 'this is test text',
+            'age'=>30
         ];
 
         $result = $this->elastic->create($data);
@@ -143,7 +145,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $result = $this->elastic->find(1);
 
         $this->assertEquals(
-            ['name' => null, 'is_active' => null, 'id' => 1, 'details' => 'this is test text'],
+            ['name' => null, 'is_active' => null,'age'=>null, 'id' => 1, 'details' => 'this is test text'],
             $result->attributes
         );
     }
@@ -189,6 +191,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $newData = [
             'name' => 'mohammad',
             'is_active' => true,
+            'age'=>19
         ];
 
         $model->update($newData);
@@ -201,6 +204,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             "id" => "1",
             "is_active" => true,
             "name" => "mohammad",
+            'age'=>19,
             "details" => "this is test text"
         ];
 
