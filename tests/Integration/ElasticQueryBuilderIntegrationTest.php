@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
@@ -604,7 +605,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         ];
 
         $data4 = [
-            'id' => 3,
+            'id' => 4,
             'age' => 9,
             'name' => 'second',
             'details' => 'number 2'
@@ -630,19 +631,154 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertTrue($results->contains(fn($row) => intval($row->age) === 19));
 
         $this->assertTrue($results->contains(fn($row) => intval($row->age) === 9));
-
     }
 
+    /**
+     * @throws RequestException
+     * @throws WrongArgumentType
+     * @throws FieldNotDefinedInIndexException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws ReflectionException
+     */
     public function testOrBetweenCondition()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 10,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data4 = [
+            'id' => 4,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        $this->elastic->create($data4);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 9)
+            ->orWhereBetween('age', [10, 12])
+            ->get();
+
+        $this->assertEquals(3, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 10));
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 9));
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 12));
     }
 
-    public function testOrWhereNotBetweenCondition()
+    /**
+     * @throws InvalidSortDirection
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrderByAsc()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->orderBy('age')
+            ->get();
+
+
+        $first = $results->first();
+
+        $second = $results[1];
+
+
+        $this->assertEquals(12, $first->age);
+
+        $this->assertEquals(19, $second->age);
     }
 
-    public function testOrderBy()
+    /**
+     * @throws InvalidSortDirection
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrderByDesc()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->orderBy('age', 'desc')
+            ->get();
+
+        $first = $results->first();
+
+        $second = $results[1];
+
+
+        $this->assertEquals(19, $first->age);
+
+        $this->assertEquals(12, $second->age);
     }
 
     public function testWhereTerm()
