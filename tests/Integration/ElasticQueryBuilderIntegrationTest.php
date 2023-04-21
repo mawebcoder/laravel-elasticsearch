@@ -1082,11 +1082,44 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertEquals(2, $results->count());
 
         $this->assertTrue($results->contains(fn($row) => $row->age === 9));
+
         $this->assertTrue($results->contains(fn($row) => $row->age === 19));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereLike()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('details', 'like', 'to be hap')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->details === $data2['details']));
     }
 
     public function testWhereNotLike()
