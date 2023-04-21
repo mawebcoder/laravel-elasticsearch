@@ -1197,12 +1197,90 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertTrue($results->contains(fn($row) => $row->age === $data['age']));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereGTE()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 19)
+            ->orWhere('details', 'like', 'to be hap')
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->details === $data2['details']));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === $data['age']));
     }
 
-    public function testOrWhereGTE()
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrWhereGreaterThanOrEqual()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 21,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '>=', 19)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
     }
 
     public function testWhereLTE()
