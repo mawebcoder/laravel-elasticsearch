@@ -781,21 +781,52 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertEquals(12, $second->age);
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereTerm()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic->whereTerm('name', 'second')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
     public function testOrWhereTerm()
     {
+
     }
 
     public function testWhereNotTerm()
     {
     }
 
-    public function testOrWhereNotTerm()
-    {
-    }
 
     public function testWhereEqual()
     {
