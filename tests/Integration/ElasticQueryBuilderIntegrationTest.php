@@ -1297,7 +1297,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      */
-    public function testWhereLTE()
+    public function testWhereLessThanOrEqual()
     {
         $data = [
             'id' => 1,
@@ -1336,7 +1336,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertTrue($results->contains(fn($row) => $row->age === 19));
 
-        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
     public function testOrWhereLTE()
