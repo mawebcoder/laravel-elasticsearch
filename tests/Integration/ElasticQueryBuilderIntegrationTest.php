@@ -6,7 +6,10 @@ use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Illuminate\Foundation\Testing\TestCase;
 use ReflectionException;
@@ -138,8 +141,10 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $result = $this->elastic->find(1);
 
-        $this->assertEquals(['name' => null, 'is_active' => null, 'id' => 1, 'details' => 'this is test text'],
-            $result->attributes);
+        $this->assertEquals(
+            ['name' => null, 'is_active' => null, 'id' => 1, 'details' => 'this is test text'],
+            $result->attributes
+        );
     }
 
     /**
@@ -296,8 +301,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $results = $this->elastic->select('name', 'id')
             ->get();
 
-
-        $firstResultAttributes = $results[0]->getAttributes();
+        $firstResultAttributes = $results->first()->getAttributes();
 
         $this->assertEquals(['name', 'id'], array_keys($firstResultAttributes));
     }
@@ -374,8 +378,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             ->take(1)
             ->get();
 
-
-        $this->assertEquals(2, $results[0]->getAttributes()['id']);
+        $this->assertEquals(2, $results->first()->getAttributes()['id']);
     }
 
     /**
@@ -418,7 +421,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertEquals(1, $results->count());
 
-        $firstResult = $results[0]->attributes['name'];
+        $firstResult = $results->first()->attributes['name'];
 
         $this->assertEquals('ali', $firstResult);
     }
@@ -464,12 +467,11 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             ->select('name')
             ->get();
 
-
         $this->assertEquals(2, $results->count());
 
-        $this->assertEquals('first', $results[0]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'ali'));
 
-        $this->assertEquals('second', $results[1]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
     /**
@@ -516,19 +518,119 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertEquals('ali', $results[1]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'ali'));
 
-        $this->assertEquals('second', $results[0]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
+     */
     public function testWhereBetweenCondition()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
 
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 10,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->whereBetween('age', [10, 12])
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 12));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 10));
     }
 
+    /**
+     * @throws RequestException
+     * @throws WrongArgumentType
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     */
     public function testNotBetweenCondition()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 10,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data4 = [
+            'id' => 3,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        $this->elastic->create($data4);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->whereNotBetween('age', [10, 12])
+            ->get();
+
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 19));
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 9));
+
     }
 
     public function testOrBetweenCondition()
