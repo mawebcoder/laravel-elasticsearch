@@ -936,16 +936,40 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
     }
 
 
-    public function testWhereNotEqual()
-    {
-    }
-
-    public function testOrWhereNotEqual()
-    {
-    }
-
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws RequestException
+     * @throws ReflectionException
+     */
     public function testWhereGreaterThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '>', 12)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
     }
 
     public function testOrWhereGreaterThan()
