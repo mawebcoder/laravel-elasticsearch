@@ -212,14 +212,25 @@ class ElasticChainingQueryBuilderTest extends TestCase
             ]
         ];
 
-        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $this->dateField => [
-                    'lt' => $this->betweenValues[0],
                     'gt' => $this->betweenValues[1]
                 ]
             ]
         ];
+
+        $this->expected['query']['bool']['should'][]['bool']['must'][] = [
+            'range' => [
+                $this->dateField => [
+                    'lt' => $this->betweenValues[0],
+                ]
+            ]
+        ];
+
+
+
 
         $this->assertEquals($this->expected, $this->elastic->search);
     }

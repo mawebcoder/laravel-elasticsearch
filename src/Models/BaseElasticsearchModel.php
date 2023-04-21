@@ -565,6 +565,8 @@ abstract class BaseElasticsearchModel
             ]
         ];
 
+
+
         return $this;
     }
 
