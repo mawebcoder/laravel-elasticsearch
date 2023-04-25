@@ -3,6 +3,7 @@
 namespace Mawebcoder\Elasticsearch\Migration;
 
 use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 
@@ -10,6 +11,30 @@ abstract class BaseElasticMigration
 {
     public array $schema = [];
 
+    const TYPE_INTEGER = 'integer';
+    const TYPE_TEXT = 'text';
+
+    const TYPE_STRING = 'string';
+    const TYPE_BOOLEAN = 'boolean';
+    const TYPE_BIGINT = 'bigint';
+    const TYPE_SMALLINT = 'smallint';
+    const TYPE_TINYINT = 'tinyint';
+    const TYPE_DOUBLE = 'double';
+    const TYPE_FLOAT = 'float';
+    const TYPE_DATETIME = 'datetime';
+
+    const VALID_TYPES = [
+        self::TYPE_STRING,
+        self::TYPE_TEXT,
+        self::TYPE_BOOLEAN,
+        self::TYPE_SMALLINT,
+        self::TYPE_FLOAT,
+        self::TYPE_DOUBLE,
+        self::TYPE_DATETIME,
+        self::TYPE_TINYINT,
+        self::TYPE_BIGINT,
+        self::TYPE_INTEGER,
+    ];
 
     /**
      * set model name space to detect model index here
@@ -25,6 +50,40 @@ abstract class BaseElasticMigration
         }
 
         $this->schema['properties'][$field] = ['type' => 'integer'];
+    }
+
+    public function object(string $field, array $options): void
+    {
+        $values = [];
+
+        foreach ($options as $key => $type) {
+            $values['properties'][$key] = ['type' => $type];
+        }
+
+        if ($this->isCreationState()) {
+            $this->schema['mappings']['properties'][$field] = [
+                ...['type' => 'nested'],
+                ...$values
+            ];
+
+
+
+            return;
+        }
+
+        $this->schema['properties'][$field] = $values;
+    }
+
+    /**
+     * @throws NotValidFieldTypeException
+     */
+    public function setType(string $field, string $type): array
+    {
+        if (!in_array($type, self::VALID_TYPES)) {
+            throw  new  NotValidFieldTypeException();
+        }
+
+        return [$field => ['type' => $type]];
     }
 
     public function boolean(string $field): void
@@ -115,7 +174,7 @@ abstract class BaseElasticMigration
         $this->schema['properties'][$field] = ['type' => 'date'];
     }
 
-    private function isCreationState(): bool
+    public function isCreationState(): bool
     {
         return !$this instanceof AlterElasticIndexMigrationInterface;
     }
@@ -126,11 +185,9 @@ abstract class BaseElasticMigration
      */
     public function up(): void
     {
-
         $this->schema($this);
 
         if ($this->isCreationState()) {
-
             $this->createIndexAndSchema();
             return;
         }
@@ -144,7 +201,6 @@ abstract class BaseElasticMigration
      */
     public function down(): void
     {
-
         if ($this->isCreationState()) {
             Elasticsearch::setModel($this->getModel())->delete();
             return;
