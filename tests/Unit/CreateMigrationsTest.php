@@ -151,4 +151,21 @@ class CreateMigrationsTest extends TestCase
 
         $this->assertSame($expected,$this->dummy->schema);
     }
+
+    public function testFloatType()
+    {
+        $this->dummy->float('value');
+
+        $expected=[
+            'mappings'=>[
+                'properties'=>[
+                    'value'=>[
+                        'type'=>'float'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected,$this->dummy->schema);
+    }
 }
