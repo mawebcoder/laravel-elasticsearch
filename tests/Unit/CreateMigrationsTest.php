@@ -120,13 +120,32 @@ class CreateMigrationsTest extends TestCase
     {
         $this->dummy->bigInteger('age');
 
-        $expected=[
-            'mappings'=>[
-                'properties'=>[
-                    'age'=>[
-                        'type'=>'long'
+        $expected = [
+            'mappings' => [
+                'properties' => [
+                    'age' => [
+                        'type' => 'long'
                     ]
                 ]
+            ]
+        ];
+
+        $this->assertSame($expected, $this->dummy->schema);
+    }
+
+    public function testDoubleType()
+    {
+        $this->dummy->double('currency_value');
+
+        $expected = [
+            'mappings' => [
+                'properties' =>
+                    [
+                        'currency_value' =>
+                            [
+                                'type' => 'double'
+                            ]
+                    ]
             ]
         ];
 
