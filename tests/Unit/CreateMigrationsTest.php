@@ -115,4 +115,21 @@ class CreateMigrationsTest extends TestCase
 
         $this->assertSame($expected, $this->dummy->schema);
     }
+
+    public function testBigIntType()
+    {
+        $this->dummy->bigInteger('age');
+
+        $expected=[
+            'mappings'=>[
+                'properties'=>[
+                    'age'=>[
+                        'type'=>'long'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected,$this->dummy->schema);
+    }
 }
