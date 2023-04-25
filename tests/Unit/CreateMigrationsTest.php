@@ -98,4 +98,21 @@ class CreateMigrationsTest extends TestCase
 
         $this->assertSame($expected, $this->dummy->schema);
     }
+
+    public function testSmallIntegerType()
+    {
+        $this->dummy->smallInteger('age');
+
+        $expected = [
+            'mappings' => [
+                'properties' => [
+                    'age' => [
+                        'type' => 'short'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected, $this->dummy->schema);
+    }
 }
