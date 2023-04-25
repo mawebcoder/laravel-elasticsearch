@@ -2,15 +2,21 @@
 
 namespace Tests\Unit;
 
+use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use PHPUnit\Framework\TestCase;
 
-class MigrationsTest extends TestCase
+class CreateMigrationsTest extends TestCase
 {
 
+    public BaseElasticMigration $dummy;
 
-    public function testNested()
+    protected function setUp(): void
     {
+        parent::setUp();
+
+        $this->dummy = require __DIR__ . '/../Dummy/2023_04_16_074007_create_tests_table.php';
+
         $baseMigrationMock = $this->getMockBuilder(BaseElasticMigration::class)
             ->disableOriginalConstructor()
             ->getMock();
@@ -18,16 +24,13 @@ class MigrationsTest extends TestCase
         $baseMigrationMock
             ->method('isCreationState')
             ->willReturn(true);
+    }
 
-        /**
-         * @type BaseElasticMigration $dummy
-         */
-        $dummy = require __DIR__ . '/../Dummy/2023_04_16_074007_create_tests_table.php';
-
-        $dummy->object('category', [
+    public function testNested()
+    {
+        $this->dummy->object('category', [
             'is_active' => BaseElasticMigration::TYPE_BOOLEAN,
             'name' => BaseElasticMigration::TYPE_STRING,
-
         ]);
 
         $expected = [
@@ -49,6 +52,15 @@ class MigrationsTest extends TestCase
             ]
         ];
 
-        $this->assertSame($expected, $dummy->schema);
+        $this->assertSame($expected, $this->dummy->schema);
+    }
+
+    public function testEncounterErrorInWrongType(){
+
+        $this->expectException(NotValidFieldTypeException::class);
+
+        $this->dummy->object('category', [
+            'is_active' => 'wrong',
+        ]);
     }
 }

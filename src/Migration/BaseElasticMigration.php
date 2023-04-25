@@ -52,12 +52,15 @@ abstract class BaseElasticMigration
         $this->schema['properties'][$field] = ['type' => 'integer'];
     }
 
+    /**
+     * @throws NotValidFieldTypeException
+     */
     public function object(string $field, array $options): void
     {
         $values = [];
 
         foreach ($options as $key => $type) {
-            $values['properties'][$key] = ['type' => $type];
+            $values['properties'][$key] = $this->setType($type);
         }
 
         if ($this->isCreationState()) {
@@ -65,7 +68,6 @@ abstract class BaseElasticMigration
                 ...['type' => 'nested'],
                 ...$values
             ];
-
 
 
             return;
@@ -77,13 +79,13 @@ abstract class BaseElasticMigration
     /**
      * @throws NotValidFieldTypeException
      */
-    public function setType(string $field, string $type): array
+    public function setType(string $type): array
     {
         if (!in_array($type, self::VALID_TYPES)) {
             throw  new  NotValidFieldTypeException();
         }
 
-        return [$field => ['type' => $type]];
+        return ['type' => $type];
     }
 
     public function boolean(string $field): void
