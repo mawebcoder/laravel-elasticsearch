@@ -149,54 +149,73 @@ class CreateMigrationsTest extends TestCase
             ]
         ];
 
-        $this->assertSame($expected,$this->dummy->schema);
+        $this->assertSame($expected, $this->dummy->schema);
     }
 
     public function testFloatType()
     {
         $this->dummy->float('value');
 
-        $expected=[
-            'mappings'=>[
-                'properties'=>[
-                    'value'=>[
-                        'type'=>'float'
+        $expected = [
+            'mappings' => [
+                'properties' => [
+                    'value' => [
+                        'type' => 'float'
                     ]
                 ]
             ]
         ];
 
-        $this->assertSame($expected,$this->dummy->schema);
+        $this->assertSame($expected, $this->dummy->schema);
     }
 
     public function testTinyIntType()
     {
         $this->dummy->tinyInt('value');
 
-        $expected=[
-            'mappings'=>[
-                'properties'=>
-                [
-                    'value'=>[
-                        'type'=>'byte'
+        $expected = [
+            'mappings' => [
+                'properties' =>
+                    [
+                        'value' => [
+                            'type' => 'byte'
+                        ]
                     ]
-                ]
             ]
         ];
 
-        $this->assertSame($expected,$this->dummy->schema);
+        $this->assertSame($expected, $this->dummy->schema);
     }
 
     public function testStringType()
     {
         $this->dummy->string('name');
 
+        $expected = [
+            'mappings' => [
+                'properties' =>
+                    [
+                        'name' => [
+                            'type' => 'keyword'
+                        ]
+                    ]
+            ]
+        ];
+
+        $this->assertSame($expected, $this->dummy->schema);
+    }
+
+    public function testTextType()
+    {
+        $this->dummy->text('body');
+
         $expected=[
-            'mappings'=>[
+            'mappings'=>
+            [
                 'properties'=>
                 [
-                    'name'=>[
-                        'type'=>'keyword'
+                    'body'=>[
+                        'type'=>'text'
                     ]
                 ]
             ]
