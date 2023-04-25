@@ -209,18 +209,37 @@ class CreateMigrationsTest extends TestCase
     {
         $this->dummy->text('body');
 
-        $expected=[
-            'mappings'=>
-            [
-                'properties'=>
+        $expected = [
+            'mappings' =>
                 [
-                    'body'=>[
-                        'type'=>'text'
-                    ]
+                    'properties' =>
+                        [
+                            'body' => [
+                                'type' => 'text'
+                            ]
+                        ]
                 ]
-            ]
         ];
 
-        $this->assertSame($expected,$this->dummy->schema);
+        $this->assertSame($expected, $this->dummy->schema);
+    }
+
+    public function testDateTimeType()
+    {
+        $this->dummy->datetime('created_at');
+
+        $expected = [
+            'mappings' =>
+                [
+                    'properties' =>
+                        [
+                            'created_at' => [
+                                'type' => 'date'
+                            ]
+                        ]
+                ]
+        ];
+
+        $this->assertSame($expected, $this->dummy->schema);
     }
 }
