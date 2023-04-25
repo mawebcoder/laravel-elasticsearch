@@ -81,4 +81,21 @@ class CreateMigrationsTest extends TestCase
 
         $this->assertSame($expected, $this->dummy->schema);
     }
+
+    public function testBooleanType()
+    {
+        $this->dummy->boolean('is_active');
+
+        $expected = [
+            'mappings' => [
+                'properties' => [
+                    'is_active' => [
+                        'type' => BaseElasticMigration::TYPE_BOOLEAN
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected, $this->dummy->schema);
+    }
 }
