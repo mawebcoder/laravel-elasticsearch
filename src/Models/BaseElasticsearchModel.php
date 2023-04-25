@@ -549,14 +549,23 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
-        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $field => [
-                    'lt' => $values[0],
-                    'gt' => $values[1]
+                    'gt' => $values[1],
                 ]
             ]
         ];
+
+        $this->search['query']['bool']['should'][]['bool']['must'][] = [
+            'range' => [
+                $field => [
+                    'lt' => $values[0],
+                ]
+            ]
+        ];
+
+
 
         return $this;
     }

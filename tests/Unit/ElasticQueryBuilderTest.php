@@ -371,11 +371,18 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->elastic->whereNotBetween($field, $values);
 
-        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
+            'range' => [
+                $field => [
+                    'gt' => $values[1]
+                ]
+            ]
+        ];
+
+        $this->expected['query']['bool']['should'][]['bool']['must'][] = [
             'range' => [
                 $field => [
                     'lt' => $values[0],
-                    'gt' => $values[1]
                 ]
             ]
         ];
@@ -450,7 +457,7 @@ class ElasticQueryBuilderTest extends TestCase
         $this->elastic->orWhere($field, $operation1, $value);
         $clone->orWhere($field, $operation2, $value);
 
-        $this->expected['query']['bool']['should'][]['bool']['must_not'] = [
+        $this->expected['query']['bool']['should'][]['bool']['must_not'][] = [
             "term" => [
                 $field => [
                     'value' => $value

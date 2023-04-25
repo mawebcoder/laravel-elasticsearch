@@ -4,9 +4,13 @@ namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Illuminate\Foundation\Testing\TestCase;
 use ReflectionException;
@@ -74,7 +78,8 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text'
+            'details' => 'this is test text',
+            'age'=>13
         ];
 
         $this->elastic->create($data);
@@ -102,7 +107,8 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text'
+            'details' => 'this is test text',
+            'age'=>30
         ];
 
         $result = $this->elastic->create($data);
@@ -138,8 +144,10 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $result = $this->elastic->find(1);
 
-        $this->assertEquals(['name' => null, 'is_active' => null, 'id' => 1, 'details' => 'this is test text'],
-            $result->attributes);
+        $this->assertEquals(
+            ['name' => null, 'is_active' => null,'age'=>null, 'id' => 1, 'details' => 'this is test text'],
+            $result->attributes
+        );
     }
 
     /**
@@ -183,6 +191,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $newData = [
             'name' => 'mohammad',
             'is_active' => true,
+            'age'=>19
         ];
 
         $model->update($newData);
@@ -195,6 +204,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             "id" => "1",
             "is_active" => true,
             "name" => "mohammad",
+            'age'=>19,
             "details" => "this is test text"
         ];
 
@@ -296,8 +306,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $results = $this->elastic->select('name', 'id')
             ->get();
 
-
-        $firstResultAttributes = $results[0]->getAttributes();
+        $firstResultAttributes = $results->first()->getAttributes();
 
         $this->assertEquals(['name', 'id'], array_keys($firstResultAttributes));
     }
@@ -374,8 +383,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             ->take(1)
             ->get();
 
-
-        $this->assertEquals(2, $results[0]->getAttributes()['id']);
+        $this->assertEquals(2, $results->first()->getAttributes()['id']);
     }
 
     /**
@@ -418,7 +426,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertEquals(1, $results->count());
 
-        $firstResult = $results[0]->attributes['name'];
+        $firstResult = $results->first()->attributes['name'];
 
         $this->assertEquals('ali', $firstResult);
     }
@@ -464,12 +472,11 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             ->select('name')
             ->get();
 
-
         $this->assertEquals(2, $results->count());
 
-        $this->assertEquals('first', $results[0]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'first'));
 
-        $this->assertEquals('second', $results[1]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
     /**
@@ -516,112 +523,874 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertEquals('ali', $results[1]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'ali'));
 
-        $this->assertEquals('second', $results[0]->attributes['name']);
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
+     */
     public function testWhereBetweenCondition()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
 
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 10,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->whereBetween('age', [10, 12])
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 12));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 10));
     }
 
+    /**
+     * @throws RequestException
+     * @throws WrongArgumentType
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     */
     public function testNotBetweenCondition()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 10,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data4 = [
+            'id' => 4,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        $this->elastic->create($data4);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->whereNotBetween('age', [10, 12])
+            ->get();
+
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 19));
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 9));
     }
 
+    /**
+     * @throws RequestException
+     * @throws WrongArgumentType
+     * @throws FieldNotDefinedInIndexException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws ReflectionException
+     */
     public function testOrBetweenCondition()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 10,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $data4 = [
+            'id' => 4,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        $this->elastic->create($data4);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 9)
+            ->orWhereBetween('age', [10, 12])
+            ->get();
+
+        $this->assertEquals(3, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 10));
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 9));
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 12));
     }
 
-    public function testOrWhereNotBetweenCondition()
+    /**
+     * @throws InvalidSortDirection
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrderByAsc()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->orderBy('age')
+            ->get();
+
+
+        $first = $results->first();
+
+        $second = $results[1];
+
+
+        $this->assertEquals(12, $first->age);
+
+        $this->assertEquals(19, $second->age);
     }
 
-    public function testOrderBy()
+    /**
+     * @throws InvalidSortDirection
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrderByDesc()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->orderBy('age', 'desc')
+            ->get();
+
+        $first = $results->first();
+
+        $second = $results[1];
+
+
+        $this->assertEquals(19, $first->age);
+
+        $this->assertEquals(12, $second->age);
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereTerm()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->whereTerm('name', 'second')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testOrWhereTerm()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('name', 'first')
+            ->orWhereTerm('name', 'second')
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'first'));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereNotTerm()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->whereTerm('name', '<>', 'second')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'first'));
     }
 
-    public function testOrWhereNotTerm()
-    {
-    }
 
-    public function testWhereEqual()
-    {
-    }
-
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testOrWhereEqual()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('name', 'first')
+            ->orWhere('name', 'second')
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'first'));
+        $this->assertTrue($results->contains(fn($row) => $row->name === 'second'));
     }
 
 
-    public function testWhereNotEqual()
-    {
-    }
-
-    public function testOrWhereNotEqual()
-    {
-    }
-
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws RequestException
+     * @throws ReflectionException
+     */
     public function testWhereGreaterThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 12,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '>', 12)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws RequestException
+     * @throws ReflectionException
+     */
     public function testOrWhereGreaterThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 9)
+            ->orWhere('age', '>', 9)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereLessThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '<', 19)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testOrWhereLessThan()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'first',
+            'details' => 'number one'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'second',
+            'details' => 'number 2'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 19)
+            ->orWhere('age', '<', 19)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereLike()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('details', 'like', 'to be hap')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->details === $data2['details']));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testWhereNotLike()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('details', 'not like', 'to be hap')
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->details === $data['details']));
     }
 
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
     public function testOrWhereLike()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 19)
+            ->orWhere('details', 'like', 'to be hap')
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->details === $data2['details']));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === $data['age']));
     }
 
-    public function testOrWhereNotLike()
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function testWhereGreaterThanOrEqual()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 21,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '>=', 19)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
     }
 
-    public function testWhereGTE()
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrWhereGreaterThanOrEqual()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 21,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 9)
+            ->orWhere('age', '>=', 21)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
     }
 
-    public function testOrWhereGTE()
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testWhereLessThanOrEqual()
     {
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
+
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 21,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', '<=', 19)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
     }
 
-    public function testWhereLTE()
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     */
+    public function testOrWhereLessThanOrEqual()
     {
-    }
+        $data = [
+            'id' => 1,
+            'age' => 19,
+            'name' => 'mohammad',
+            'details' => 'he studied at line school'
+        ];
 
-    public function testOrWhereLTE()
-    {
+        $data2 = [
+            'id' => 2,
+            'age' => 9,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $data3 = [
+            'id' => 3,
+            'age' => 21,
+            'name' => 'narges',
+            'details' => 'she wants to be happy with other people'
+        ];
+
+        $this->elastic->create($data);
+
+        $this->elastic->create($data2);
+
+        $this->elastic->create($data3);
+
+        sleep(2);
+
+        $results = $this->elastic
+            ->where('age', 9)
+            ->orWhere('age', '<=', 21)
+            ->get();
+
+        $this->assertEquals(3, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
     }
 
 
