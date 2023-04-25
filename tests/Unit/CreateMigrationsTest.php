@@ -55,12 +55,30 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testEncounterErrorInWrongType(){
-
+    public function testEncounterErrorInWrongType()
+    {
         $this->expectException(NotValidFieldTypeException::class);
 
         $this->dummy->object('category', [
             'is_active' => 'wrong',
         ]);
+    }
+
+
+    public function testIntegerFieldType()
+    {
+        $this->dummy->integer('age');
+
+        $expected = [
+            'mappings' => [
+                'properties' => [
+                    'age' => [
+                        'type' => BaseElasticMigration::TYPE_INTEGER
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected, $this->dummy->schema);
     }
 }
