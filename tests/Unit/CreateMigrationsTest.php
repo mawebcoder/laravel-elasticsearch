@@ -186,4 +186,22 @@ class CreateMigrationsTest extends TestCase
 
         $this->assertSame($expected,$this->dummy->schema);
     }
+
+    public function testStringType()
+    {
+        $this->dummy->string('name');
+
+        $expected=[
+            'mappings'=>[
+                'properties'=>
+                [
+                    'name'=>[
+                        'type'=>'keyword'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected,$this->dummy->schema);
+    }
 }
