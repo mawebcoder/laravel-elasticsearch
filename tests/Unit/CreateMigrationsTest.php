@@ -168,4 +168,22 @@ class CreateMigrationsTest extends TestCase
 
         $this->assertSame($expected,$this->dummy->schema);
     }
+
+    public function testTinyIntType()
+    {
+        $this->dummy->tinyInt('value');
+
+        $expected=[
+            'mappings'=>[
+                'properties'=>
+                [
+                    'value'=>[
+                        'type'=>'byte'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($expected,$this->dummy->schema);
+    }
 }
