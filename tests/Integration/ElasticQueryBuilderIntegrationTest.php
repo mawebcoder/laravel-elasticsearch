@@ -4,7 +4,6 @@ namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Collection;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
@@ -42,7 +41,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
     private function loadTestMigration(): void
     {
-        Elasticsearch::loadMigrationsFrom(__DIR__ . '/../Mock');
+        Elasticsearch::loadMigrationsFrom(__DIR__ . '/../Dummy');
     }
 
     private function migrateTestMigration(): void
@@ -79,7 +78,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'name' => 'mohammad amiri',
             'is_active' => true,
             'details' => 'this is test text',
-            'age'=>13
+            'age' => 13
         ];
 
         $this->elastic->create($data);
@@ -108,7 +107,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'name' => 'mohammad amiri',
             'is_active' => true,
             'details' => 'this is test text',
-            'age'=>30
+            'age' => 30
         ];
 
         $result = $this->elastic->create($data);
@@ -145,7 +144,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $result = $this->elastic->find(1);
 
         $this->assertEquals(
-            ['name' => null, 'is_active' => null,'age'=>null, 'id' => 1, 'details' => 'this is test text'],
+            ['name' => null, 'is_active' => null, 'age' => null, 'id' => 1, 'details' => 'this is test text'],
             $result->attributes
         );
     }
@@ -191,7 +190,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $newData = [
             'name' => 'mohammad',
             'is_active' => true,
-            'age'=>19
+            'age' => 19
         ];
 
         $model->update($newData);
@@ -204,7 +203,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             "id" => "1",
             "is_active" => true,
             "name" => "mohammad",
-            'age'=>19,
+            'age' => 19,
             "details" => "this is test text"
         ];
 
@@ -1391,6 +1390,36 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->assertTrue($results->contains(fn($row) => $row->age === 9));
 
         $this->assertTrue($results->contains(fn($row) => $row->age === 21));
+    }
+
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function testGetMappings()
+    {
+        $mappings = $this->elastic->getMappings();
+
+        $expected = [
+            "age" => [
+                'type' => 'integer'
+            ],
+            "details" => [
+                "type" => 'text'
+            ],
+            "id" => [
+                "type" => "integer"
+            ],
+            "is_active" => [
+                "type" => "boolean"
+            ],
+            "name" => [
+                "type" => "keyword"
+            ]
+        ];
+
+        $this->assertSame($expected, $mappings);
     }
 
 

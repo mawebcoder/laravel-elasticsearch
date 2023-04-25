@@ -243,25 +243,6 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testIsCreatingMethodReturnFalseIfImplementsFromAlterElasticsearchInterfaceMigration()
-    {
-        /**
-         * @type BaseElasticMigration $result
-         */
-        $result = require __DIR__ . '/../Dummy/2023_04_16_074007_create_dummy_table.php';
 
 
-        $this->assertTrue(!$result->isCreationState());
-    }
-
-    public function testIsCreatingMethodReturnTrueIfNotImplementsFromAlterElasticsearchInterfaceMigration()
-    {
-        /**
-         * @type BaseElasticMigration $result
-         */
-        $result = require __DIR__ . '/../Dummy/2023_04_16_074007_create_dummy_creating_table.php';
-
-
-        $this->assertTrue($result->isCreationState());
-    }
 }

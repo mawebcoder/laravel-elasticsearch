@@ -16,5 +16,6 @@ return new class extends BaseElasticMigration {
         $mapper->boolean('is_active');
         $mapper->text('details');
         $mapper->integer('age');
+
     }
 };

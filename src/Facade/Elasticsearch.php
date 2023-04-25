@@ -17,6 +17,7 @@ use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
  * @method static Response dropModelIndex()
  * @method static array getAllIndexes()
  * @method static array getFields()
+ * @method static array getMappings()
  */
 class Elasticsearch extends Facade
 {
