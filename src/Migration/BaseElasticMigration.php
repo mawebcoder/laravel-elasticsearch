@@ -5,12 +5,17 @@ namespace Mawebcoder\Elasticsearch\Migration;
 use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionException;
 
 abstract class BaseElasticMigration
 {
     public array $schema = [];
 
+    public array $dropMappingFields = [];
+
+
+    public string $tempIndex;
     const TYPE_INTEGER = 'integer';
     const TYPE_TEXT = 'text';
 
@@ -208,11 +213,14 @@ abstract class BaseElasticMigration
             return;
         }
 
-        /**
-         * @todo we need to reindex
-         */
         $this->alterDown();
     }
+
+    public function dropField(string $field): void
+    {
+        $this->dropMappingFields[] = $field;
+    }
+
 
     /**
      * @throws ReflectionException
@@ -220,6 +228,13 @@ abstract class BaseElasticMigration
      */
     public function alterIndex(): void
     {
+        if ($this->shouldReIndex()) {
+            Elasticsearch::setModel($this->getModel())
+                ->put(path: '_mappings', data: $this->schema);
+            return;
+        }
+
+
         Elasticsearch::setModel($this->getModel())
             ->put(path: '_mappings', data: $this->schema);
     }
@@ -235,4 +250,33 @@ abstract class BaseElasticMigration
     }
 
     abstract public function schema(BaseElasticMigration $mapper);
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    private function shouldReIndex(): bool
+    {
+        return boolval(count($this->getUpdatingFields()));
+    }
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function getUpdatingFields(): array
+    {
+        $model = $this->getModel();
+
+        /**
+         * @type BaseElasticsearchModel $model
+         */
+        $model = new $model();
+
+        $oldFields = $model->getFields();
+
+        $newFields = array_keys($this->schema['properties']);
+
+        return array_intersect($oldFields, $newFields);
+    }
 }
