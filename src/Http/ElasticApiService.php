@@ -47,7 +47,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
             return $this->client->post($path);
         }
 
-
         return $this->client->post($path, [RequestOptions::JSON => $data]);
     }
 
