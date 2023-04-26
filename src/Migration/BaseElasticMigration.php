@@ -5,6 +5,7 @@ namespace Mawebcoder\Elasticsearch\Migration;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Str;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
@@ -46,6 +47,22 @@ abstract class BaseElasticMigration
     public const ANALYZER_LANGUAGE_ARABIC = 'arabic';
     public const ANALYZER_LANGUAGE_GERMAN = 'german';
 
+    public const NORMALIZER_FILTER_LOWERCASE = 'lowercase';
+    public const NORMALIZER_FILTER_UPPERCASE = 'uppercase';
+    public const NORMALIZER_FILTER_ASCII_FOLDING = 'asciifolding';
+    public const NORMALIZER_FILTER_STOP = 'stop';
+    public const NORMALIZER_FILTER_CLASSIC = 'classic';
+    public const NORMALIZER_FILTER_NGRAM = 'ngram';
+    public const NORMALIZER_FILTER_APOSTROPHE = 'apostrophe';
+    public const NORMALIZER_FILTER_SYNONYM = 'synonym';
+    public const NORMALIZER_FILTER_STEMMER = 'stemmer';
+    public const NORMALIZER_FILTER_LENGTH = 'length';
+    public const NORMALIZER_FILTER_SHINGLE = 'shingle';
+    public const NORMALIZER_FILTER_UNIQUE = 'unique';
+    public const NORMALIZER_FILTER_DECIMAL_DIGIT = 'decimal_digit';
+    public const NORMALIZER_FILTER_PERSIAN_NORMALIZATION = 'persian_normalization';
+    public const NORMALIZER_FILTER_ARABIC_NORMALIZATION = 'arabic_normalization';
+
     public const VALID_TYPES = [
         self::TYPE_STRING,
         self::TYPE_TEXT,
@@ -72,6 +89,24 @@ abstract class BaseElasticMigration
         self::ANALYZER_LANGUAGE_FRENCH,
         self::ANALYZER_LANGUAGE_ARABIC,
         self::ANALYZER_LANGUAGE_GERMAN,
+    ];
+
+    public const VALID_NORMALIZER_TOKEN_FILTERS = [
+        self::NORMALIZER_FILTER_LOWERCASE,
+        self::NORMALIZER_FILTER_UPPERCASE,
+        self::NORMALIZER_FILTER_ASCII_FOLDING,
+        self::NORMALIZER_FILTER_STOP,
+        self::NORMALIZER_FILTER_CLASSIC,
+        self::NORMALIZER_FILTER_NGRAM,
+        self::NORMALIZER_FILTER_APOSTROPHE,
+        self::NORMALIZER_FILTER_SYNONYM,
+        self::NORMALIZER_FILTER_STEMMER,
+        self::NORMALIZER_FILTER_LENGTH,
+        self::NORMALIZER_FILTER_SHINGLE,
+        self::NORMALIZER_FILTER_UNIQUE,
+        self::NORMALIZER_FILTER_DECIMAL_DIGIT,
+        self::NORMALIZER_FILTER_PERSIAN_NORMALIZATION,
+        self::NORMALIZER_FILTER_ARABIC_NORMALIZATION,
     ];
 
     /**
@@ -238,6 +273,36 @@ abstract class BaseElasticMigration
         }
 
         $this->schema['properties'][$field] = ['type' => 'date'];
+    }
+
+    /**
+     * @throws InvalidNormalizerTokenFilter
+     */
+    public function setNormalizer(string $field, ?string $tokenFilter, string $name): void
+    {
+        if ($this->isCreationState())
+        {
+            if (isset($tokenFilter))
+            {
+                $this->setNormalizerSettings($tokenFilter, $name);
+
+                $this->schema['mappings']['properties'][$field] = [
+                    ...$this->schema['mappings']['properties'][$field],
+                    ...['normalizer' => $name]
+                ];
+            }
+            return;
+        }
+
+        if (isset($tokenFilter))
+        {
+            $this->setNormalizerSettings($tokenFilter, $name);
+
+            $this->schema['properties'][$field] = [
+                ...$this->schema['properties'][$field],
+                ...['normalizer' => $name]
+            ];
+        }
     }
 
 
@@ -548,5 +613,36 @@ abstract class BaseElasticMigration
     private function analyzerIsValid(string $analyzer): bool
     {
         return in_array($analyzer, self::VALID_ANALYZERS);
+    }
+
+    private function normalizerFilterIsValid(string $filter): bool
+    {
+        return in_array($filter, self::VALID_NORMALIZER_TOKEN_FILTERS);
+    }
+
+    /**
+     * @param string $tokenFilter
+     * @param string $name
+     * @return void
+     * @throws InvalidNormalizerTokenFilter
+     */
+    private function setNormalizerSettings(string $tokenFilter, string $name): void
+    {
+        if (!$this->normalizerFilterIsValid($tokenFilter))
+        {
+            throw new InvalidNormalizerTokenFilter();
+        }
+
+        $this->schema['settings']['analysis']['normalizer'][$name] = [
+            'type' => 'custom',
+            'char_filter' => [
+                ...$this->schema['settings']['analysis']['normalizer'][$name]['char_filter'],
+                ...[]
+            ],
+            'filter' => [
+                ...$this->schema['settings']['analysis']['normalizer'][$name]['filter'],
+                ...[$tokenFilter]
+            ]
+        ];
     }
 }
