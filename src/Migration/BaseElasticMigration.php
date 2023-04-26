@@ -336,8 +336,9 @@ abstract class BaseElasticMigration
     }
 
     /**
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function down(): void
     {
@@ -388,8 +389,11 @@ abstract class BaseElasticMigration
             elasticApiService: $elasticApiService,
         );
 
-
-        dump('Please wait for reindexing to finish.how long it takes depends on your data volume');
+        dump(
+            'DO NOT CANCEL THE OPERATION,OTHERWISE YOUR DATA ON THIS INDEX WILL BE LOST,
+            Please wait for reindexing to finish.
+            How long it takes depends Aon your data volume inside of the your index'
+        );
 
         while (true) {
             sleep(1);
