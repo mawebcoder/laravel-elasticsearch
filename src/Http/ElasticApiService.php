@@ -3,6 +3,8 @@
 namespace Mawebcoder\Elasticsearch\Http;
 
 use Exception;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\File;
@@ -10,6 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+use Psr\Http\Message\ResponseInterface;
 use ReflectionClass;
 use ReflectionException;
 
@@ -17,71 +20,67 @@ class ElasticApiService implements ElasticHttpRequestInterface
 {
     public string $index;
 
+    public Client $client;
+
+    public function __construct()
+    {
+        $this->client = new Client();
+    }
+
     public static array $migrationsPath = [];
 
     public Response $connection;
 
-    public string $elasticModel;
+    public ?string $elasticModel = null;
+
 
     /**
-     * @throws RequestException
      * @throws ReflectionException
+     * @throws GuzzleException
      */
-    public function post(?string $path = null, array $data = []): Response
+    public function post(?string $path = null, array $data = []): ResponseInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        $response = Http::post($path, $data);
-
-        $response->throw();
-
-        return $response;
+        return $this->client->post($path, $data);
     }
 
 
     /**
-     * @throws RequestException
+     * @param string|null $path
+     * @return ResponseInterface
+     * @throws GuzzleException
      * @throws ReflectionException
      */
-    public function get(?string $path = null): Response
+    public function get(?string $path = null): ResponseInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        $response = Http::get($path);
-
-        $response->throw();
-
-        return $response;
+        return $this->client->get($path);
     }
 
+
     /**
-     * @throws RequestException
      * @throws ReflectionException
+     * @throws GuzzleException
      */
-    public function put(?string $path = null, array $data = []): Response
+    public function put(?string $path = null, array $data = []): ResponseInterface
     {
-        $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
 
-        $response = Http::put($path, $data);
-
-        $response->throw();
-
-        return $response;
+        return $this->client->put($path, $data);
     }
 
+
     /**
-     * @throws RequestException
      * @throws ReflectionException
+     * @throws GuzzleException
      */
-    public function delete(?string $path = null, array $data = []): Response
+    public function delete(?string $path = null, array $data = []): ResponseInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        $response = Http::delete($path, $data);
-
-        $response->throw();
-
-        return $response;
+        return $this->client->delete($path, $data);
     }
 
     /**
@@ -89,14 +88,23 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     private function generateBaseIndexPath(): string
     {
-        /**
-         * @type BaseElasticsearchModel $elasticModelObject
-         */
-        $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
+        if (isset($this->elasticModel)) {
+            /**
+             * @type BaseElasticsearchModel $elasticModelObject
+             */
+            $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
+        }
 
-        return trim(
-                config('elasticsearch.host') . ":" . config("elasticsearch.port")
-            ) . '/' . $elasticModelObject->getIndex();
+
+        $path = trim(
+            config('elasticsearch.host') . ":" . config("elasticsearch.port")
+        );
+
+        if (isset($elasticModelObject)) {
+            $path .= '/' . $elasticModelObject->getIndex();
+        }
+
+        return $path;
     }
 
     public function setModel(string $modelName): static
@@ -121,7 +129,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws DirectoryNotFoundException
      */
-    public function loadMigrationsFrom(string $directory)
+    public function loadMigrationsFrom(string $directory): void
     {
         if (!is_dir($directory)) {
             throw new DirectoryNotFoundException(message: 'directory ' . $directory . ' not found');
@@ -133,34 +141,29 @@ class ElasticApiService implements ElasticHttpRequestInterface
         ];
     }
 
+
     /**
      * @throws ReflectionException
-     * @throws RequestException
+     * @throws GuzzleException
      */
-    public function dropModelIndex(): Response
+    public function dropModelIndex(): ResponseInterface
     {
         $fullPath = $this->generateBaseIndexPath();
 
-        $response = Http::delete($fullPath);
-
-        $response->throw();
-
-        return $response;
+        return $this->client->delete($fullPath);
     }
 
 
     /**
-     * @throws RequestException
+     * @throws GuzzleException
      */
     public function getAllIndexes(): array
     {
         $path = trim(config('elasticsearch.host') . ":" . config("elasticsearch.port"), '/') . '/_aliases';
 
-        $response = Http::get($path);
+        $response = $this->client->get($path);
 
-        $response->throw();
-
-        $result = $response->json();
+        $result = json_decode($response->getBody());
 
         return array_keys($result);
     }
@@ -169,6 +172,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      * @throws RequestException
+     * @throws GuzzleException
      */
     public function getFields(): array
     {
@@ -176,7 +180,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
 
-        $jsonResponse = $response->json();
+        $jsonResponse = json_decode($response->getBody());
 
         if (array_key_exists('properties', $jsonResponse[$index]['mappings'])) {
             return array_keys($jsonResponse[$index]['mappings']['properties']);
@@ -188,14 +192,15 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      * @throws RequestException
+     * @throws GuzzleException
      */
-    public function getMappings():array
+    public function getMappings(): array
     {
         $response = $this->get('_mapping');
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
 
-        $jsonResponse = $response->json();
+        $jsonResponse = json_decode($response->getBody());
 
         return $jsonResponse[$index]['mappings']['properties'];
     }

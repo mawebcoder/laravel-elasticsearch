@@ -26,6 +26,6 @@
     "test": "vendor/bin/phpunit tests --colors --testdox"
   },
   "require": {
-    "guzzlehttp/guzzle": "^7.5"
+    "guzzlehttp/guzzle": "^7.0"
   }
 }
