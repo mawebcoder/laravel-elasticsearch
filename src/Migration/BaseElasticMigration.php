@@ -4,6 +4,7 @@ namespace Mawebcoder\Elasticsearch\Migration;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Str;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
@@ -23,7 +24,6 @@ abstract class BaseElasticMigration
     public string $tempIndex;
     public const TYPE_INTEGER = 'integer';
     public const TYPE_TEXT = 'text';
-
     public const TYPE_STRING = 'string';
     public const TYPE_BOOLEAN = 'boolean';
     public const TYPE_BIGINT = 'bigint';
@@ -32,6 +32,19 @@ abstract class BaseElasticMigration
     public const TYPE_DOUBLE = 'double';
     public const TYPE_FLOAT = 'float';
     public const TYPE_DATETIME = 'datetime';
+
+    public const ANALYZER_STANDARD = 'standard';
+    public const ANALYZER_SIMPLE = 'simple';
+    public const ANALYZER_WHITESPACE = 'whitespace';
+    public const ANALYZER_STOP = 'stop';
+    public const ANALYZER_KEYWORD = 'keyword';
+    public const ANALYZER_PATTERN = 'pattern';
+    public const ANALYZER_FINGERPRINT = 'fingerprint';
+    public const ANALYZER_LANGUAGE_ENGLISH = 'english';
+    public const ANALYZER_LANGUAGE_PERSIAN = 'persian';
+    public const ANALYZER_LANGUAGE_FRENCH  = 'french';
+    public const ANALYZER_LANGUAGE_ARABIC  = 'arabic';
+    public const ANALYZER_LANGUAGE_GERMAN  = 'german';
 
     public const VALID_TYPES = [
         self::TYPE_STRING,
@@ -44,6 +57,21 @@ abstract class BaseElasticMigration
         self::TYPE_TINYINT,
         self::TYPE_BIGINT,
         self::TYPE_INTEGER,
+    ];
+
+    public const VALID_ANALYZERS = [
+        self::ANALYZER_STANDARD,
+        self::ANALYZER_SIMPLE,
+        self::ANALYZER_WHITESPACE,
+        self::ANALYZER_STOP,
+        self::ANALYZER_KEYWORD,
+        self::ANALYZER_PATTERN,
+        self::ANALYZER_FINGERPRINT,
+        self::ANALYZER_LANGUAGE_ENGLISH,
+        self::ANALYZER_LANGUAGE_PERSIAN,
+        self::ANALYZER_LANGUAGE_FRENCH,
+        self::ANALYZER_LANGUAGE_ARABIC,
+        self::ANALYZER_LANGUAGE_GERMAN,
     ];
 
     /**
@@ -167,13 +195,38 @@ abstract class BaseElasticMigration
         $this->schema['properties'][$field] = ['type' => 'keyword'];
     }
 
-    public function text(string $field): void
+    /**
+     * @throws InvalidAnalyzerType
+     */
+    public function text(string $field, ?string $analyzer): void
     {
-        if ($this->isCreationState()) {
+        if ($this->isCreationState())
+        {
             $this->schema['mappings']['properties'][$field] = ['type' => 'text'];
+
+            if (isset($analyzer))
+            {
+                if (!$this->analyzerIsValid($analyzer))
+                {
+                    throw new InvalidAnalyzerType;
+                }
+
+                $this->schema['mappings']['properties'][$field] = ['analyzer' => $analyzer];
+            }
             return;
         }
+
         $this->schema['properties'][$field] = ['type' => 'text'];
+
+        if (isset($analyzer))
+        {
+            if (!$this->analyzerIsValid($analyzer))
+            {
+                throw new InvalidAnalyzerType;
+            }
+
+            $this->schema['properties'][$field] = ['analyzer' => $analyzer];
+        }
     }
 
     public function datetime(string $field): void
@@ -455,5 +508,10 @@ abstract class BaseElasticMigration
         $newFields = array_keys($this->schema['properties']);
 
         return array_intersect($oldFields, $newFields);
+    }
+
+    private function analyzerIsValid(string $analyzer): bool
+    {
+        return in_array($analyzer, self::VALID_ANALYZERS);
     }
 }
