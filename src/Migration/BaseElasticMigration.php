@@ -2,7 +2,11 @@
 
 namespace Mawebcoder\Elasticsearch\Migration;
 
+use GuzzleHttp\Exception\GuzzleException;
+use http\Client;
+use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
@@ -13,6 +17,8 @@ use ReflectionException;
 
 abstract class BaseElasticMigration
 {
+
+
     public array $schema = [];
 
     public const MAPPINGS = '_mappings';
@@ -198,7 +204,7 @@ abstract class BaseElasticMigration
     /**
      * @throws InvalidAnalyzerType
      */
-    public function text(string $field, ?string $analyzer): void
+    public function text(string $field, ?string $analyzer = null): void
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'text'];
@@ -249,6 +255,7 @@ abstract class BaseElasticMigration
     {
         $this->schema($this);
 
+
         if ($this->isCreationState()) {
             $this->createIndexAndSchema();
             return;
@@ -285,6 +292,7 @@ abstract class BaseElasticMigration
     /**
      * @throws ReflectionException
      * @throws RequestException
+     * @throws GuzzleException
      */
     public function alterIndex(): void
     {
@@ -294,7 +302,10 @@ abstract class BaseElasticMigration
             return;
         }
 
+
         $elasticApiService = app(ElasticApiService::class);
+
+
 
         $this->createTempIndex($elasticApiService);
 
@@ -493,13 +504,18 @@ abstract class BaseElasticMigration
      */
     public function createTempIndex(ElasticApiService $elasticApiService): void
     {
-        $this->tempIndex = Str::random(20);
+        $this->tempIndex = strtolower(Str::random(10));
+        $client=new \GuzzleHttp\Client();
 
-        $response = $elasticApiService->put($this->tempIndex);
+       $response= $client->put('http://localhost:9200/'.$this->tempIndex);
 
-        $response->throw();
+       dd($response->getStatusCode());
+        if (!empty($this->schema)) {
 
-        $response = $elasticApiService->put($this->tempIndex . DIRECTORY_SEPARATOR . self::MAPPINGS, $this->schema);
+
+        } else {
+            $response = $elasticApiService->put(path: $this->tempIndex, data: []);
+        }
 
         $response->throw();
     }
@@ -522,7 +538,7 @@ abstract class BaseElasticMigration
      */
     private function shouldReIndex(): bool
     {
-        return !empty($this->getUpdatingFields());
+        return !empty($this->getUpdatingFields()) || !empty($this->dropMappingFields);
     }
 
     /**
@@ -539,6 +555,10 @@ abstract class BaseElasticMigration
         $model = new $model();
 
         $oldFields = $model->getFields();
+
+        if (!isset($this->schema['properties'])) {
+            return [];
+        }
 
         $newFields = array_keys($this->schema['properties']);
 
