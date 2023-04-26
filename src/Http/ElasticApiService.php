@@ -178,12 +178,26 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $jsonResponse = $response->json();
 
-        if (array_key_exists('properties', $jsonResponse[$index]['mappings']))
-        {
+        if (array_key_exists('properties', $jsonResponse[$index]['mappings'])) {
             return array_keys($jsonResponse[$index]['mappings']['properties']);
         }
 
         return array_keys($jsonResponse[$index]['mappings']);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function getMappings():array
+    {
+        $response = $this->get('_mapping');
+
+        $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
+
+        $jsonResponse = $response->json();
+
+        return $jsonResponse[$index]['mappings']['properties'];
     }
 
 

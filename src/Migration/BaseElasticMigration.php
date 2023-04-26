@@ -3,8 +3,10 @@
 namespace Mawebcoder\Elasticsearch\Migration;
 
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Str;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionException;
 
@@ -12,23 +14,24 @@ abstract class BaseElasticMigration
 {
     public array $schema = [];
 
+    const MAPPINGS = '_mappings';
     public array $dropMappingFields = [];
 
 
     public string $tempIndex;
-    const TYPE_INTEGER = 'integer';
-    const TYPE_TEXT = 'text';
+    public const TYPE_INTEGER = 'integer';
+    public const TYPE_TEXT = 'text';
 
-    const TYPE_STRING = 'string';
-    const TYPE_BOOLEAN = 'boolean';
-    const TYPE_BIGINT = 'bigint';
-    const TYPE_SMALLINT = 'smallint';
-    const TYPE_TINYINT = 'tinyint';
-    const TYPE_DOUBLE = 'double';
-    const TYPE_FLOAT = 'float';
-    const TYPE_DATETIME = 'datetime';
+    public const TYPE_STRING = 'string';
+    public const TYPE_BOOLEAN = 'boolean';
+    public const TYPE_BIGINT = 'bigint';
+    public const TYPE_SMALLINT = 'smallint';
+    public const TYPE_TINYINT = 'tinyint';
+    public const TYPE_DOUBLE = 'double';
+    public const TYPE_FLOAT = 'float';
+    public const TYPE_DATETIME = 'datetime';
 
-    const VALID_TYPES = [
+    public const VALID_TYPES = [
         self::TYPE_STRING,
         self::TYPE_TEXT,
         self::TYPE_BOOLEAN,
@@ -228,15 +231,67 @@ abstract class BaseElasticMigration
      */
     public function alterIndex(): void
     {
-        if ($this->shouldReIndex()) {
+        if (!$this->shouldReIndex()) {
             Elasticsearch::setModel($this->getModel())
-                ->put(path: '_mappings', data: $this->schema);
+                ->put(path: self::MAPPINGS, data: $this->schema);
             return;
         }
 
+        $currentMappings = $this->getCurrentMappings();
+
+        $newMappings = $this->schema['properties'];
+
+
+
+        $elasticApiService = app(ElasticApiService::class);
+
+        $this->createTempIndex($elasticApiService);
+
+
+        //reIndexHere
+
+        //drop Actual Index
+
+        //create actual index again
+
+        //create mapping of the actual index
+
+        //re-index from temp to actual
+
+        //remove temp index
 
         Elasticsearch::setModel($this->getModel())
-            ->put(path: '_mappings', data: $this->schema);
+            ->put(path: self::MAPPINGS, data: $this->schema);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function getCurrentMappings(): array
+    {
+        $model = $this->getModel();
+
+        /**
+         * @type BaseElasticsearchModel $modelInstance
+         */
+        $modelInstance = new $model();
+
+        return $modelInstance->getMappings();
+    }
+
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function createTempIndex(ElasticApiService $elasticApiService): void
+    {
+        $this->tempIndex = Str::random(20);
+
+        $response = $elasticApiService->put($this->tempIndex . DIRECTORY_SEPARATOR . self::MAPPINGS,);
+
+        $response->throw();
     }
 
     /**
@@ -257,7 +312,7 @@ abstract class BaseElasticMigration
      */
     private function shouldReIndex(): bool
     {
-        return boolval(count($this->getUpdatingFields()));
+        return !empty($this->dropMappingFields) || !empty($this->getUpdatingFields());
     }
 
     /**

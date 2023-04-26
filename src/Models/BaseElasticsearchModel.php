@@ -283,10 +283,9 @@ abstract class BaseElasticsearchModel
         $collection = collect();
 
         foreach ($results as $result) {
-
             $data = [
                 ...$result[self::SOURCE_KEY],
-                ...['id'=>$result['_id']]
+                ...['id' => $result['_id']]
             ];
 
             $collection->add($this->mapResultToModelObject($data));
@@ -564,7 +563,6 @@ abstract class BaseElasticsearchModel
                 ]
             ]
         ];
-
 
 
         return $this;
@@ -904,5 +902,15 @@ abstract class BaseElasticsearchModel
     private function isNumericArray(array $values): bool
     {
         return is_numeric(implode('', $values));
+    }
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function getMappings(): array
+    {
+        return Elasticsearch::setModel(static::class)
+            ->getMappings();
     }
 }
