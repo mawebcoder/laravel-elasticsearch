@@ -187,7 +187,6 @@ abstract class BaseElasticMigration
     }
 
 
-
     /**
      * @throws ReflectionException
      * @throws RequestException
@@ -241,7 +240,6 @@ abstract class BaseElasticMigration
             return;
         }
 
-
         $elasticApiService = app(ElasticApiService::class);
 
         $this->createTempIndex($elasticApiService);
@@ -254,7 +252,17 @@ abstract class BaseElasticMigration
 
         $this->removeModelIndex($elasticApiService);
 
-        $this->registerModelIndexWithoutChangedFieldTypes($elasticApiService);
+        $this->registerModelIndexWithoutChangedFieldTypes(
+            elasticApiService: $elasticApiService,
+            currentMappings: $currentMappings,
+            newMappings: $newMappings
+        );
+
+        $this->updateModelIndexBaseOnNewChanges(elasticApiService: $elasticApiService, newMappings: $newMappings);
+
+        $this->reIndexFromTempToCurrent($elasticApiService);
+
+        $this->removeTempIndex($elasticApiService);
 
         Elasticsearch::setModel($this->getModel())
             ->put(path: self::MAPPINGS, data: $this->schema);
@@ -271,11 +279,75 @@ abstract class BaseElasticMigration
         $response->throw();
     }
 
-    public function registerModelIndexWithoutChangedFieldTypes(ElasticApiService $elasticApiService)
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function removeTempIndex(ElasticApiService $elasticApiService): void
     {
-        $mappings = [];
+        $response = $elasticApiService->delete($this->tempIndex);
+
+        $response->throw();
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function reIndexFromTempToCurrent(ElasticApiService $elasticApiService): void
+    {
+        $reIndex = [
+            "source" => [
+                'index' => $this->tempIndex
+            ],
+            "dest" => [
+                "index" => $this->getModelIndex()
+            ]
+        ];
+
+        $response = $elasticApiService->post('_reindex', $reIndex);
+
+        $response->throw();
+    }
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function registerModelIndexWithoutChangedFieldTypes(
+        ElasticApiService $elasticApiService,
+        array $currentMappings,
+        array $newMappings
+    ): void {
+        $mappings['mappings']['properties'] = [];
+
+
+        foreach ($currentMappings as $key => $currentMapping) {
+            if (array_key_exists($key, $newMappings)) {
+                continue;
+            }
+
+            $mappings['mappings']['properties'][$key] = $currentMapping;
+        }
 
         $response = $elasticApiService->put($this->getModelIndex(), $mappings);
+
+        $response->throw();
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function updateModelIndexBaseOnNewChanges(ElasticApiService $elasticApiService, array $newMappings): void
+    {
+        $mappings = [
+            "properties" => $newMappings
+        ];
+
+        $response = $elasticApiService->put($this->getModelIndex() . DIRECTORY_SEPARATOR . '_mapping', $newMappings);
+
+        $response->throw();
     }
 
     /**
