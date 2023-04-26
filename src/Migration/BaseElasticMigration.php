@@ -42,9 +42,9 @@ abstract class BaseElasticMigration
     public const ANALYZER_FINGERPRINT = 'fingerprint';
     public const ANALYZER_LANGUAGE_ENGLISH = 'english';
     public const ANALYZER_LANGUAGE_PERSIAN = 'persian';
-    public const ANALYZER_LANGUAGE_FRENCH  = 'french';
-    public const ANALYZER_LANGUAGE_ARABIC  = 'arabic';
-    public const ANALYZER_LANGUAGE_GERMAN  = 'german';
+    public const ANALYZER_LANGUAGE_FRENCH = 'french';
+    public const ANALYZER_LANGUAGE_ARABIC = 'arabic';
+    public const ANALYZER_LANGUAGE_GERMAN = 'german';
 
     public const VALID_TYPES = [
         self::TYPE_STRING,
@@ -200,33 +200,32 @@ abstract class BaseElasticMigration
      */
     public function text(string $field, ?string $analyzer): void
     {
-        if ($this->isCreationState())
-        {
+        if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'text'];
 
-            if (isset($analyzer))
-            {
-                if (!$this->analyzerIsValid($analyzer))
-                {
+            if (isset($analyzer)) {
+                if (!$this->analyzerIsValid($analyzer)) {
                     throw new InvalidAnalyzerType;
                 }
 
-                $this->schema['mappings']['properties'][$field] = ['analyzer' => $analyzer];
+                $this->schema['mappings']['properties'][$field] = [
+                    ...$this->schema['mappings']['properties'][$field],
+                    ...['analyzer' => $analyzer]
+                ];
             }
             return;
         }
 
         $this->schema['properties'][$field] = ['type' => 'text'];
 
-        if (isset($analyzer))
-        {
-            if (!$this->analyzerIsValid($analyzer))
-            {
+        if (isset($analyzer)) {
+            if (!$this->analyzerIsValid($analyzer)) {
                 throw new InvalidAnalyzerType;
             }
 
-            $this->schema['properties'][$field][] = [
-                ...['analyzer' => $analyzer]
+            $this->schema['properties'][$field] = [
+                ...['analyzer' => $analyzer],
+                ... $this->schema['properties'][$field]
             ];
         }
     }
