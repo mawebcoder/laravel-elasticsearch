@@ -288,8 +288,7 @@ abstract class BaseElasticMigration
      */
     public function setNormalizer(string $field, string $tokenFilter, ?string $name = 'custom_normalizer'): void
     {
-        if ($this->isCreationState())
-        {
+        if ($this->isCreationState()) {
             $this->normalizerCheckKeywordType($field);
 
             $this->setNormalizerSettings($tokenFilter, $name);
@@ -316,11 +315,11 @@ abstract class BaseElasticMigration
     /**
      * @throws ReflectionException
      * @throws RequestException
+     * @throws GuzzleException
      */
     public function up(): void
     {
         $this->schema($this);
-
 
         if ($this->isCreationState()) {
             $this->createIndexAndSchema();
@@ -368,10 +367,7 @@ abstract class BaseElasticMigration
             return;
         }
 
-
         $elasticApiService = app(ElasticApiService::class);
-
-
 
         $this->createTempIndex($elasticApiService);
 
@@ -565,29 +561,25 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @throws RequestException
+     * @param ElasticApiService $elasticApiService
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function createTempIndex(ElasticApiService $elasticApiService): void
     {
-        $this->tempIndex = strtolower(Str::random(10));
-        $client=new \GuzzleHttp\Client();
+        $this->tempIndex = Str::random(10);
 
-       $response= $client->put('http://localhost:9200/'.$this->tempIndex);
-
-       dd($response->getStatusCode());
         if (!empty($this->schema)) {
-
-
+            $elasticApiService->put($this->tempIndex, ['mappings' => $this->schema]);
         } else {
-            $response = $elasticApiService->put(path: $this->tempIndex, data: []);
+            $elasticApiService->put($this->tempIndex, $this->schema);
         }
-
-        $response->throw();
     }
 
     /**
-     * @throws RequestException
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     private function createIndexAndSchema(): void
@@ -649,8 +641,7 @@ abstract class BaseElasticMigration
      */
     private function setNormalizerSettings(string $tokenFilter, string $name): void
     {
-        if (!$this->normalizerFilterIsValid($tokenFilter))
-        {
+        if (!$this->normalizerFilterIsValid($tokenFilter)) {
             throw new InvalidNormalizerTokenFilter();
         }
 
@@ -672,8 +663,7 @@ abstract class BaseElasticMigration
      */
     private function normalizerCheckKeywordType(string $field): void
     {
-        if ($this->schema['mappings']['properties'][$field]['type'] !== self::ANALYZER_KEYWORD)
-        {
+        if ($this->schema['mappings']['properties'][$field]['type'] !== self::ANALYZER_KEYWORD) {
             throw new FieldTypeIsNotKeyword(message: 'normalizer must be defined for keyword (string) fields only.');
         }
     }
