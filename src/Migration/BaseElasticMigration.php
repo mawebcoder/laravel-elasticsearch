@@ -220,7 +220,7 @@ abstract class BaseElasticMigration
 
         if (isset($analyzer)) {
             if (!$this->analyzerIsValid($analyzer)) {
-                throw new InvalidAnalyzerType;
+                throw new InvalidAnalyzerType();
             }
 
             $this->schema['properties'][$field] = [
