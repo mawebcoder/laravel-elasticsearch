@@ -4,6 +4,7 @@ namespace Mawebcoder\Elasticsearch\Migration;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Str;
+use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
@@ -277,32 +278,32 @@ abstract class BaseElasticMigration
 
     /**
      * @throws InvalidNormalizerTokenFilter
+     * @throws FieldTypeIsNotKeyword
      */
-    public function setNormalizer(string $field, ?string $tokenFilter, string $name): void
+    public function setNormalizer(string $field, string $tokenFilter, ?string $name = 'custom_normalizer'): void
     {
         if ($this->isCreationState())
         {
-            if (isset($tokenFilter))
-            {
-                $this->setNormalizerSettings($tokenFilter, $name);
+            $this->normalizerCheckKeywordType($field);
 
-                $this->schema['mappings']['properties'][$field] = [
-                    ...$this->schema['mappings']['properties'][$field],
-                    ...['normalizer' => $name]
-                ];
-            }
+            $this->setNormalizerSettings($tokenFilter, $name);
+
+            $this->schema['mappings']['properties'][$field] = [
+                ...$this->schema['mappings']['properties'][$field],
+                ...['normalizer' => $name]
+            ];
+
             return;
         }
 
-        if (isset($tokenFilter))
-        {
-            $this->setNormalizerSettings($tokenFilter, $name);
+        $this->normalizerCheckKeywordType($field);
 
-            $this->schema['properties'][$field] = [
-                ...$this->schema['properties'][$field],
-                ...['normalizer' => $name]
-            ];
-        }
+        $this->setNormalizerSettings($tokenFilter, $name);
+
+        $this->schema['properties'][$field] = [
+            ...$this->schema['properties'][$field],
+            ...['normalizer' => $name]
+        ];
     }
 
 
@@ -644,5 +645,16 @@ abstract class BaseElasticMigration
                 ...[$tokenFilter]
             ]
         ];
+    }
+
+    /**
+     * @throws FieldTypeIsNotKeyword
+     */
+    private function normalizerCheckKeywordType(string $field): void
+    {
+        if ($this->schema['mappings']['properties'][$field]['type'] !== self::ANALYZER_KEYWORD)
+        {
+            throw new FieldTypeIsNotKeyword(message: 'normalizer must be defined for keyword (string) fields only.');
+        }
     }
 }
