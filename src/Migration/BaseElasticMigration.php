@@ -392,9 +392,10 @@ abstract class BaseElasticMigration
         dump(
             'DO NOT CANCEL THE OPERATION,OTHERWISE YOUR DATA ON THIS INDEX WILL BE LOST,
             Please wait for reindexing to finish.
-            How long it takes depends Aon your data volume inside of the your index'
+            How long it takes depends on your data volume inside  your index'
         );
 
+        //@TODO set this operation inside of the job (be optional and read from config file)
         while (true) {
             sleep(1);
 
@@ -403,7 +404,6 @@ abstract class BaseElasticMigration
             if (!$isTaskCompleted) {
                 continue;
             }
-
 
             $this->reIndexFromTempToCurrent(
                 elasticApiService: $elasticApiService,
