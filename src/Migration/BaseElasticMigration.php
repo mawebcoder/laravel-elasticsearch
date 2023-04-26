@@ -378,7 +378,9 @@ abstract class BaseElasticMigration
             elasticApiService: $elasticApiService,
         );
 
-       $this->reIndexToTempIndex($elasticApiService);
+        $response = $this->reIndexToTempIndex($elasticApiService);
+
+        $taskId = $response['task'];
 
         $this->removeModelIndex($elasticApiService);
 
@@ -386,13 +388,40 @@ abstract class BaseElasticMigration
             elasticApiService: $elasticApiService,
         );
 
-        $this->reIndexFromTempToCurrent(
-            elasticApiService: $elasticApiService,
-            currentMappings: $currentMappings,
-            newMappings: $newMappings
-        );
+
+        dump('Please wait for reindexing to finish.how long it takes depends on your data volume');
+
+        while (true) {
+            sleep(1);
+
+            $isTaskCompleted = $this->isTaskCompleted(elasticApiService: $elasticApiService, taskId: $taskId);
+
+            if (!$isTaskCompleted) {
+                continue;
+            }
+
+
+            $this->reIndexFromTempToCurrent(
+                elasticApiService: $elasticApiService,
+                currentMappings: $currentMappings,
+                newMappings: $newMappings
+            );
+
+            break;
+        }
 
         $this->removeTempIndex($elasticApiService);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function isTaskCompleted(ElasticApiService $elasticApiService, string $taskId): bool
+    {
+        $response = $elasticApiService->get('_tasks/' . $taskId);
+
+        return boolval(json_decode($response->getBody(), true)['completed']);
     }
 
 
@@ -494,9 +523,9 @@ abstract class BaseElasticMigration
             ]
         ];
 
-       $response= $elasticApiService->post('_reindex', $reIndexData);
+        $response = $elasticApiService->post('_reindex?wait_for_completion=false', $reIndexData);
 
-       return json_decode($response->getBody());
+        return json_decode($response->getBody(), true);
     }
 
     public function getModelIndex(): string
