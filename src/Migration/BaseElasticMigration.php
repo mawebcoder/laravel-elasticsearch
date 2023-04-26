@@ -350,7 +350,7 @@ abstract class BaseElasticMigration
 
     public function dropField(string $field): void
     {
-        $this->dropMappingFields[] = $field;
+        $this->dropMappingFields[$field] = $field;
     }
 
 
@@ -371,13 +371,15 @@ abstract class BaseElasticMigration
 
         $this->createTempIndex($elasticApiService);
 
-        dd($this->tempIndex);
 
         $this->reIndexToTempIndex($elasticApiService);
 
+
         $currentMappings = $this->getCurrentMappings();
 
-        $newMappings = $this->schema['properties'];
+
+        $newMappings = $this->schema['properties'] ?? [];
+
 
         $this->removeModelIndex($elasticApiService);
 
@@ -399,7 +401,9 @@ abstract class BaseElasticMigration
     }
 
     /**
-     * @throws RequestException
+     * @param ElasticApiService $elasticApiService
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function removeFieldsThatMustBeRemove(ElasticApiService $elasticApiService): void
@@ -418,12 +422,10 @@ abstract class BaseElasticMigration
             "script" => trim($script, ';')
         ];
 
-        $response = $elasticApiService->post(
+        $elasticApiService->post(
             $this->getModelIndex() . DIRECTORY_SEPARATOR . '_update_by_query',
             $droppingFieldsSchema
         );
-
-        $response->throw();
     }
 
     public function mustDropSomeFields(): bool
@@ -432,30 +434,31 @@ abstract class BaseElasticMigration
     }
 
     /**
-     * @throws RequestException
+     * @param ElasticApiService $elasticApiService
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function removeModelIndex(ElasticApiService $elasticApiService): void
     {
-        $response = $elasticApiService->delete($this->getModelIndex());
-
-        $response->throw();
+        $elasticApiService->delete($this->getModelIndex());
     }
 
+
     /**
-     * @throws RequestException
      * @throws ReflectionException
+     * @throws GuzzleException
      */
     public function removeTempIndex(ElasticApiService $elasticApiService): void
     {
-        $response = $elasticApiService->delete($this->tempIndex);
-
-        $response->throw();
+        $elasticApiService->delete($this->tempIndex);
     }
 
     /**
+     * @param ElasticApiService $elasticApiService
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function reIndexFromTempToCurrent(ElasticApiService $elasticApiService): void
     {
@@ -468,13 +471,15 @@ abstract class BaseElasticMigration
             ]
         ];
 
-        $response = $elasticApiService->post('_reindex', $reIndex);
-
-        $response->throw();
+        $elasticApiService->post('_reindex', $reIndex);
     }
 
     /**
-     * @throws RequestException
+     * @param ElasticApiService $elasticApiService
+     * @param array $currentMappings
+     * @param array $newMappings
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function registerModelIndexWithoutChangedFieldTypes(
@@ -484,7 +489,6 @@ abstract class BaseElasticMigration
     ): void {
         $mappings['mappings']['properties'] = [];
 
-
         foreach ($currentMappings as $key => $currentMapping) {
             if (array_key_exists($key, $newMappings) || array_key_exists($key, $this->dropMappingFields)) {
                 continue;
@@ -493,29 +497,29 @@ abstract class BaseElasticMigration
             $mappings['mappings']['properties'][$key] = $currentMapping;
         }
 
-
-        $response = $elasticApiService->put($this->getModelIndex(), $mappings);
-
-        $response->throw();
+        $elasticApiService->put($this->getModelIndex(), $mappings);
     }
 
     /**
+     * @param ElasticApiService $elasticApiService
+     * @param array $newMappings
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function updateModelIndexBaseOnNewChanges(ElasticApiService $elasticApiService, array $newMappings): void
     {
-        $response = $elasticApiService->put(
+        $elasticApiService->put(
             $this->getModelIndex() . DIRECTORY_SEPARATOR . '_mapping',
             ["properties" => $newMappings]
         );
-
-        $response->throw();
     }
 
     /**
+     * @param ElasticApiService $elasticApiService
+     * @return void
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function reIndexToTempIndex(ElasticApiService $elasticApiService): void
     {
@@ -528,9 +532,7 @@ abstract class BaseElasticMigration
             ]
         ];
 
-        $response = $elasticApiService->post('_reindex', $reIndexData);
-
-        $response->throw();
+        $elasticApiService->post('_reindex', $reIndexData);
     }
 
     public function getModelIndex(): string
