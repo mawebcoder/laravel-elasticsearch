@@ -371,6 +371,8 @@ abstract class BaseElasticMigration
 
         $this->createTempIndex($elasticApiService);
 
+        dd($this->tempIndex);
+
         $this->reIndexToTempIndex($elasticApiService);
 
         $currentMappings = $this->getCurrentMappings();
@@ -568,12 +570,17 @@ abstract class BaseElasticMigration
      */
     public function createTempIndex(ElasticApiService $elasticApiService): void
     {
-        $this->tempIndex = Str::random(10);
+        $this->tempIndex = strtolower(Str::random(10));
 
         if (!empty($this->schema)) {
-            $elasticApiService->put($this->tempIndex, ['mappings' => $this->schema]);
+            $elasticApiService->put($this->tempIndex, [
+                "mappings" => [
+                    "properties" => $this->schema['properties']
+
+                ]
+            ]);
         } else {
-            $elasticApiService->put($this->tempIndex, $this->schema);
+            $elasticApiService->put($this->tempIndex);
         }
     }
 

@@ -43,6 +43,11 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
+        if (empty($data)) {
+            return $this->client->post($path);
+        }
+
+
         return $this->client->post($path, [RequestOptions::JSON => $data]);
     }
 
@@ -69,9 +74,13 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
 
-        return $this->client->put($path, [
-            RequestOptions::JSON => $data
-        ]);
+        if (!empty($data)) {
+            return $this->client->put($path, [
+                'json' => $data
+            ]);
+        }
+
+        return $this->client->put($path);
     }
 
 
@@ -89,7 +98,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      */
-    private function generateBaseIndexPath(): string
+    public function generateBaseIndexPath(): string
     {
         if (isset($this->elasticModel)) {
             /**
