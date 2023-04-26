@@ -5,6 +5,7 @@ namespace Mawebcoder\Elasticsearch\Http;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\RequestOptions;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\File;
@@ -42,7 +43,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        return $this->client->post($path, $data);
+        return $this->client->post($path, [RequestOptions::JSON => $data]);
     }
 
 
@@ -68,7 +69,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
 
-        return $this->client->put($path, $data);
+        return $this->client->put($path, [
+            RequestOptions::JSON => $data
+        ]);
     }
 
 
@@ -80,7 +83,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        return $this->client->delete($path, $data);
+        return $this->client->delete($path);
     }
 
     /**
@@ -163,7 +166,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $response = $this->client->get($path);
 
-        $result = json_decode($response->getBody());
+        $result = json_decode($response->getBody(), true);
 
         return array_keys($result);
     }
@@ -180,7 +183,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
 
-        $jsonResponse = json_decode($response->getBody());
+        $jsonResponse = json_decode($response->getBody(), true);
 
         if (array_key_exists('properties', $jsonResponse[$index]['mappings'])) {
             return array_keys($jsonResponse[$index]['mappings']['properties']);
@@ -200,7 +203,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
 
-        $jsonResponse = json_decode($response->getBody());
+        $jsonResponse = json_decode($response->getBody(), true);
 
         return $jsonResponse[$index]['mappings']['properties'];
     }
