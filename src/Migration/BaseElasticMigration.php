@@ -304,7 +304,6 @@ abstract class BaseElasticMigration
 
         $newMappings = $this->schema['properties'];
 
-
         $this->removeModelIndex($elasticApiService);
 
         $this->registerModelIndexWithoutChangedFieldTypes(
@@ -316,7 +315,6 @@ abstract class BaseElasticMigration
         if ($this->mustDropSomeFields()) {
             $this->removeFieldsThatMustBeRemove($elasticApiService);
         }
-
 
         $this->updateModelIndexBaseOnNewChanges(elasticApiService: $elasticApiService, newMappings: $newMappings);
 
@@ -413,12 +411,13 @@ abstract class BaseElasticMigration
 
 
         foreach ($currentMappings as $key => $currentMapping) {
-            if (array_key_exists($key, $newMappings)) {
+            if (array_key_exists($key, $newMappings) || array_key_exists($key, $this->dropMappingFields)) {
                 continue;
             }
 
             $mappings['mappings']['properties'][$key] = $currentMapping;
         }
+
 
         $response = $elasticApiService->put($this->getModelIndex(), $mappings);
 
