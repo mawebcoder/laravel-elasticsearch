@@ -42,9 +42,9 @@ abstract class BaseElasticMigration
     public const ANALYZER_FINGERPRINT = 'fingerprint';
     public const ANALYZER_LANGUAGE_ENGLISH = 'english';
     public const ANALYZER_LANGUAGE_PERSIAN = 'persian';
-    public const ANALYZER_LANGUAGE_FRENCH  = 'french';
-    public const ANALYZER_LANGUAGE_ARABIC  = 'arabic';
-    public const ANALYZER_LANGUAGE_GERMAN  = 'german';
+    public const ANALYZER_LANGUAGE_FRENCH = 'french';
+    public const ANALYZER_LANGUAGE_ARABIC = 'arabic';
+    public const ANALYZER_LANGUAGE_GERMAN = 'german';
 
     public const VALID_TYPES = [
         self::TYPE_STRING,
@@ -200,14 +200,11 @@ abstract class BaseElasticMigration
      */
     public function text(string $field, ?string $analyzer): void
     {
-        if ($this->isCreationState())
-        {
+        if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'text'];
 
-            if (isset($analyzer))
-            {
-                if (!$this->analyzerIsValid($analyzer))
-                {
+            if (isset($analyzer)) {
+                if (!$this->analyzerIsValid($analyzer)) {
                     throw new InvalidAnalyzerType;
                 }
 
@@ -218,10 +215,8 @@ abstract class BaseElasticMigration
 
         $this->schema['properties'][$field] = ['type' => 'text'];
 
-        if (isset($analyzer))
-        {
-            if (!$this->analyzerIsValid($analyzer))
-            {
+        if (isset($analyzer)) {
+            if (!$this->analyzerIsValid($analyzer)) {
                 throw new InvalidAnalyzerType;
             }
 
@@ -303,6 +298,7 @@ abstract class BaseElasticMigration
 
         $newMappings = $this->schema['properties'];
 
+
         $this->removeModelIndex($elasticApiService);
 
         $this->registerModelIndexWithoutChangedFieldTypes(
@@ -311,14 +307,49 @@ abstract class BaseElasticMigration
             newMappings: $newMappings
         );
 
+        if ($this->mustDropSomeFields()) {
+            $this->removeFieldsThatMustBeRemove($elasticApiService);
+        }
+
+
         $this->updateModelIndexBaseOnNewChanges(elasticApiService: $elasticApiService, newMappings: $newMappings);
 
         $this->reIndexFromTempToCurrent($elasticApiService);
 
         $this->removeTempIndex($elasticApiService);
+    }
 
-        Elasticsearch::setModel($this->getModel())
-            ->put(path: self::MAPPINGS, data: $this->schema);
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     */
+    public function removeFieldsThatMustBeRemove(ElasticApiService $elasticApiService): void
+    {
+        $script = '';
+
+        foreach ($this->dropMappingFields as $field) {
+            $script .= "ctx._source.remove($field);";
+        }
+        $droppingFieldsSchema = [
+            "query" => [
+                'bool' => [
+                    'must' => []
+                ]
+            ],
+            "script" => trim($script, ';')
+        ];
+
+        $response = $elasticApiService->post(
+            $this->getModelIndex() . DIRECTORY_SEPARATOR . '_update_by_query',
+            $droppingFieldsSchema
+        );
+
+        $response->throw();
+    }
+
+    public function mustDropSomeFields(): bool
+    {
+        return !empty($this->dropMappingFields);
     }
 
     /**
@@ -394,11 +425,10 @@ abstract class BaseElasticMigration
      */
     public function updateModelIndexBaseOnNewChanges(ElasticApiService $elasticApiService, array $newMappings): void
     {
-        $mappings = [
-            "properties" => $newMappings
-        ];
-
-        $response = $elasticApiService->put($this->getModelIndex() . DIRECTORY_SEPARATOR . '_mapping', $newMappings);
+        $response = $elasticApiService->put(
+            $this->getModelIndex() . DIRECTORY_SEPARATOR . '_mapping',
+            ["properties" => $newMappings]
+        );
 
         $response->throw();
     }
