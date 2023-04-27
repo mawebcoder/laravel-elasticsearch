@@ -115,10 +115,9 @@ abstract class BaseElasticsearchModel
 
         $this->search['script']['source'] = trim($this->search['script']['source'], ';');
 
-        $response = Elasticsearch::setModel(static::class)
+        Elasticsearch::setModel(static::class)
             ->post('_update_by_query', $this->search);
 
-        $response->throw();
 
         $this->refreshQueryBuilder();
 
@@ -159,11 +158,8 @@ abstract class BaseElasticsearchModel
                 return;
             }
 
-            $response = Elasticsearch::setModel(static::class)
+            Elasticsearch::setModel(static::class)
                 ->post('_delete_by_query', $this->search);
-
-            $response->throw();
-
 
             DB::commit();
         } catch (Throwable $exception) {
@@ -215,9 +211,8 @@ abstract class BaseElasticsearchModel
         $response = Elasticsearch::setModel(static::class)
             ->post('_search', $this->search);
 
-        $response->throw();
 
-        $result = $response->json();
+        $result = json_decode($response->getBody(), true);
 
 
         $result = $result['hits']['hits'];
@@ -231,7 +226,7 @@ abstract class BaseElasticsearchModel
 
         $object->{self::FIELD_ID} = $result[0]['_id'];
 
-        $result = $result[0]['_source'];
+        $result = $result[0][self::SOURCE_KEY];
 
         foreach ($result as $key => $value) {
             $object->{$key} = $value;
@@ -305,24 +300,22 @@ abstract class BaseElasticsearchModel
         return $object;
     }
 
+
     /**
-     * @return array|mixed
      * @throws ReflectionException
-     * @throws RequestException
      */
-    public function requestForSearch(): mixed
+    public function requestForSearch()
     {
         $response = Elasticsearch::setModel(static::class)
             ->post('_doc/_search', $this->search);
 
-        $response->throw();
 
-        return $response->json();
+        return json_decode($response->getBody(), true);
     }
 
     /**
+     * @return Collection
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function get(): Collection
     {
@@ -744,7 +737,7 @@ abstract class BaseElasticsearchModel
 
         $fields = [];
 
-        foreach ($this->search['_source'] as $field) {
+        foreach ($this->search[self::SOURCE_KEY] as $field) {
             $fields[] = $field;
         }
 
@@ -754,7 +747,7 @@ abstract class BaseElasticsearchModel
 
         $fields = array_unique($fields);
 
-        $this->search['_source'] = $fields;
+        $this->search[self::SOURCE_KEY] = $fields;
 
         return $this;
     }
