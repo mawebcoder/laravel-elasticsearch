@@ -339,6 +339,7 @@ abstract class BaseElasticMigration
      * @return void
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws RequestException
      */
     public function down(): void
     {
@@ -347,7 +348,9 @@ abstract class BaseElasticMigration
             return;
         }
 
-        $this->alterDown();
+        $this->alterDown($this);
+
+        $this->alterIndex(onDownCalling: true);
     }
 
     public function dropField(string $field): void
@@ -357,12 +360,21 @@ abstract class BaseElasticMigration
 
 
     /**
+     * @param bool $onDownCalling
+     * @return void
      * @throws ReflectionException
      * @throws RequestException
-     * @throws GuzzleException
      */
-    public function alterIndex(): void
+    public function alterIndex(bool $onDownCalling = false): void
     {
+        if ($onDownCalling && empty($this->schema) && empty($this->dropMappingFields)) {
+            return;
+        }
+
+        if (empty($this->schema) && empty($this->dropMappingFields)) {
+            return;
+        }
+
         if (!$this->shouldReIndex()) {
             Elasticsearch::setModel($this->getModel())
                 ->put(path: self::MAPPINGS, data: $this->schema);

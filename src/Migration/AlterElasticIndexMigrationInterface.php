@@ -5,5 +5,5 @@ namespace Mawebcoder\Elasticsearch\Migration;
 interface AlterElasticIndexMigrationInterface
 {
 
-    public function alterDown(): void;
+    public function alterDown(BaseElasticMigration $baseElasticMigration): void;
 }
