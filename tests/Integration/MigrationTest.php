@@ -21,6 +21,7 @@ class MigrationTest extends TestCase
 
     public BaseElasticMigration $dummyMigration;
 
+    public readonly string $dummyMigrationAlterStatePath;
     public ElasticApiService $elasticApiService;
 
     public Client $client;
@@ -28,6 +29,8 @@ class MigrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->dummyMigrationAlterStatePath = __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
 
         $this->client = new Client();
 
@@ -106,7 +109,7 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummy
          */
-        $alterDummy = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+        $alterDummy = require $this->dummyMigrationAlterStatePath;
 
         $alterDummy->up();
 
@@ -142,7 +145,7 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummyUp
          */
-        $alterDummyUp = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
 
         $alterDummyUp->up();
 
@@ -151,7 +154,7 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummyDown
          */
-        $alterDummyDown = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+        $alterDummyDown = require $this->dummyMigrationAlterStatePath;
 
         $alterDummyDown->down();
 
@@ -188,7 +191,7 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummyUp
          */
-        $alterDummyUp = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
 
         $alterDummyUp->up();
 
