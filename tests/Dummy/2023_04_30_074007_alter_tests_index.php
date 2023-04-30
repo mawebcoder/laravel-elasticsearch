@@ -6,9 +6,9 @@ use Mawebcoder\Elasticsearch\Models\Test;
 
 return new class extends BaseElasticMigration implements AlterElasticIndexMigrationInterface {
 
-    public function alterDown(BaseElasticMigration $baseElasticMigration): void
+    public function alterDown(BaseElasticMigration $mapper): void
     {
-        // TODO: Implement alterDown() method.
+        $mapper->integer('age');
     }
 
     public function getModel(): string

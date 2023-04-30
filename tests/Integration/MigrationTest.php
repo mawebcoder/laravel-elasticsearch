@@ -128,8 +128,50 @@ class MigrationTest extends TestCase
         $this->dummyMigration->down();
     }
 
-    public function testDownInAlterState()
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testDownInAlterStateMigration()
     {
+        $this->dummyMigration->up();
+
+        sleep(3);
+
+        /**
+         * @type BaseElasticMigration $alterDummyUp
+         */
+        $alterDummyUp = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+
+        $alterDummyUp->up();
+
+        sleep(2);
+
+        /**
+         * @type BaseElasticMigration $alterDummyDown
+         */
+        $alterDummyDown = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+
+        $alterDummyDown->down();
+
+        sleep(2);
+
+        $test = new Test();
+
+        $actualMappings = array_keys($test->getMappings());
+
+        $expected = [
+            'age',
+            'details',
+            'id',
+            'is_active',
+            'name'
+        ];
+
+        $this->assertSame($expected, $actualMappings);
+
+        $this->dummyMigration->down();
     }
 
     public function testAlterStateForAddingField()
