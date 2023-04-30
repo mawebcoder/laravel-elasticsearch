@@ -19,5 +19,7 @@ return new class extends BaseElasticMigration implements AlterElasticIndexMigrat
     public function schema(BaseElasticMigration $mapper): void
     {
         $mapper->dropField('age');
+
+        $mapper->text('body');
     }
 };

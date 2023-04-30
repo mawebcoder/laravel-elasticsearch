@@ -174,8 +174,41 @@ class MigrationTest extends TestCase
         $this->dummyMigration->down();
     }
 
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
     public function testAlterStateForAddingField()
     {
+        $this->dummyMigration->up();
+
+        sleep(3);
+
+        /**
+         * @type BaseElasticMigration $alterDummyUp
+         */
+        $alterDummyUp = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+
+        $alterDummyUp->up();
+
+        sleep(2);
+
+        $test = new Test();
+
+        $actualMappings = array_keys($test->getMappings());
+
+        $expected = [
+            'body',
+            'details',
+            'id',
+            'is_active',
+            'name'
+        ];
+
+        $this->assertSame($expected, $actualMappings);
+
+        $this->dummyMigration->down();
     }
 
 
