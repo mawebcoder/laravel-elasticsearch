@@ -2,16 +2,13 @@
 
 namespace Mawebcoder\Elasticsearch\Http;
 
-use Exception;
+
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Http;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Psr\Http\Message\ResponseInterface;
 use ReflectionClass;
@@ -33,7 +30,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
     public Response $connection;
 
     public ?string $elasticModel = null;
-
 
     /**
      * @throws ReflectionException
@@ -118,7 +114,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
         return $path;
     }
 
-    public function setModel(string $modelName): static
+    public function setModel(?string $modelName): static
     {
         $this->elasticModel = $modelName;
         return $this;

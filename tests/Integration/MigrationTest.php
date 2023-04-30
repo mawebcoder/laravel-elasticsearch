@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
@@ -21,23 +23,28 @@ class MigrationTest extends TestCase
 
     public ElasticApiService $elasticApiService;
 
+    public Client $client;
+
     protected function setUp(): void
     {
+        parent::setUp();
+
+        $this->client = new Client();
+
         $this->dummyMigration = require __DIR__ . '/../Dummy/2023_04_16_074007_create_tests_table.php';
 
         $this->elasticApiService = new ElasticApiService();
-
-        parent::setUp();
     }
 
 
     /**
      * @throws RequestException
      * @throws ReflectionException
+     * @throws GuzzleException
      */
     public function testUpMethodInMigrationsInCreatingState()
     {
-        $this->dummyMigration->up($this->elasticApiService);
+        $this->dummyMigration->up();
 
         $test = new Test();
 
@@ -54,17 +61,21 @@ class MigrationTest extends TestCase
         $actualValues = array_keys($test->getMappings());
 
         $this->assertSame($expectedMappings, $actualValues);
+
+        $this->dummyMigration->down();
     }
+
 
     /**
      * @throws ReflectionException
      * @throws RequestException
+     * @throws GuzzleException
      */
     public function testDownMethodInMigrationInCreatingState()
     {
-        $this->dummyMigration->up($this->elasticApiService);
+        $this->dummyMigration->up();
 
-        $this->dummyMigration->down($this->elasticApiService);
+        $this->dummyMigration->down();
 
         $this->withExceptionHandling();
 
@@ -72,9 +83,7 @@ class MigrationTest extends TestCase
             $test = new Test();
 
             $test->getMappings();
-
         } catch (Throwable $exception) {
-
             $this->assertStringContainsString(
                 '"type":"index_not_found_exception","reason":"no such index [test]'
                 ,
@@ -82,4 +91,55 @@ class MigrationTest extends TestCase
             );
         }
     }
+
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testAlterStateMigrationForDropField()
+    {
+        $this->dummyMigration->up();
+
+        sleep(3);
+
+        /**
+         * @type BaseElasticMigration $alterDummy
+         */
+        $alterDummy = require __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+
+        $alterDummy->up();
+
+        sleep(2);
+
+        $test = new Test();
+
+        $actualMappings = array_keys($test->getMappings());
+
+        $expectedMappings = [
+            'details',
+            'id',
+            'is_active',
+            'name'
+        ];
+
+        $this->assertSame($expectedMappings, $actualMappings);
+
+        $this->dummyMigration->down();
+    }
+
+    public function testDownInAlterState()
+    {
+    }
+
+    public function testAlterStateForAddingField()
+    {
+    }
+
+
+    public function testAlterStateForChangingFieldType()
+    {
+    }
+
+
 }

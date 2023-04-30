@@ -108,7 +108,9 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     ->where('migrations', $migration->migrations)
                     ->delete();
 
-                $result->down($elasticApiService);
+                $result->down(
+
+                );
 
                 $this->info('reset done : ' . $migration->migrations);
 
@@ -155,7 +157,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     continue;
                 }
 
-                $migrationObject->down($elasticApiService);
+                $migrationObject->down();
             }
 
             $this->info('all indices dropped');
@@ -172,7 +174,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
                 $this->registerMigrationIntoLog($path, 1, $index);
 
-                $result->up($elasticApiService);
+                $result->up();
 
                 $this->warn('migrated : ' . $path);
             }
@@ -228,7 +230,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
             $this->registerMigrationIntoLog($path, $latestBatch, $index);
 
-            $result->up($elasticApiService);
+            $result->up();
 
             $this->info('migrated : ' . $path);
 

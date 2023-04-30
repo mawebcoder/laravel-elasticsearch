@@ -47,7 +47,7 @@ class MigrationRollbackElasticsearchCommand extends Command
                      */
                     $object = require_once $path;
 
-                    $object->down($elasticApiService);
+                    $object->down();
                 }
 
                 DB::commit();
