@@ -10,6 +10,7 @@ use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Models\Test;
 use ReflectionException;
 use Tests\CreatesApplication;
+use Throwable;
 
 class MigrationTest extends TestCase
 {
@@ -29,17 +30,6 @@ class MigrationTest extends TestCase
         parent::setUp();
     }
 
-
-    /**
-     * @throws ReflectionException
-     * @throws RequestException
-     */
-    protected function tearDown(): void
-    {
-        $this->dummyMigration->down($this->elasticApiService);
-
-        parent::tearDown();
-    }
 
     /**
      * @throws RequestException
@@ -64,5 +54,32 @@ class MigrationTest extends TestCase
         $actualValues = array_keys($test->getMappings());
 
         $this->assertSame($expectedMappings, $actualValues);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function testDownMethodInMigrationInCreatingState()
+    {
+        $this->dummyMigration->up($this->elasticApiService);
+
+        $this->dummyMigration->down($this->elasticApiService);
+
+        $this->withExceptionHandling();
+
+        try {
+            $test = new Test();
+
+            $test->getMappings();
+
+        } catch (Throwable $exception) {
+
+            $this->assertStringContainsString(
+                '"type":"index_not_found_exception","reason":"no such index [test]'
+                ,
+                $exception->getMessage()
+            );
+        }
     }
 }
