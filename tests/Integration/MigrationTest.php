@@ -120,6 +120,7 @@ class MigrationTest extends TestCase
         $actualMappings = array_keys($test->getMappings());
 
         $expectedMappings = [
+            'body',
             'details',
             'id',
             'is_active',
@@ -166,6 +167,7 @@ class MigrationTest extends TestCase
 
         $expected = [
             'age',
+            'body',
             'details',
             'id',
             'is_active',
@@ -213,11 +215,5 @@ class MigrationTest extends TestCase
 
         $this->dummyMigration->down();
     }
-
-
-    public function testAlterStateForChangingFieldType()
-    {
-    }
-
 
 }
