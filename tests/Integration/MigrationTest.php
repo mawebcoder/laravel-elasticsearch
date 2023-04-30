@@ -25,13 +25,21 @@ class MigrationTest extends TestCase
         $this->dummyMigration = require __DIR__ . '/../Dummy/2023_04_16_074007_create_tests_table.php';
 
         $this->elasticApiService = new ElasticApiService();
+
+        parent::setUp();
     }
 
 
-//    protected function tearDown(): void
-//    {
-//       $this->dummyMigration->down();
-//    }
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    protected function tearDown(): void
+    {
+        $this->dummyMigration->down($this->elasticApiService);
+
+        parent::tearDown();
+    }
 
     /**
      * @throws RequestException
@@ -41,12 +49,20 @@ class MigrationTest extends TestCase
     {
         $this->dummyMigration->up($this->elasticApiService);
 
-//        $test = new Test();
-//
-//        sleep(2);
-//
-//        $mappings = $test->getMappings();
-//
-//        dump($mappings);
+        $test = new Test();
+
+        sleep(2);
+
+        $expectedMappings = [
+            'age',
+            'details',
+            'id',
+            'is_active',
+            'name'
+        ];
+
+        $actualValues = array_keys($test->getMappings());
+
+        $this->assertSame($expectedMappings, $actualValues);
     }
 }
