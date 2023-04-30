@@ -10,8 +10,8 @@ use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Mawebcoder\Elasticsearch\Jobs\ReIndexMigrationJob;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionException;
 
@@ -402,32 +402,45 @@ abstract class BaseElasticMigration
             elasticApiService: $elasticApiService,
         );
 
-        dump(
-            'DO NOT CANCEL THE OPERATION,OTHERWISE YOUR DATA ON THIS INDEX WILL BE LOST,
+        if (config('elasticsearch.reindex_migration_driver') !== 'queue') {
+
+            dump(
+                'DO NOT CANCEL THE OPERATION,OTHERWISE YOUR DATA ON THIS INDEX WILL BE LOST,
             Please wait for reindexing to finish.
             How long it takes depends on your data volume inside  your index'
-        );
-
-        //@TODO set this operation inside of the job (be optional and read from config file)
-        while (true) {
-            sleep(1);
-
-            $isTaskCompleted = $this->isTaskCompleted(elasticApiService: $elasticApiService, taskId: $taskId);
-
-            if (!$isTaskCompleted) {
-                continue;
-            }
-
-            $this->reIndexFromTempToCurrent(
-                elasticApiService: $elasticApiService,
-                currentMappings: $currentMappings,
-                newMappings: $newMappings
             );
 
-            break;
-        }
+            while (true) {
+                sleep(1);
 
-        $this->removeTempIndex($elasticApiService);
+                $isTaskCompleted = $this->isTaskCompleted(elasticApiService: $elasticApiService, taskId: $taskId);
+
+                if (!$isTaskCompleted) {
+                    continue;
+                }
+
+                $this->reIndexFromTempToCurrent(
+                    elasticApiService: $elasticApiService,
+                    currentMappings: $currentMappings,
+                    newMappings: $newMappings
+                );
+
+                break;
+            }
+
+            $this->removeTempIndex($elasticApiService);
+        } else {
+            $queue = config('elasticsearch.reindex_migration_queue_name') ?? 'default';
+
+            ReIndexMigrationJob::dispatch(
+                $taskId,
+                $currentMappings,
+                $newMappings,
+                $this->tempIndex,
+                $this->getModelIndex(),
+                $this->dropMappingFields
+            )->onQueue($queue);
+        }
     }
 
     /**
@@ -452,7 +465,6 @@ abstract class BaseElasticMigration
     /**
      * @param ElasticApiService $elasticApiService
      * @return void
-     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function removeModelIndex(ElasticApiService $elasticApiService): void
@@ -462,8 +474,9 @@ abstract class BaseElasticMigration
 
 
     /**
+     * @param ElasticApiService $elasticApiService
+     * @return void
      * @throws ReflectionException
-     * @throws GuzzleException
      */
     public function removeTempIndex(ElasticApiService $elasticApiService): void
     {
@@ -475,7 +488,6 @@ abstract class BaseElasticMigration
      * @param array $currentMappings
      * @param array $newMappings
      * @return void
-     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function reIndexFromTempToCurrent(
