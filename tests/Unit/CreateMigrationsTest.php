@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use PHPUnit\Framework\TestCase;
@@ -205,6 +206,9 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
+    /**
+     * @throws InvalidAnalyzerType
+     */
     public function testTextType()
     {
         $this->dummy->text('body');

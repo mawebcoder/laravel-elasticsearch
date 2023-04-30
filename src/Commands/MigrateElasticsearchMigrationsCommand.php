@@ -25,10 +25,10 @@ class MigrateElasticsearchMigrationsCommand extends Command
      * @throws RequestException
      * @throws Throwable
      */
-    public function handle(): void
+    public function handle(ElasticApiService $elasticApiService): void
     {
         if ($this->option('reset')) {
-            $this->reset();
+            $this->reset($elasticApiService);
             return;
         }
 
@@ -85,7 +85,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
      * @throws RequestException
      * @throws Throwable
      */
-    public function reset(): void
+    public function reset(ElasticApiService $elasticApiService): void
     {
         $migrations = DB::table('elastic_search_migrations_logs')
             ->orderBy('batch')
@@ -108,7 +108,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     ->where('migrations', $migration->migrations)
                     ->delete();
 
-                $result->down();
+                $result->down($elasticApiService);
 
                 $this->info('reset done : ' . $migration->migrations);
 
@@ -125,7 +125,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
      * @throws ReflectionException
      * @throws Throwable
      */
-    public function fresh()
+    public function fresh(ElasticApiService $elasticApiService): void
     {
         try {
             DB::beginTransaction();
@@ -138,7 +138,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
             $allMigrationsPath = $this->getUnMigratedFiles(ElasticApiService::$migrationsPath);
 
-            $allIndices = Elasticsearch::getAllIndexes();
+            $allIndices = $elasticApiService->getAllIndexes();
 
             /**
              * remove indices from elasticsearch
@@ -155,7 +155,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     continue;
                 }
 
-                $migrationObject->down();
+                $migrationObject->down($elasticApiService);
             }
 
             $this->info('all indices dropped');
@@ -172,7 +172,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
                 $this->registerMigrationIntoLog($path, 1, $index);
 
-                $result->up();
+                $result->up($elasticApiService);
 
                 $this->warn('migrated : ' . $path);
             }
@@ -205,7 +205,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
      * @throws RequestException
      * @throws Throwable
      */
-    public function setMigration(string $path, int $latestBatch): void
+    public function setMigration(string $path, int $latestBatch,ElasticApiService $elasticApiService): void
     {
         if ($this->isMigratedAlready($path)) {
             return;
@@ -228,7 +228,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
             $this->registerMigrationIntoLog($path, $latestBatch, $index);
 
-            $result->up();
+            $result->up($elasticApiService);
 
             $this->info('migrated : ' . $path);
 

@@ -4,6 +4,8 @@ namespace Mawebcoder\Elasticsearch\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Throwable;
 
 class MigrationRollbackElasticsearchCommand extends Command
@@ -15,11 +17,11 @@ class MigrationRollbackElasticsearchCommand extends Command
     /**
      * @throws Throwable
      */
-    public function handle()
+    public function handle(ElasticApiService $elasticApiService)
     {
         $steps = $this->option('step');
 
-        collect(range(1, $steps))->each(function () {
+        collect(range(1, $steps))->each(function () use ($elasticApiService) {
             try {
                 DB::beginTransaction();
 
@@ -40,9 +42,12 @@ class MigrationRollbackElasticsearchCommand extends Command
 
                     DB::table('elastic_search_migrations_logs')->where('id', $migration->id)->delete();
 
+                    /**
+                     * @type BaseElasticMigration $object
+                     */
                     $object = require_once $path;
 
-                    $object->down();
+                    $object->down($elasticApiService);
                 }
 
                 DB::commit();

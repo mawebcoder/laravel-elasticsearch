@@ -3,11 +3,8 @@
 namespace Mawebcoder\Elasticsearch\Migration;
 
 use GuzzleHttp\Exception\GuzzleException;
-use http\Client;
-use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
@@ -20,8 +17,6 @@ use ReflectionException;
 
 abstract class BaseElasticMigration
 {
-
-
     public array $schema = [];
 
     public const MAPPINGS = '_mappings';
@@ -314,20 +309,30 @@ abstract class BaseElasticMigration
 
 
     /**
+     * @param ElasticApiService $elasticApiService
+     * @return void
      * @throws ReflectionException
      * @throws RequestException
-     * @throws GuzzleException
      */
-    public function up(): void
+    public function up(ElasticApiService $elasticApiService): void
     {
         $this->schema($this);
 
         if ($this->isCreationState()) {
-            $this->createIndexAndSchema();
+            $this->createIndexAndSchema($elasticApiService);
             return;
         }
 
-        $this->alterIndex();
+        if ($this->isThereAnyChangesInFieldsThatShouldBeImplemented() === false) {
+            return;
+        }
+
+        $this->alterIndex($elasticApiService);
+    }
+
+    public function isThereAnyChangesInFieldsThatShouldBeImplemented(): bool
+    {
+        return !empty($this->schema) || !empty($this->dropMappingFields);
     }
 
     public function isCreationState(): bool
@@ -336,21 +341,26 @@ abstract class BaseElasticMigration
     }
 
     /**
+     * @param ElasticApiService $elasticApiService
      * @return void
-     * @throws GuzzleException
      * @throws ReflectionException
      * @throws RequestException
      */
-    public function down(): void
+    public function down(ElasticApiService $elasticApiService): void
     {
         if ($this->isCreationState()) {
-            Elasticsearch::setModel($this->getModel())->delete();
+            $elasticApiService->setModel($this->getModel())->delete();
             return;
         }
 
         $this->alterDown($this);
 
-        $this->alterIndex(onDownCalling: true);
+
+        if ($this->isThereAnyChangesInFieldsThatShouldBeImplemented() === false) {
+            return;
+        }
+
+        $this->alterIndex($elasticApiService, onDownCalling: true);
     }
 
     public function dropField(string $field): void
@@ -360,28 +370,19 @@ abstract class BaseElasticMigration
 
 
     /**
+     * @param ElasticApiService $elasticApiService
      * @param bool $onDownCalling
      * @return void
      * @throws ReflectionException
      * @throws RequestException
      */
-    public function alterIndex(bool $onDownCalling = false): void
+    public function alterIndex(ElasticApiService $elasticApiService, bool $onDownCalling = false): void
     {
-        if ($onDownCalling && empty($this->schema) && empty($this->dropMappingFields)) {
-            return;
-        }
-
-        if (empty($this->schema) && empty($this->dropMappingFields)) {
-            return;
-        }
-
         if (!$this->shouldReIndex()) {
-            Elasticsearch::setModel($this->getModel())
+            $elasticApiService->setModel($this->getModel())
                 ->put(path: self::MAPPINGS, data: $this->schema);
             return;
         }
-
-        $elasticApiService = app(ElasticApiService::class);
 
         $currentMappings = $this->getCurrentMappings();
 
@@ -430,8 +431,10 @@ abstract class BaseElasticMigration
     }
 
     /**
+     * @param ElasticApiService $elasticApiService
+     * @param string $taskId
+     * @return bool
      * @throws ReflectionException
-     * @throws GuzzleException
      */
     public function isTaskCompleted(ElasticApiService $elasticApiService, string $taskId): bool
     {
@@ -576,7 +579,6 @@ abstract class BaseElasticMigration
     /**
      * @param ElasticApiService $elasticApiService
      * @return void
-     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function createTempIndex(
@@ -588,13 +590,13 @@ abstract class BaseElasticMigration
     }
 
     /**
+     * @param ElasticApiService $elasticApiService
      * @return void
-     * @throws GuzzleException
      * @throws ReflectionException
      */
-    private function createIndexAndSchema(): void
+    private function createIndexAndSchema(ElasticApiService $elasticApiService): void
     {
-        Elasticsearch::setModel($this->getModel())
+        $elasticApiService->setModel($this->getModel())
             ->put(data: $this->schema);
     }
 
