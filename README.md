@@ -128,7 +128,7 @@ by default this command rollbacks the migrations just one step.if you want to de
 
 # Edit Indices Mappings
 
-Sometime you need to add or drop fields from your indice mapping.for doing this 
+Sometimes you need to add or drop fields from your indice mapping.for doing this 
 you have to add new migration:
 
 ``php artisan elastic:make-migration <alter migration name>``
