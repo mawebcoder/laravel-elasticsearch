@@ -3,9 +3,11 @@
 namespace Mawebcoder\Elasticsearch\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 
 class MigrateStatusElasticsearch extends Command
 {
@@ -24,12 +26,31 @@ class MigrateStatusElasticsearch extends Command
             $files = File::files($path);
 
             foreach ($files as $file) {
-                $allAvailableMigrations[] = $file->getPath() . '/' . $file->getFilename();
+                $path = $file->getPath() . '/' . $file->getFilename();
+
+                if (!file_exists($path)) {
+                    continue;
+                }
+
+                $object = require $path;
+
+                if (!$object instanceof BaseElasticMigration) {
+                    continue;
+                }
+
+                $allAvailableMigrations[] = $file->getFilename();
             }
         }
 
-        $allMigratedMigrations = DB::table('elastic_search_migrations_logs')
+        $allMigratedMigrationsPath = DB::table('elastic_search_migrations_logs')
             ->select('migrations')->get()->pluck('migrations')->toArray();
+
+
+        $allMigratedMigrations = [];
+
+        foreach ($allMigratedMigrationsPath as $item) {
+            $allMigratedMigrations[] = Arr::last(explode('/', $item));
+        }
 
         $mapper = [];
 
