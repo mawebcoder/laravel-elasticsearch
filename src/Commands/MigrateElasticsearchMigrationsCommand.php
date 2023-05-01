@@ -207,7 +207,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
      * @throws RequestException
      * @throws Throwable
      */
-    public function setMigration(string $path, int $latestBatch,ElasticApiService $elasticApiService): void
+    public function setMigration(string $path, int $latestBatch): void
     {
         if ($this->isMigratedAlready($path)) {
             return;
