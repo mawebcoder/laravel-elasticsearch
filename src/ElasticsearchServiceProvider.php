@@ -3,6 +3,7 @@
 namespace Mawebcoder\Elasticsearch;
 
 use Illuminate\Support\ServiceProvider;
+use Mawebcoder\Elasticsearch\Commands\MakeMigrationCommand;
 use Mawebcoder\Elasticsearch\Commands\MakeModelCommand;
 use Mawebcoder\Elasticsearch\Commands\MigrateElasticsearchMigrationsCommand;
 use Mawebcoder\Elasticsearch\Commands\MigrateStatusElasticsearch;
@@ -19,7 +20,8 @@ class ElasticsearchServiceProvider extends ServiceProvider
             MigrateElasticsearchMigrationsCommand::class,
             MigrationRollbackElasticsearchCommand::class,
             MigrateStatusElasticsearch::class,
-            MakeModelCommand::class
+            MakeModelCommand::class,
+            MakeMigrationCommand::class
         ]);
 
         $this->app->bind(ElasticHttpRequestInterface::class, ElasticApiService::class);
@@ -27,7 +29,6 @@ class ElasticsearchServiceProvider extends ServiceProvider
 
     public function boot()
     {
-
         $this->publishes([
             __DIR__ . '/Migration/2023_03_26_create_elastic_search_migrations_logs_table.php' => database_path(
                 'migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
