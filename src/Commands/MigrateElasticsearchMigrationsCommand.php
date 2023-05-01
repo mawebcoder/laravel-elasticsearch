@@ -33,7 +33,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
         }
 
         if ($this->option('fresh')) {
-            $this->fresh();
+            $this->fresh($elasticApiService);
             return;
         }
 

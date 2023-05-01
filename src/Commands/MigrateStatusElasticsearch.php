@@ -45,7 +45,6 @@ class MigrateStatusElasticsearch extends Command
         $allMigratedMigrationsPath = DB::table('elastic_search_migrations_logs')
             ->select('migrations')->get()->pluck('migrations')->toArray();
 
-
         $allMigratedMigrations = [];
 
         foreach ($allMigratedMigrationsPath as $item) {
