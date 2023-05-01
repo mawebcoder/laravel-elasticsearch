@@ -113,10 +113,6 @@ by default this command rollbacks the migrations just one step.if you want to de
 ``php artisan elastic:migrate-rollback --step=<number>``
 
 
-# Valid Types 
-
-//say valid types here
-
 
 # Edit Indices Mappings
 
