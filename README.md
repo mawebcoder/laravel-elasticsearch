@@ -14,7 +14,6 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 
 
 @github/mawebcoder @github/KomeilShadan
-
 # publish config file and migration
 
 ``php artisan vendor:publish --tag=elastic``
@@ -118,7 +117,7 @@ by default this command rollbacks the migrations just one step.if you want to de
 Sometime you need to add or drop fields from your indice mapping.for doing this 
 you have to add new migration:
 
-``php artisan elastic:make-migration <you alter migration name>``
+``php artisan elastic:make-migration <alter migration name>``
 
 ```
 <?php
@@ -146,8 +145,8 @@ return new class extends BaseElasticMigration implements AlterElasticIndexMigrat
     }
 };
 ```
-as you can see we implements AlterElasticIndexMigrationInterface interface in our migration.then in you alterDown method we wrote our rollback senario.
-then you need to migrate:
+as you can see we implements ``AlterElasticIndexMigrationInterface`` interface in our migration.then in alterDown method we wrote our rollback senario.
+finally migrate your migration:
 
 ``php artisan elastic:migrate``
 
