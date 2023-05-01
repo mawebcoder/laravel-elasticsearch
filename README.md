@@ -158,7 +158,7 @@ finally migrate your migration:
 
 # Query Builder
 
-### create a recorde
+### Store a recorde
 
 ```
 $eArticleModel=new EArticleModel();
@@ -253,7 +253,7 @@ $eArticleModel
 
 ```
 
-### update record
+### Update record
 
 ```
 
@@ -347,6 +347,8 @@ $eArticleModel
 ->get();
 
 ```
+
+
 
 
 
