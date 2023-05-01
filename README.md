@@ -15,12 +15,6 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 
 @github/mawebcoder @github/KomeilShadan
 
-
-
-
-
-
-
 # publish config file and migration
 
 ``php artisan vendor:publish --tag=elastic``
@@ -117,8 +111,44 @@ To rollback Migration:
 
 by default this command rollbacks the migrations just one step.if you want to determine steps by yourself:
 
-``php artisan elasti:migrate-rollback --step=<number>``
+``php artisan elastic:migrate-rollback --step=<number>``
 
 # Edit Indices Mappings
+
+Sometime you need to add or drop fields from your indice mapping.for doing this 
+you have to add new migration:
+
+``php artisan elastic:make-migration <you alter migration name>``
+
+```
+<?php
+
+use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
+use Mawebcoder\Elasticsearch\Models\EArticleModel;
+use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
+
+return new class extends BaseElasticMigration implements AlterElasticIndexMigrationInterface {
+    public function getModel(): string
+    {
+        return EArticleModel::class;
+    }
+
+    public function schema(BaseElasticMigration $mapper): void
+    {
+        $mapper->dropField('name');
+        $mapper->boolean('new_field');//add this field to 
+    }
+
+    public function alterDown(BaseElasticMigration $mapper): void
+    {
+        $mapper->string('name');
+        $mapper->dropField('new_field');
+    }
+};
+```
+as you can see we implements AlterElasticIndexMigrationInterface interface in our migration.then in you alterDown method we wrote our rollback senario.
+then you need to migrate:
+
+``php artisan elastic:migrate``
 
 
