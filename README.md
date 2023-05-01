@@ -87,7 +87,7 @@ public function getModel():string
 
 ```
 
-To load your migrations in you AppServiceProvider
+To load  migrations in  AppServiceProvider:
 
 ```
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
