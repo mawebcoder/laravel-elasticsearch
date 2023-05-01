@@ -87,6 +87,18 @@ public function getModel():string
 
 ```
 
+To load your migrations in you AppServiceProvider
+
+```
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+
+ public function register(): void
+    {
+        Elasticsearch::loadMigrationsFrom(__DIR__ . '/../Elastic/Migrations');
+    }
+
+```
+
 
 To see migrations states :
 
