@@ -35,7 +35,7 @@ To communicate with Elasticsearch, we need a model for each index.To create a mo
 
 by default your models base path is in ``app/Elasticsearch/Models`` directory, but you can  define your own base path  in config/elasticsearch.php file.
 
-then you need to return your index name in ``getIndex`` method that is an abstract method.
+then you need to define your index name:.
 
 ```
 public function getIndex():string 
