@@ -16,11 +16,11 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 @github/mawebcoder @github/KomeilShadan
 
 
-# Publish config file and migration
+# publish config file and migration
 
 ``php artisan vendor:publish --tag=elastic``
 
-then migrate your database :
+then you migrate your database :
 
 ``php artisan migrate``
 
@@ -35,7 +35,7 @@ To communicate with Elasticsearch, we need a model for each index.To create a mo
 
 by default your models base path is in ``app/Elasticsearch/Models`` directory, but you can  define your own base path  in config/elasticsearch.php file.
 
-then you need to define your index name:.
+then you need to return your index name in ``getIndex`` method :
 
 ```
 public function getIndex():string 
@@ -54,14 +54,13 @@ after defining the model,you have to create a migration to register your desired
 
 by default your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can  define your own base path  in config/elasticsearch.php file.
 
-to define your fields :
-
 
 ```
 <?php
 
+//app/Elasticsearch/Migrations
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration
-use App\Elasticsearch\Models;
+use App\Elasticsearch\Models\EArticleModel;
 
 
 return new class extends BaseElasticMigration {
@@ -89,6 +88,8 @@ public function getModel():string
 };
 
 ```
+
+
 
 
 
