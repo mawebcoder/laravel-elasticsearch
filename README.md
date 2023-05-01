@@ -349,6 +349,14 @@ $eArticleModel
 ```
 
 
+# Future Releases
+
+- customizing  Normalizer and Tokenizer
+- Aggregations
+- Histograms
+- Search in multiple dimension fields
+- Edit existing mapping types 
+
 
 
 
