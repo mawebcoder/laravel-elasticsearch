@@ -16,6 +16,11 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 @github/mawebcoder @github/KomeilShadan
 
 
+
+
+
+
+
 # publish config file and migration
 
 ``php artisan vendor:publish --tag=elastic``
@@ -90,6 +95,30 @@ public function getModel():string
 ```
 
 
+To see migrations states :
 
+``php artisan elastic:migrate-status``
+
+To migrate  migrations and create your indices mappings :
+
+``php artisan elastic:migrate``
+
+To reset the all migrations :
+
+``php artisan elstic:migrate --reset``
+
+To fresh all Migrations :
+
+``php artisan elastic:migrate --fresh``
+
+To rollback Migration:
+
+``php artisan elastic:migrate-rollback``
+
+by default this command rollbacks the migrations just one step.if you want to determine steps by yourself:
+
+``php artisan elasti:migrate-rollback --step=<number>``
+
+# Edit Indices Mappings
 
 
