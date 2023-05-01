@@ -48,7 +48,7 @@ public function getIndex():string
 
 # Migrations
 
-after defining the model,you have to create a migration to register your desired fields.to make a migration:
+after defining the model,you have to create a migration to register your desired fields:
 
 ``php artisan elastic:make-migration <migration-name>``
 
