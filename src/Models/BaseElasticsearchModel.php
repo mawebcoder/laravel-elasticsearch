@@ -527,6 +527,11 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    public function dd()
+    {
+        dd($this->search);
+    }
+
     /**
      * @throws WrongArgumentNumberForWhereBetweenException
      * @throws WrongArgumentType
