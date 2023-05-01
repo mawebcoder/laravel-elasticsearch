@@ -18,7 +18,7 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 
 ``php artisan vendor:publish --tag=elastic``
 
-then you migrate your database :
+then  migrate your database :
 
 ``php artisan migrate``
 
