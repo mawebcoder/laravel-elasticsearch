@@ -16,7 +16,7 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 @github/mawebcoder @github/KomeilShadan
 
 
-# publish config file and migration
+# Publish config file and migration
 
 ``php artisan vendor:publish --tag=elastic``
 
