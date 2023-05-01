@@ -253,6 +253,104 @@ $eArticleModel
 
 ```
 
+### update record
+
+```
+
+$eArticleModel=new EArticleModel();
+
+$result=$eArticleModel->find(2);
+
+$result?->update([
+    'name'=>'elastic',
+    //...
+]);
+
+```
+
+
+### Bulk update
+
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->update([
+    'name'=>'elastic',
+    //...
+]);
+
+```
+
+### Buld delete
+
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->delete();
+
+```
+
+### Take(limit)
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->take(10)
+->get();
+
+```
+
+### Offset
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->take(10)
+->offset(5)
+->get();
+
+```
+
+### select
+
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->select('name,'age')
+->get();
+
+```
+
+### OrderBy
+
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->select('name,'age')
+->orderBy('age','desc')
+->get();
+
+```
+
+
+
+
 
 
 
