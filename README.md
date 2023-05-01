@@ -112,6 +112,12 @@ by default this command rollbacks the migrations just one step.if you want to de
 
 ``php artisan elastic:migrate-rollback --step=<number>``
 
+
+# Valid Types 
+
+//say valid types here
+
+
 # Edit Indices Mappings
 
 Sometime you need to add or drop fields from your indice mapping.for doing this 
@@ -149,5 +155,105 @@ as you can see we implements ``AlterElasticIndexMigrationInterface`` interface i
 finally migrate your migration:
 
 ``php artisan elastic:migrate``
+
+# Query Builder
+
+### create a recorde
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel->name='mohammad';
+
+$eArticleModel->id=2;
+
+$eArticleModel->is_active=true;
+
+$eArticleModel->user=[
+    'name'=>'komeil',
+    'id'=>3
+];
+
+$eArticleModel->text='your text';
+
+$eArticleModel->age=23;
+
+$eArticleModel->save();
+
+```
+
+or :
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel->create([
+    'name'=>'mohammad',
+    'age'=>29,
+    //...
+])
+
+```
+
+Just pay attention that if you pass any field that doesn't exist in your mappings you will encounter handled error that prevents from storing invalid data into DB.
+
+### Find record
+
+```
+$eArticleModel=new EArticleModel();
+
+$result=$eArticleModel->find(2);
+
+```
+
+### Remove record
+
+```
+$eArticleModel=new EArticleModel();
+
+$result=$eArticleModel->find(2);
+
+$result?->delete();
+```
+
+### Conditions
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->orWhere('name,'komeil')
+->whereNotIn('id,[1,2,3])
+->where('name','like','value')
+->whereBetween('id',[10,13])
+->whereNotBetween('id',[1,2])
+->whereTerm('name','foo')
+->first();
+```
+There are more conditions that base on your requirements you can use them.
+
+
+### Get Results
+
+In example below you will get an collection of the EArticleModel instances and you access the laravel Collections Features:
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where('name','<>','mohammad')
+->orWhere('name,'komeil')
+->whereNotIn('id,[1,2,3])
+->where('name','like','value')
+->whereBetween('id',[10,13])
+->whereNotBetween('id',[1,2])
+->whereTerm('name','foo')
+->get();
+
+```
+
+
+
 
 
