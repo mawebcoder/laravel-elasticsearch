@@ -42,14 +42,14 @@ abstract class BaseElasticMigration
     public string $tempIndex;
     public const TYPE_INTEGER = 'integer';
     public const TYPE_TEXT = 'text';
-    public const TYPE_STRING = 'string';
+    public const TYPE_STRING = 'keyword';
     public const TYPE_BOOLEAN = 'boolean';
-    public const TYPE_BIGINT = 'bigint';
-    public const TYPE_SMALLINT = 'smallint';
-    public const TYPE_TINYINT = 'tinyint';
+    public const TYPE_BIGINT = 'long';
+    public const TYPE_SMALLINT = 'short';
+    public const TYPE_TINYINT = 'byte';
     public const TYPE_DOUBLE = 'double';
     public const TYPE_FLOAT = 'float';
-    public const TYPE_DATETIME = 'datetime';
+    public const TYPE_DATETIME = 'date';
 
     public const ANALYZER_STANDARD = 'standard';
     public const ANALYZER_SIMPLE = 'simple';
@@ -153,16 +153,14 @@ abstract class BaseElasticMigration
             $values['properties'][$key] = $this->setType($type);
         }
 
+
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = [
                 ...['type' => 'nested'],
                 ...$values
             ];
-
-
             return;
         }
-
         $this->schema['properties'][$field] = $values;
     }
 
