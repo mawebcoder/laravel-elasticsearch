@@ -12,7 +12,11 @@ class MakeMigrationCommand extends Command
 
     protected $description = 'make migration';
 
-    public function handle()
+    /**
+     * @return void
+     * @throws CanNotCreateTheFileException
+     */
+    public function handle(): void
     {
         ['migration_name' => $migration_name, 'directory' => $directory] = $this->getMigrationDirectoryInfo();
 
@@ -20,11 +24,13 @@ class MakeMigrationCommand extends Command
 
         $fullPath = $this->getFillAbsolutePath($directory, $migration_name);
 
-        $this->createFile($fullPath, $directory);
+        $this->createFile($fullPath);
     }
 
 
     /**
+     * @param string $fullPath
+     * @return void
      * @throws CanNotCreateTheFileException
      */
     public function createFile(string $fullPath): void
