@@ -31,7 +31,7 @@ To communicate with Elasticsearch, we need a model for each index.To create a mo
 
 ``php artisan elastic:make-model <model-name>``
 
-By default your models base path is in ``app/Elasticsearch/Models`` directory, but you can  define your own base path  in config/elasticsearch.php file.
+By default your models base path is in ``app/Elasticsearch/Models`` directory, but you can  define your own base path  in ``config/elasticsearch.php`` file.
 
 Then you need to return your index name in ``getIndex`` method :
 
@@ -50,7 +50,7 @@ After defining the model,you have to create a migration to register your desired
 
 ``php artisan elastic:make-migration <migration-name>``
 
-By default your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can  define your own base path  in config/elasticsearch.php file.
+By default your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can  define your own base path  in ``config/elasticsearch.php`` file.
 
 
 ```
@@ -160,7 +160,7 @@ return new class extends BaseElasticMigration implements AlterElasticIndexMigrat
     }
 };
 ```
-As you can see we implements ``AlterElasticIndexMigrationInterface`` interface in our migration.then in alterDown method we wrote our rollback senario.
+As you can see we implemented ``AlterElasticIndexMigrationInterface`` interface in our migration. Then in alterDown method we wrote our rollback senario.
 Finally, migrate your migration:
 
 ``php artisan elastic:migrate``
@@ -293,7 +293,7 @@ $eArticleModel
 
 ```
 
-### Buld delete
+### Bulk delete
 
 
 ```
