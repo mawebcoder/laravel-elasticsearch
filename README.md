@@ -365,6 +365,7 @@ $eArticleModel
 - Histograms
 - Search in multiple dimension fields
 - Edit existing mapping types 
+- Migration flag to create migration file automatically(-m)
 
 
 
