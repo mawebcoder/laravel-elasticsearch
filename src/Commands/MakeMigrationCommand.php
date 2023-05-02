@@ -4,6 +4,7 @@ namespace Mawebcoder\Elasticsearch\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
+use Mawebcoder\Elasticsearch\Exceptions\CanNotCreateTheFileException;
 
 class MakeMigrationCommand extends Command
 {
@@ -22,15 +23,16 @@ class MakeMigrationCommand extends Command
         $this->createFile($fullPath, $directory);
     }
 
+
     /**
-     * @throws Exception
+     * @throws CanNotCreateTheFileException
      */
     public function createFile(string $fullPath): void
     {
         $stream = fopen(rtrim($fullPath, '/') . '.php', 'a+');
 
         if (!$stream) {
-            throw new Exception('can not create the file');
+            throw new CanNotCreateTheFileException('can not create the file');
         }
 
         fwrite($stream, '<?php');

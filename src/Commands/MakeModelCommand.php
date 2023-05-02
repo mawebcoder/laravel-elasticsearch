@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
+use Mawebcoder\Elasticsearch\Exceptions\CanNotCreateTheFileException;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 
 class MakeModelCommand extends Command
@@ -49,7 +50,7 @@ class MakeModelCommand extends Command
         return [
             'directory' => rtrim(config('elasticsearch.base_models_path'), '/') . '/' . join('/',
                     Arr::except($exploded, $lastIndex)),
-            'modelName' => $exploded[$lastIndex]
+            'model_name' => $exploded[$lastIndex]
         ];
     }
 
@@ -72,8 +73,9 @@ class MakeModelCommand extends Command
         return rtrim($directory, '/') . '/' . $modelName;
     }
 
+
     /**
-     * @throws Exception
+     * @throws CanNotCreateTheFileException
      */
     public function createFile(string $fullPath, string $directory): void
     {
@@ -82,13 +84,13 @@ class MakeModelCommand extends Command
         $stream = fopen(rtrim($fullPath, '/') . '.php', 'a+');
 
         if (!$stream) {
-            throw new Exception('can not create the file');
+            throw new CanNotCreateTheFileException('can not create the file');
         }
 
         fwrite($stream, '<?php');
         fwrite($stream, "\n");
         fwrite($stream, "\n");
-        fwrite($stream, 'namespace ' . $namespace.';');
+        fwrite($stream, 'namespace ' . $namespace . ';');
         fwrite($stream, "\n");
         fwrite($stream, "\n");
         fwrite($stream, "use Mawebcoder\\Elasticsearch\Models\\BaseElasticsearchModel;");
