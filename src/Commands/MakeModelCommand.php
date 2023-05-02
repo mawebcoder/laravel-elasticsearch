@@ -83,9 +83,12 @@ class MakeModelCommand extends Command
 
         $stream = fopen(rtrim($fullPath, '/') . '.php', 'a+');
 
+
         if (!$stream) {
             throw new CanNotCreateTheFileException('can not create the file');
         }
+
+        $modelName = Arr::last(explode('/', $fullPath));
 
         fwrite($stream, '<?php');
         fwrite($stream, "\n");
@@ -96,7 +99,7 @@ class MakeModelCommand extends Command
         fwrite($stream, "use Mawebcoder\\Elasticsearch\Models\\BaseElasticsearchModel;");
         fwrite($stream, "\n");
         fwrite($stream, "\n");
-        fwrite($stream, "class EArticle extends BaseElasticsearchModel");
+        fwrite($stream, "class $modelName extends BaseElasticsearchModel");
         fwrite($stream, "\n");
         fwrite($stream, "{");
         fwrite($stream, "\n");
