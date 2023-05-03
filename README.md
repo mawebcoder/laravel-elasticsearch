@@ -248,30 +248,26 @@ $eArticleModel
 #### Greater Than
 
 ```
-$eArticleModel->where('id','>',10)->orWhere('id','>',20)->get();
-$eArticleModel->where('id','>=',10)->orWhere('id','>=',20)->get();
+$eArticleModel->where('id','>',10)->orWhere('id','>=',20)->get();
 ```
 
 #### Lower Than
 
 ```
-$eArticleModel->where('id','<',2)->orWhere('id','<',1)->first();
-$eArticleModel->where('id','<=',2)->orWhere('id','<=',1)->first();
+$eArticleModel->where('id','<',2)->orWhere('id','<=',1)->first();
 ```
 
 #### Like
 
 ```
-$eArticleModel->where('name','like','foo')->orWhere('name','like','foo2')->get();
-$eArticleModel->where('name','not like','foo')->orWhere('name','like','foo2')->get();
+$eArticleModel->where('name','like','foo')->orWhere('name','not like','foo2')->get();
 ```
 
 #### whereTerm
 Sometimes you want to search for a specific phrase in a text. In this case, you can do the following
 
 ```
-$eArticleModel->whereTerm('name','foo')->orWhereTerm('name','foo2')->get();
-$eArticleModel->whereTerm('name','<>','foo')->orWhereTerm('name','foo2')->get();
+$eArticleModel->whereTerm('name','foo')->orWhereTerm('name','<>','foo2')->get();
 ```
 
 #### whereIn
