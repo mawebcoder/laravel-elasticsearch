@@ -266,7 +266,7 @@ $eArticleModel->where('name','like','foo')->orWhere('name','like','foo2')->get()
 $eArticleModel->where('name','not like','foo')->orWhere('name','like','foo2')->get();
 ```
 
-### whereTerm
+#### whereTerm
 Sometimes you want to search for a specific phrase in a text. In this case, you can do the following
 
 ```
@@ -274,7 +274,31 @@ $eArticleModel->whereTerm('name','foo')->orWhereTerm('name','foo2')->get();
 $eArticleModel->whereTerm('name','<>','foo')->orWhereTerm('name','foo2')->get();
 ```
 
-### Chaining
+#### whereIn
+
+```
+$eArticleModel->whereIn('id',[1,2])->orWhereIn('age',[23,26])->first();
+```
+
+#### whereNotIn
+
+```
+$eArticleModel->whereNotIn('id',[1,2])->orWhereNotIn('id',[26,23])->get();
+```
+
+#### whereBetween
+
+```
+$eArticleModel->whereBetween('id,[1,2])->orWhereBetween('age',[26,27])->first();
+```
+
+#### whereNotBetween
+
+```
+$eArticleModel->whereNotBetween('id',[1,2])->orWhereNotBetween('id,'26,27])->get();
+```
+
+#### Chaining
 
 ```
 $eArticleModel=new EArticleModel();
