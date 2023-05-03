@@ -129,7 +129,7 @@ By default this command rollbacks the migrations just one step.if you want to de
 
 # Edit Indices Mappings
 
-Sometimes you need to add or drop fields from your indices mapping.for doing this 
+Sometimes you need to add or drop fields from your indices mapping.for doing this
 you have to add new migration:
 
 ``php artisan elastic:make-migration <alter migration name>``
@@ -227,25 +227,54 @@ $result?->delete();
 
 ### Conditions
 
-```
-$eArticleModel=new EArticleModel();
 
+####  Equal
+
+```
 $eArticleModel
-->where('name','<>','mohammad')
-->orWhere('name,'komeil')
-->whereNotIn('id,[1,2,3])
-->where('name','like','value')
-->whereBetween('id',[10,13])
-->whereNotBetween('id',[1,2])
-->whereTerm('name','foo')
-->first();
+->where('id',2)
+->orWhere('id',2)
+->get();
 ```
-There are more conditions that base on your requirements you can use them.
 
+#### Not Equal
+```
+$eArticleModel
+->where('id','<>',2)
+->orWhere('id','<>',10)
+->get();
+```
 
-### Get Results
+#### Greater Than
 
-In example below you will get an collection of the EArticleModel instances and you access the laravel Collections Features:
+```
+$eArticleModel->where('id','>',10)->orWhere('id','>',20)->get();
+$eArticleModel->where('id','>=',10)->orWhere('id','>=',20)->get();
+```
+
+#### Lower Than
+
+```
+$eArticleModel->where('id','<',2)->orWhere('id','<',1)->first();
+$eArticleModel->where('id','<=',2)->orWhere('id','<=',1)->first();
+```
+
+#### Like
+
+```
+$eArticleModel->where('name','like','foo')->orWhere('name','like','foo2')->get();
+$eArticleModel->where('name','not like','foo')->orWhere('name','like','foo2')->get();
+```
+
+### whereTerm
+Sometimes you want to search for a specific phrase in a text. In this case, you can do the following
+
+```
+$eArticleModel->whereTerm('name','foo')->orWhereTerm('name','foo2')->get();
+$eArticleModel->whereTerm('name','<>','foo')->orWhereTerm('name','foo2')->get();
+```
+
+### Chaining
 
 ```
 $eArticleModel=new EArticleModel();
@@ -260,6 +289,12 @@ $eArticleModel
 ->whereTerm('name','foo')
 ->get();
 
+```
+
+#### Get pure Query
+
+```
+$eArticleModel->where('id','like','foo')->dd();
 ```
 
 ### Update record
@@ -364,7 +399,7 @@ $eArticleModel
 - Aggregations
 - Histograms
 - Search in multiple dimension fields
-- Edit existing mapping types 
+- Edit existing mapping types
 - Migration flag to create migration file automatically(-m)
 
 
