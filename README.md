@@ -416,13 +416,13 @@ $eArticleModel
 
 ```
 
-# Get Mappings Fields
+### Get mappings fields
 
 ```
 $eArticleModel->getFields();
 ```
 
-# Get specific field's value
+### Get specific field's value
 
 ```
 $name=$eArticleModel->name;
