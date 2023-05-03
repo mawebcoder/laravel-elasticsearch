@@ -416,10 +416,22 @@ $eArticleModel
 
 ```
 
+# Get Mappings Fields
+
+```
+$eArticleModel->getFields();
+```
+
+# Get specific field's value
+
+```
+$name=$eArticleModel->name;
+```
 
 # Future Releases
 
 - Customizing  Normalizer and Tokenizer
+- Raw Queries
 - Aggregations
 - Histograms
 - Search in multiple dimension fields
