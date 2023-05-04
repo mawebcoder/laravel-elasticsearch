@@ -142,26 +142,14 @@ abstract class BaseElasticMigration
         $this->schema['properties'][$field] = ['type' => 'integer'];
     }
 
-    /**
-     * @throws NotValidFieldTypeException
-     */
-    public function object(string $field, array $options): void
+
+    public function object(string $field): void
     {
-        $values = [];
-
-        foreach ($options as $key => $type) {
-            $values['properties'][$key] = $this->setType($type);
-        }
-
-
         if ($this->isCreationState()) {
-            $this->schema['mappings']['properties'][$field] = [
-                ...['type' => 'nested'],
-                ...$values
-            ];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'nested'];
             return;
         }
-        $this->schema['properties'][$field] = $values;
+        $this->schema['properties'][$field] = ['type' => 'nested'];
     }
 
     /**
@@ -515,8 +503,8 @@ abstract class BaseElasticMigration
         $this->elasticApiService
             ->setModel(null)
             ->put($this->getModelIndex() . DIRECTORY_SEPARATOR . '_mapping', [
-            "properties" => $finalMappings
-        ]);
+                "properties" => $finalMappings
+            ]);
 
         $this->elasticApiService->setModel(null)
             ->post(path: '_reindex', data: [
