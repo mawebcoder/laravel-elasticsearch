@@ -126,6 +126,74 @@ By default this command rollbacks the migrations just one step.if you want to de
 ``php artisan elastic:migrate-rollback --step=<number>``
 
 
+## Field Types
+
+
+### Integer
+
+```
+$this->integer('age');
+```
+
+### String(keyword)
+
+```
+$this->string('name');
+```
+
+### Nested
+
+```
+$this->nested('nested_values');
+```
+
+### Boolean
+```
+$this->boolean('is_active');
+```
+
+### SmallInteger(short)
+
+```
+$this->smallInteger('age');
+```
+
+### BigInteger(long)
+
+```
+$this->bigInteger('income');
+```
+
+### Double
+```
+$this->double('price');
+```
+
+### Float
+
+```
+$this->float('income');
+```
+
+### TinyInt(byte)
+
+```
+$this->tinyInt('value');
+```
+
+### Text
+
+```
+$this->text('description');
+```
+
+
+### DateTime(date)
+
+```
+$this->datetime('created_at');
+```
+
 
 # Edit Indices Mappings
 
@@ -433,12 +501,3 @@ $name=$eArticleModel->name;
 - Search in multiple dimension fields
 - Edit existing mapping types
 - Migration flag to create migration file automatically(-m)
-
-
-
-
-
-
-
-
-
