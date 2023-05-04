@@ -126,7 +126,7 @@ By default this command rollbacks the migrations just one step.if you want to de
 ``php artisan elastic:migrate-rollback --step=<number>``
 
 
-## Field Types
+## Types
 
 
 ### Integer
