@@ -282,7 +282,7 @@ abstract class BaseElasticMigration
      * @throws InvalidNormalizerTokenFilter
      * @throws FieldTypeIsNotKeyword
      */
-    public function setNormalizer(string $field, string $tokenFilter, ?string $name = 'custom_normalizer'): void
+    public function setNormalizer(string $field, string $tokenFilter, string $name = 'custom_normalizer'): void
     {
         if ($this->isCreationState()) {
             $this->normalizerCheckKeywordType($field);
