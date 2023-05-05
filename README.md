@@ -24,7 +24,7 @@ Then  migrate your database :
 
 
 # ORM
-This package works base on the ORM Database design to induce a more comfortable use experience in using elasticsearch.
+This package works based on the ORM Database design to induce a more comfortable use experience in using elasticsearch.
 
 # Models
 To communicate with Elasticsearch, we need a model for each index.To create a model:
@@ -46,11 +46,11 @@ public function getIndex():string
 
 # Migrations
 
-After defining the model,you have to create a migration to register your desired fields:
+After defining the model, you have to create a migration to register your desired fields:
 
 ``php artisan elastic:make-migration <migration-name>``
 
-By default your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can  define your own base path  in ``config/elasticsearch.php`` file.
+By default your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can define your own base path in ``config/elasticsearch.php`` file.
 
 
 ```
@@ -105,23 +105,23 @@ To see migrations states :
 
 ``php artisan elastic:migrate-status``
 
-To migrate  migrations and create your indices mappings :
+To migrate migrations and create your indices mappings :
 
 ``php artisan elastic:migrate``
 
-To reset the all migrations :
+To reset all migrations :
 
 ``php artisan elstic:migrate --reset``
 
-To fresh all Migrations :
+To fresh all migrations :
 
 ``php artisan elastic:migrate --fresh``
 
-To rollback Migration:
+To rollback migration:
 
 ``php artisan elastic:migrate-rollback``
 
-By default this command rollbacks the migrations just one step.if you want to determine steps by yourself:
+By default this command rollbacks the migrations just one step. If you want to determine steps by yourself:
 
 ``php artisan elastic:migrate-rollback --step=<number>``
 
@@ -197,8 +197,8 @@ $this->datetime('created_at');
 
 # Edit Indices Mappings
 
-Sometimes you need to add or drop fields from your indices mapping.for doing this
-you have to add new migration:
+Sometimes you need to add or drop fields from your indices mapping. To do this
+you have to add a new migration:
 
 ``php artisan elastic:make-migration <alter migration name>``
 
@@ -228,7 +228,7 @@ return new class extends BaseElasticMigration implements AlterElasticIndexMigrat
     }
 };
 ```
-As you can see we implemented ``AlterElasticIndexMigrationInterface`` interface in our migration. Then in alterDown method we wrote our rollback senario.
+As you can see, we implemented ``AlterElasticIndexMigrationInterface`` interface in our migration. Then in alterDown method we wrote our rollback scenario.
 Finally, migrate your migration:
 
 ``php artisan elastic:migrate``
@@ -332,7 +332,7 @@ $eArticleModel->where('name','like','foo')->orWhere('name','not like','foo2')->g
 ```
 
 #### whereTerm
-Sometimes you want to search for a specific phrase in a text. In this case, you can do the following
+Sometimes you want to search for a specific phrase in a text. In this case, you can do the following :
 
 ```
 $eArticleModel->whereTerm('name','foo')->orWhereTerm('name','<>','foo2')->get();
