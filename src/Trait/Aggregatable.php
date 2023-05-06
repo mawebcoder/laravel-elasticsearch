@@ -4,6 +4,7 @@ namespace Mawebcoder\Elasticsearch\Trait;
 
 use Mawebcoder\Elasticsearch\Exceptions\InvalidInterval;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidIntervalType;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidRanges;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 
 trait Aggregatable
@@ -106,7 +107,14 @@ trait Aggregatable
 
         $this->validateInterval($intervalType, $interval);
 
-        $this->aggregate('date_histogram', $field, $aggName, $intervalType, $interval, $order);
+        $this->aggregate(
+            operation: 'date_histogram',
+            field: $field,
+            aggName: $aggName,
+            intervalType: $intervalType,
+            interval: $interval,
+            order: $order
+        );
 
         return $this;
     }
@@ -121,7 +129,31 @@ trait Aggregatable
      */
     public function histogram(string $field, int $interval, string $aggName = 'custom_aggregation', ?string $order = null): static
     {
-        $this->aggregate('histogram', $field, $aggName, 'interval', $interval, $order);
+        $this->aggregate(
+            operation: 'histogram',
+            field: $field,
+            aggName: $aggName,
+            intervalType: 'interval',
+            interval: $interval,
+            order: $order
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param string $field
+     * @param float[] $ranges
+     * @param string $aggName
+     * @return $this
+     * @throws InvalidSortDirection
+     * @throws InvalidRanges
+     */
+    public function range(string $field, array $ranges, string $aggName = 'custom_aggregation'): static
+    {
+        $this->validateRanges($ranges);
+
+        $this->aggregate('range', $field, $aggName, ranges: $ranges);
 
         return $this;
     }
@@ -146,6 +178,7 @@ trait Aggregatable
      * @param string|null $intervalType
      * @param string|int|null $interval
      * @param string|null $order
+     * @param array|null $ranges
      * @return void
      * @throws InvalidSortDirection
      */
@@ -155,7 +188,8 @@ trait Aggregatable
         string          $aggName,
         ?string         $intervalType = null,
         string|int|null $interval = null,
-        ?string         $order = null
+        ?string         $order = null,
+        ?array          $ranges = null
     ): void
     {
         $this->search['aggs'][$aggName][$operation]['field'] = $field;
@@ -166,6 +200,7 @@ trait Aggregatable
 
         $this->setSortOrder($operation, $aggName, $order);
 
+        $this->setRanges($operation, $aggName, $ranges);
     }
 
     /**
@@ -255,5 +290,68 @@ trait Aggregatable
             throw new InvalidInterval(message: 'fixed interval must be a combination of digits and one of these letters: ms,s,m,h,d.');
         }
 
+    }
+
+    /**
+     * @param string $operation
+     * @param string $aggName
+     * @param array|null $ranges
+     * @return void
+     */
+    private function setRanges(string $operation, string $aggName, ?array $ranges): void
+    {
+        if ($ranges)
+        {
+            $this->search['aggs'][$aggName][$operation]['ranges'] = $ranges;
+        }
+    }
+
+    /**
+     * @param array $ranges
+     * @return void
+     * @throws InvalidRanges
+     */
+    private function validateRanges(array $ranges): void
+    {
+        foreach ($ranges as $range)
+        {
+            $fromCount = 0;
+            $toCount = 0;
+            $keys = array_keys($range);
+            $allowedKeys = ['from', 'to'];
+
+            if (count(array_diff($keys, $allowedKeys)) > 0)
+            {
+                throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
+            }
+
+            if (!isset($range['from']) && !isset($range['to']))
+            {
+                throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
+            }
+
+            if (isset($range['from']))
+            {
+                if (!is_float($range['from']))
+                {
+                    throw new InvalidRanges(message: 'ranges must contain float values only.');
+                }
+                $fromCount++;
+            }
+
+            if (isset($range['to']))
+            {
+                if (!is_float($range['to']))
+                {
+                    throw new InvalidRanges(message: 'ranges must contain float values only.');
+                }
+                $toCount++;
+            }
+
+            if (!($fromCount <= 1 && $toCount <= 1))
+            {
+                throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
+            }
+        }
     }
 }
