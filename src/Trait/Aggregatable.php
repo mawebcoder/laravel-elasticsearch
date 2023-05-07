@@ -18,7 +18,7 @@ trait Aggregatable
     public function sum(string $field, string $aggName = 'custom_aggregation'): static
     {
         $this->aggregate('sum', $field, $aggName);
-        
+
         return $this;
     }
 
@@ -101,7 +101,7 @@ trait Aggregatable
      * @throws InvalidSortDirection
      * @throws InvalidInterval
      */
-    public function dateHistogram(string $field, string $intervalType, string $interval, string $aggName = 'custom_aggregation',  ?string $order = null): static
+    public function dateHistogram(string $field, string $intervalType, string $interval, string $aggName = 'custom_aggregation', ?string $order = null): static
     {
         $this->checkIntervalType($intervalType);
 
@@ -143,7 +143,7 @@ trait Aggregatable
 
     /**
      * @param string $field
-     * @param float[] $ranges
+     * @param int[] $ranges
      * @param string $aggName
      * @return $this
      * @throws InvalidSortDirection
@@ -156,6 +156,18 @@ trait Aggregatable
         $this->aggregate('range', $field, $aggName, ranges: $ranges);
 
         return $this;
+    }
+
+    /**
+     * @param string $field
+     * @param int $size
+     * @param string $aggName
+     * @return void
+     * @throws InvalidSortDirection
+     */
+    public function terms(string $field, int $size = 5, string $aggName = 'custom_aggregation'): void
+    {
+        $this->aggregate('terms', $field, $aggName, size: $size);
     }
 
     /**
@@ -179,17 +191,19 @@ trait Aggregatable
      * @param string|int|null $interval
      * @param string|null $order
      * @param array|null $ranges
+     * @param int|null $size
      * @return void
      * @throws InvalidSortDirection
      */
     private function aggregate(
-        string          $operation,
-        string          $field,
-        string          $aggName,
-        ?string         $intervalType = null,
-        string|int|null $interval = null,
-        ?string         $order = null,
-        ?array          $ranges = null
+        string      $operation,
+        string      $field,
+        string      $aggName,
+        string      $intervalType = null,
+        string|int  $interval = null,
+        string      $order = null,
+        array       $ranges = null,
+        int         $size = null
     ): void
     {
         $this->search['aggs'][$aggName][$operation]['field'] = $field;
@@ -201,6 +215,8 @@ trait Aggregatable
         $this->setSortOrder($operation, $aggName, $order);
 
         $this->setRanges($operation, $aggName, $ranges);
+
+        $this->setSize($operation, $aggName, $size);
     }
 
     /**
@@ -332,18 +348,18 @@ trait Aggregatable
 
             if (isset($range['from']))
             {
-                if (!is_float($range['from']))
+                if (!is_int($range['from']))
                 {
-                    throw new InvalidRanges(message: 'ranges must contain float values only.');
+                    throw new InvalidRanges(message: 'ranges must contain integer values only.');
                 }
                 $fromCount++;
             }
 
             if (isset($range['to']))
             {
-                if (!is_float($range['to']))
+                if (!is_int($range['to']))
                 {
-                    throw new InvalidRanges(message: 'ranges must contain float values only.');
+                    throw new InvalidRanges(message: 'ranges must contain integer values only.');
                 }
                 $toCount++;
             }
@@ -352,6 +368,20 @@ trait Aggregatable
             {
                 throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
             }
+        }
+    }
+
+    /**
+     * @param string $operation
+     * @param string $aggName
+     * @param int|null $size
+     * @return void
+     */
+    private function setSize(string $operation, string $aggName, ?int $size): void
+    {
+        if ($size)
+        {
+            $this->search['aggs'][$aggName][$operation]['size'] = $size;
         }
     }
 }
