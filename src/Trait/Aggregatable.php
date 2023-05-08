@@ -101,8 +101,13 @@ trait Aggregatable
      * @throws InvalidSortDirection
      * @throws InvalidInterval
      */
-    public function dateHistogram(string $field, string $intervalType, string $interval, string $aggName = 'custom_aggregation', ?string $order = null): static
-    {
+    public function dateHistogram(
+        string $field,
+        string $intervalType,
+        string $interval,
+        string $aggName = 'custom_aggregation',
+        ?string $order = null
+    ): static {
         $this->checkIntervalType($intervalType);
 
         $this->validateInterval($intervalType, $interval);
@@ -127,8 +132,12 @@ trait Aggregatable
      * @return $this
      * @throws InvalidSortDirection
      */
-    public function histogram(string $field, int $interval, string $aggName = 'custom_aggregation', ?string $order = null): static
-    {
+    public function histogram(
+        string $field,
+        int $interval,
+        string $aggName = 'custom_aggregation',
+        ?string $order = null
+    ): static {
         $this->aggregate(
             operation: 'histogram',
             field: $field,
@@ -177,10 +186,12 @@ trait Aggregatable
      */
     private function checkIntervalType(string $intervalType): void
     {
-        if ($intervalType && !in_array($intervalType, ['fixed_interval', 'calendar_interval']))
-        {
-            throw new InvalidIntervalType(message: 'date histogram interval must be either fixed_interval or calendar_interval.');
+        if (!$intervalType || in_array($intervalType, ['fixed_interval', 'calendar_interval'])) {
+          return;
         }
+        throw new InvalidIntervalType(
+            message: 'date histogram interval must be either fixed_interval or calendar_interval.'
+        );
     }
 
     /**
@@ -196,16 +207,15 @@ trait Aggregatable
      * @throws InvalidSortDirection
      */
     private function aggregate(
-        string      $operation,
-        string      $field,
-        string      $aggName,
-        string      $intervalType = null,
-        string|int  $interval = null,
-        string      $order = null,
-        array       $ranges = null,
-        int         $size = null
-    ): void
-    {
+        string $operation,
+        string $field,
+        string $aggName,
+        string $intervalType = null,
+        string|int $interval = null,
+        string $order = null,
+        array $ranges = null,
+        int $size = null
+    ): void {
         $this->search['aggs'][$aggName][$operation]['field'] = $field;
 
         $this->setInterval($operation, $aggName, $intervalType, $interval);
@@ -226,12 +236,17 @@ trait Aggregatable
      * @param string|int|null $interval
      * @return void
      */
-    private function setInterval(string $operation, string $aggName, ?string $intervalType, string|int|null $interval): void
-    {
-        if ($intervalType && $interval)
-        {
-            $this->search['aggs'][$aggName][$operation][$intervalType] = $interval;
+    private function setInterval(
+        string $operation,
+        string $aggName,
+        ?string $intervalType,
+        string|int|null $interval
+    ): void {
+        if (!$intervalType || !$interval) {
+            return;
         }
+
+        $this->search['aggs'][$aggName][$operation][$intervalType] = $interval;
     }
 
     /**
@@ -241,10 +256,10 @@ trait Aggregatable
      */
     private function checkSortOrder(?string $order): void
     {
-        if ($order && !in_array($order, ['asc', 'desc']))
-        {
-            throw new InvalidSortDirection(message: 'order direction must be either asc or desc.');
+        if (!$order || in_array($order, ['asc', 'desc'])) {
+            return;
         }
+        throw new InvalidSortDirection(message: 'order direction must be either asc or desc.');
     }
 
     /**
@@ -255,10 +270,11 @@ trait Aggregatable
      */
     private function setSortOrder(string $operation, string $aggName, ?string $order): void
     {
-        if (in_array($order, ['asc', 'desc']))
-        {
-            $this->search['aggs'][$aggName][$operation]['order'] = ['_key' => $order];
+        if (!in_array($order, ['asc', 'desc'])) {
+            return;
         }
+
+        $this->search['aggs'][$aggName][$operation]['order'] = ['_key' => $order];
     }
 
     /**
@@ -285,11 +301,13 @@ trait Aggregatable
     {
         $calendarInterval = '/^(\d+)([mhdwMqy])$/';
 
-        if (!preg_match($calendarInterval, $interval))
-        {
-            throw new InvalidInterval(message: 'calendar interval must be a combination of digits and one of these letters: m,h,d,w,M,q,y.');
+        if (preg_match($calendarInterval, $interval)) {
+            return;
         }
 
+        throw new InvalidInterval(
+            message: 'calendar interval must be a combination of digits and one of these letters: m,h,d,w,M,q,y.'
+        );
     }
 
     /**
@@ -301,11 +319,13 @@ trait Aggregatable
     {
         $fixedInterval = '/^(\d+)(ms|s|m|h|d)$/';
 
-        if (!preg_match($fixedInterval, $interval))
-        {
-            throw new InvalidInterval(message: 'fixed interval must be a combination of digits and one of these letters: ms,s,m,h,d.');
+        if (preg_match($fixedInterval, $interval)) {
+            return;
         }
 
+        throw new InvalidInterval(
+            message: 'fixed interval must be a combination of digits and one of these letters: ms,s,m,h,d.'
+        );
     }
 
     /**
@@ -316,10 +336,11 @@ trait Aggregatable
      */
     private function setRanges(string $operation, string $aggName, ?array $ranges): void
     {
-        if ($ranges)
-        {
-            $this->search['aggs'][$aggName][$operation]['ranges'] = $ranges;
+        if (!$ranges) {
+            return;
         }
+
+        $this->search['aggs'][$aggName][$operation]['ranges'] = $ranges;
     }
 
     /**
@@ -329,43 +350,35 @@ trait Aggregatable
      */
     private function validateRanges(array $ranges): void
     {
-        foreach ($ranges as $range)
-        {
+        foreach ($ranges as $range) {
             $fromCount = 0;
             $toCount = 0;
             $keys = array_keys($range);
             $allowedKeys = ['from', 'to'];
 
-            if (count(array_diff($keys, $allowedKeys)) > 0)
-            {
+            if (count(array_diff($keys, $allowedKeys)) > 0) {
                 throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
             }
 
-            if (!isset($range['from']) && !isset($range['to']))
-            {
+            if (!isset($range['from']) && !isset($range['to'])) {
                 throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
             }
 
-            if (isset($range['from']))
-            {
-                if (!is_int($range['from']))
-                {
+            if (isset($range['from'])) {
+                if (!is_int($range['from'])) {
                     throw new InvalidRanges(message: 'ranges must contain integer values only.');
                 }
                 $fromCount++;
             }
 
-            if (isset($range['to']))
-            {
-                if (!is_int($range['to']))
-                {
+            if (isset($range['to'])) {
+                if (!is_int($range['to'])) {
                     throw new InvalidRanges(message: 'ranges must contain integer values only.');
                 }
                 $toCount++;
             }
 
-            if (!($fromCount <= 1 && $toCount <= 1))
-            {
+            if (!($fromCount <= 1 && $toCount <= 1)) {
                 throw new InvalidRanges(message: 'ranges must contain either a single "from", a single "to", or both.');
             }
         }
@@ -379,9 +392,10 @@ trait Aggregatable
      */
     private function setSize(string $operation, string $aggName, ?int $size): void
     {
-        if ($size)
-        {
-            $this->search['aggs'][$aggName][$operation]['size'] = $size;
+        if (!$size) {
+            return;
         }
+
+        $this->search['aggs'][$aggName][$operation]['size'] = $size;
     }
 }
