@@ -569,9 +569,6 @@ $eArticleModel
 
 
 
-Just pay attention that if you want to use ``where`` clause and using
-and ``==``,``<>``,``>``,``>=``,``<``,``<=`` operators (except ``like``) you must not set your field type as ``text`` because
-we use ``term`` statement for where clause and by default standard tokenizer applied on your indices by Elasticsearch ,so dash,white space ,letter cases , `'s`,number switching and symbols are the splitters. 
 # Coming soon
 - Histogram
 - aggregations
