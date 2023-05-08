@@ -13,11 +13,14 @@ use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectExcepti
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Trait\Aggregatable;
 use ReflectionException;
 use Throwable;
 
 abstract class BaseElasticsearchModel
 {
+    use Aggregatable;
+
     public array $attributes = [];
 
     const SOURCE_KEY = '_source';
