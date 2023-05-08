@@ -492,6 +492,15 @@ $eArticleModel->getFields();
 $name=$eArticleModel->name;
 ```
 
+To get export from your raw queries
+```
+$eArticleModel
+->where('name','<>','mohammad')
+->select('name,'age')
+->orderBy('age','desc')
+->dd();
+```
+
 # Future Releases
 
 - Customizing  Normalizer and Tokenizer
