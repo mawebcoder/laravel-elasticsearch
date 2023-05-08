@@ -503,11 +503,62 @@ $eArticleModel
 
 ### Nested Query
 
+First of all we need to define ``object`` type in our migration:
+
+``` 
+
+"category":{
+            "name":"elastic",
+            "id":2
+          }
+
+```
+
+``` 
+$mapper->object('categories',[
+            'name'=>self::TYPE_STRING,
+            'id'=>self::TYPE_BIGINT
+        ]);
+```
 
 ```
 $eArticleModel
 ->where('categories.name')->first();
 ```
+
+If you have multi dimension objects like below:
+
+``` 
+
+"categories":[
+           {
+            "name":"elastic",
+            "id":2
+           },
+           {
+            "name":"mohammad",
+            "id":3
+           }
+
+
+            ]
+
+```
+Define your Mappings Like below:
+
+``` 
+$mapper->object('categories',[
+            'name'=>self::TYPE_STRING,
+            'id'=>self::TYPE_BIGINT
+        ]);
+```
+
+```
+$eArticleModel
+->where('categories.name')->first();
+```
+
+
 
 Just pay attention that if you want to use ``where`` clause and using
 and ``==``,``<>``,``>``,``>=``,``<``,``<=`` operators (except ``like``) you must not set your field type as ``text`` because
