@@ -498,6 +498,6 @@ $name=$eArticleModel->name;
 - Raw Queries
 - Aggregations
 - Histograms
-- Search in multiple dimension fields
+- Nested Search
 - Edit existing mapping types
 - Migration flag to create migration file automatically(-m)
