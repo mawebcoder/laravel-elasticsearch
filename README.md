@@ -492,7 +492,7 @@ $eArticleModel->getFields();
 $name=$eArticleModel->name;
 ```
 
-To get export from your raw queries
+To  export from your raw queries
 ```
 $eArticleModel
 ->where('name','<>','mohammad')
