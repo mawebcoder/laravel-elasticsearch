@@ -573,3 +573,4 @@ $eArticleModel
 - Histogram
 - aggregations
 - Define normalizer and tokenizer 
+- Raw Queries
