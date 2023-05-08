@@ -342,6 +342,11 @@ abstract class BaseElasticsearchModel
     }
 
 
+    public function isNestedSearch(string $field): bool
+    {
+        return str_contains($field,'->');
+    }
+
     public function where(string $field, ?string $operation = null, ?string $value = null): static
     {
         [$value, $operation] = $this->getOperationValue($value, $operation);
