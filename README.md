@@ -603,7 +603,7 @@ The result will be something like this:
 ``` 
 [
     "data"=>[...],
-    'total_records' => $totalRecords,
+    'total_records' => 150,
     'last_page' => 12,
     'current_page' => 9,
     'next_link' => localhost:9200?page=10,
