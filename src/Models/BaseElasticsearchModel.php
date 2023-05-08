@@ -342,8 +342,6 @@ abstract class BaseElasticsearchModel
     }
 
 
-
-
     public function where(string $field, ?string $operation = null, ?string $value = null): static
     {
         [$value, $operation] = $this->getOperationValue($value, $operation);
@@ -850,13 +848,13 @@ abstract class BaseElasticsearchModel
             ]
         ];
 
-        $result = Elasticsearch::setModel(static::class)
+        Elasticsearch::setModel(static::class)
             ->post("_doc/_delete_by_query", $this->search);
-
-        $result->throw();
 
         return true;
     }
+
+
 
     /**
      * @param array $options

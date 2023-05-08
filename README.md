@@ -567,7 +567,22 @@ $eArticleModel
 ->where('categories.name')->first();
 ```
 
+### Destroy by id
 
+``` 
+$eArticleModel->destroy([1,2,3]);
+```
+
+### Aggregations
+
+#### Count
+
+``` 
+$eArticleModel
+->where('categories.name')
+->orWhere('companies.title','like','foo')
+->count();
+```
 
 # Coming soon
 - Histogram
