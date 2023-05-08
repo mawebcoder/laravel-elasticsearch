@@ -969,16 +969,18 @@ abstract class BaseElasticsearchModel
             $previousLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage - 1]);
         }
 
-        $result = $this->limit($perPage)
+        $result = $this
+            ->limit($perPage)
             ->offset($perPage * ($currentPage - 1))
             ->get();
 
-        return $result->merge([
-            'current_page' => $currentPage,
+        return collect([
+            'total_records' => $totalRecords,
             'last_page' => $lastPage,
+            'current_page' => $currentPage,
             'next_link' => $nextLink,
             'prev_link' => $previousLink,
-            'total_records' => $totalRecords
+            'data' => $result,
         ]);
     }
 }
