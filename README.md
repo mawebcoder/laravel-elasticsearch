@@ -584,6 +584,22 @@ $eArticleModel
 ->count();
 ```
 
+### Pagination
+```
+$eArticleModel
+->where('categories.name')
+->orWhere('companies.title','like','foo')
+->paginate()
+```
+
+By default paginate methods paginates pages per 15 items,but you can change it:
+
+``` 
+$eArticleModel
+->where('categories.name')
+->paginate(20)
+```
+
 # Coming soon
 - Histogram
 - aggregations
