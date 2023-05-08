@@ -509,6 +509,6 @@ $eArticleModel
 ->where('categories.name')->first();
 ```
 
-Just pay attention that if you want to use ``where`` clause
-you must not define your field as ``text`` type.
-we use ``term`` statement for where clause and by default standard tokenizer applied on your indices ,so dash,white space ,letter cases , `'s`,number switching and symbols are the splitters. 
+Just pay attention that if you want to use ``where`` clause and using
+and ``==``,``<>``,``>``,``>=``,``<``,``<=`` operators (except ``like``) you must not set your field type as ``text`` because
+we use ``term`` statement for where clause and by default standard tokenizer applied on your indices by Elasticsearch ,so dash,white space ,letter cases , `'s`,number switching and symbols are the splitters. 
