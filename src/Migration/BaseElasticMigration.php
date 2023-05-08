@@ -2,10 +2,12 @@
 
 namespace Mawebcoder\Elasticsearch\Migration;
 
+use Carbon\Exceptions\InvalidTypeException;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
@@ -48,6 +50,7 @@ abstract class BaseElasticMigration
     public const TYPE_SMALLINT = 'short';
     public const TYPE_TINYINT = 'byte';
     public const TYPE_DOUBLE = 'double';
+    public const TYPE_OBJECT = 'object';
     public const TYPE_FLOAT = 'float';
     public const TYPE_DATETIME = 'date';
 
@@ -87,6 +90,7 @@ abstract class BaseElasticMigration
         self::TYPE_SMALLINT,
         self::TYPE_FLOAT,
         self::TYPE_DOUBLE,
+        self::TYPE_OBJECT,
         self::TYPE_DATETIME,
         self::TYPE_TINYINT,
         self::TYPE_BIGINT,
@@ -143,13 +147,43 @@ abstract class BaseElasticMigration
     }
 
 
-    public function object(string $field): void
+    /**
+     * this method just support object
+     * @throws FieldNameException
+     */
+    public function object(string $field, array $options): void
     {
+        $types = [];
+
+        foreach ($options as $f => $type) {
+            if (!is_string($f)) {
+                throw new FieldNameException(message: "field with name $f is not valid.must be string");
+            }
+
+            if (!in_array($type, self::VALID_TYPES)) {
+                throw new InvalidTypeException(
+                    message: "type $type is not valid.must be in" . join(
+                        ',',
+                        self::VALID_TYPES
+                    )
+                );
+            }
+            $types[$f] = ['type' => $type];
+        }
+
         if ($this->isCreationState()) {
-            $this->schema['mappings']['properties'][$field] = ['type' => 'object'];
+            $this->schema['mappings']['properties'][$field] = [
+                ...["type" => 'object'],
+                ...['properties'=>$types]
+            ];
+
             return;
         }
-        $this->schema['properties'][$field] = ['type' => 'object'];
+
+        $this->schema['properties'][$field] = [
+            ...["type" => 'object'],
+            ...["properties"=>$types]
+        ];
     }
 
     /**
