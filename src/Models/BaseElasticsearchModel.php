@@ -2,10 +2,12 @@
 
 namespace Mawebcoder\Elasticsearch\Models;
 
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use JetBrains\PhpStorm\NoReturn;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
@@ -60,9 +62,12 @@ abstract class BaseElasticsearchModel
 
 
     /**
-     * @throws RequestException
-     * @throws ReflectionException
+     * @param array $options
+     * @return $this
      * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function create(array $options): static
     {
@@ -100,9 +105,12 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param array $options
+     * @return bool
+     * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
      * @throws ReflectionException
      * @throws RequestException
-     * @throws FieldNotDefinedInIndexException
      */
     public function update(array $options): bool
     {
@@ -198,8 +206,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param $id
+     * @return $this|null
      * @throws ReflectionException
-     * @throws RequestException
+     * @throws GuzzleException
      */
     public function find($id): ?static
     {
@@ -245,8 +255,9 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @return $this|null
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function first(): null|static
     {
@@ -305,9 +316,11 @@ abstract class BaseElasticsearchModel
 
 
     /**
+     * @return mixed
+     * @throws GuzzleException
      * @throws ReflectionException
      */
-    public function requestForSearch()
+    public function requestForSearch(): mixed
     {
         $response = Elasticsearch::setModel(static::class)
             ->post('_doc/_search', $this->search);
@@ -318,6 +331,7 @@ abstract class BaseElasticsearchModel
 
     /**
      * @return Collection
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function get(): Collection
@@ -819,8 +833,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param array $ids
+     * @return bool
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function destroy(array $ids): bool
     {
@@ -840,9 +856,12 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @throws RequestException
-     * @throws ReflectionException
+     * @param array $options
+     * @return void
      * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function checkMapping(array $options): void
     {
@@ -858,8 +877,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @throws RequestException
+     * @return array
+     * @throws GuzzleException
      * @throws ReflectionException
+     * @throws RequestException
      */
     public function getFields(): array
     {
@@ -869,8 +890,9 @@ abstract class BaseElasticsearchModel
 
 
     /**
+     * @return $this
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function save(): static
     {
@@ -906,8 +928,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @throws RequestException
+     * @return array
+     * @throws GuzzleException
      * @throws ReflectionException
+     * @throws RequestException
      */
     public function getMappings(): array
     {
