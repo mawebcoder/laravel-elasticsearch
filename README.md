@@ -501,12 +501,14 @@ $eArticleModel
 ->dd();
 ```
 
-# Future Releases
+### Nested Query
 
-- Customizing  Normalizer and Tokenizer
-- Raw Queries
-- Aggregations
-- Histograms
-- Nested Search
-- Edit existing mapping types
-- Migration flag to create migration file automatically(-m)
+
+```
+$eArticleModel
+->where('categories.name')->first();
+```
+
+Just pay attention that if you want to use ``where`` clause
+you must not define your field as ``text`` type.
+we use ``term`` statement for where clause and by default standard tokenizer applied on your indices ,so dash,white space ,letter cases , `'s`,number switching and symbols are the splitters. 
