@@ -855,7 +855,6 @@ abstract class BaseElasticsearchModel
     }
 
 
-
     /**
      * @param array $options
      * @return void
@@ -938,5 +937,48 @@ abstract class BaseElasticsearchModel
     {
         return Elasticsearch::setModel(static::class)
             ->getMappings();
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function paginate(int $perPage = 15): Collection
+    {
+        $totalRecords = $this->count();
+
+        $currentPage = request('page') ?? 1;
+
+        $firstPage = 1;
+
+        $nextLink = null;
+
+        $previousLink = null;
+
+        $lastPage = ceil($totalRecords / $perPage);
+
+        if ($currentPage > $lastPage || $currentPage < $firstPage) {
+            return collect([]);
+        }
+
+        if ($lastPage !== $currentPage && $currentPage !== $firstPage) {
+            $nextLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage + 1]);
+        }
+
+        if ($currentPage !== $firstPage) {
+            $previousLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage - 1]);
+        }
+
+        $result = $this->limit($perPage)
+            ->offset($perPage * ($currentPage - 1))
+            ->get();
+
+        return $result->merge([
+            'current_page' => $currentPage,
+            'last_page' => $lastPage,
+            'next_link' => $nextLink,
+            'prev_link' => $previousLink,
+            'total_records' => $totalRecords
+        ]);
     }
 }
