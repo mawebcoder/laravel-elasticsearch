@@ -486,6 +486,12 @@ $eArticleModel
 $eArticleModel->getFields();
 ```
 
+### Get mappings
+
+``` 
+$eArticleModel->getMappings();
+```
+
 ### Get specific field's value
 
 ```
