@@ -599,6 +599,18 @@ $eArticleModel
 ->where('categories.name')
 ->paginate(20)
 ```
+The result will be something like this:
+``` 
+[
+    "data"=>[...],
+    'total_records' => $totalRecords,
+    'last_page' => 12,
+    'current_page' => 9,
+    'next_link' => localhost:9200?page=10,
+    'prev_link' => localhost:9200?page=8,
+]
+```
+
 
 # Coming soon
 - Histogram
