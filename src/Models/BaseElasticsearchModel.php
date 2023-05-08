@@ -342,10 +342,7 @@ abstract class BaseElasticsearchModel
     }
 
 
-    public function isNestedSearch(string $field): bool
-    {
-        return str_contains($field,'->');
-    }
+
 
     public function where(string $field, ?string $operation = null, ?string $value = null): static
     {
@@ -355,7 +352,8 @@ abstract class BaseElasticsearchModel
         switch ($operation) {
             case "<>":
             case "!=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                $this->search['query']['bool']['should']
+                [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                     "term" => [
                         $field => [
                             'value' => $value
