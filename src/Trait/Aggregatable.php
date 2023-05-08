@@ -2,10 +2,13 @@
 
 namespace Mawebcoder\Elasticsearch\Trait;
 
+use GuzzleHttp\Exception\GuzzleException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidInterval;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidIntervalType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidRanges;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use ReflectionException;
 
 trait Aggregatable
 {
@@ -187,7 +190,7 @@ trait Aggregatable
     private function checkIntervalType(string $intervalType): void
     {
         if (!$intervalType || in_array($intervalType, ['fixed_interval', 'calendar_interval'])) {
-          return;
+            return;
         }
         throw new InvalidIntervalType(
             message: 'date histogram interval must be either fixed_interval or calendar_interval.'
@@ -397,5 +400,18 @@ trait Aggregatable
         }
 
         $this->search['aggs'][$aggName][$operation]['size'] = $size;
+    }
+
+    /**
+     * @return mixed
+     * @throws GuzzleException
+     * @throws ReflectionException
+     */
+    public function count(): int
+    {
+        $result = Elasticsearch::setModel(static::class)
+            ->post('_count', $this->search);
+
+        return json_decode($result->getBody(), true)['count'];
     }
 }
