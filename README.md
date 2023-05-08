@@ -141,10 +141,13 @@ $this->integer('age');
 $this->string('name');
 ```
 
-### Nested
+### Object
 
 ```
-$this->nested('nested_values');
+$this->object('object_field',[
+    'name'=>self::TYPE_STRING,
+    'age'=>self::TYPE_INTEGER
+]);
 ```
 
 ### Boolean
