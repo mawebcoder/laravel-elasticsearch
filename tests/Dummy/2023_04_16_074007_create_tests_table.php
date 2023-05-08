@@ -2,8 +2,8 @@
 
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Models\Test;
-
-return new class extends BaseElasticMigration {
+use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
+return new class extends BaseElasticMigration implements AlterElasticIndexMigrationInterface {
     public function getModel(): string
     {
         return Test::class;
@@ -11,11 +11,13 @@ return new class extends BaseElasticMigration {
 
     public function schema(BaseElasticMigration $mapper): void
     {
-        $mapper->integer('id');
+        $mapper->dropField('name');
+        $mapper->boolean('new_field');
+    }
 
+    public function alterDown(BaseElasticMigration $mapper): void
+    {
         $mapper->string('name');
-        $mapper->boolean('is_active');
-        $mapper->text('details');
-        $mapper->integer('age');
+        $mapper->dropField('new_field');
     }
 };
