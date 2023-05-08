@@ -958,7 +958,14 @@ abstract class BaseElasticsearchModel
         $lastPage = ceil($totalRecords / $perPage);
 
         if ($currentPage > $lastPage || $currentPage < $firstPage) {
-            return collect([]);
+            return collect([
+                'total_records' => $totalRecords,
+                'last_page' => $lastPage,
+                'current_page' => $currentPage,
+                'next_link' => $nextLink,
+                'prev_link' => $previousLink,
+                'data' => collect([]),
+            ]);
         }
 
         if ($lastPage !== $currentPage && $currentPage !== $firstPage) {

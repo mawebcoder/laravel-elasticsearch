@@ -3,6 +3,7 @@
 namespace Mawebcoder\Elasticsearch\Trait;
 
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Arr;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidInterval;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidIntervalType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidRanges;
@@ -409,8 +410,9 @@ trait Aggregatable
      */
     public function count(): int
     {
+        $search = Arr::except($this->search, ['_source', 'sort']);
         $result = Elasticsearch::setModel(static::class)
-            ->post('_count', $this->search);
+            ->post('_count', $search);
 
         return json_decode($result->getBody(), true)['count'];
     }
