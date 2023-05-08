@@ -143,13 +143,13 @@ abstract class BaseElasticMigration
     }
 
 
-    public function nested(string $field): void
+    public function object(string $field): void
     {
         if ($this->isCreationState()) {
-            $this->schema['mappings']['properties'][$field] = ['type' => 'nested'];
+            $this->schema['mappings']['properties'][$field] = ['type' => 'object'];
             return;
         }
-        $this->schema['properties'][$field] = ['type' => 'nested'];
+        $this->schema['properties'][$field] = ['type' => 'object'];
     }
 
     /**
