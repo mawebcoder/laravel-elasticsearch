@@ -289,12 +289,16 @@ abstract class BaseElasticsearchModel
         return $collection;
     }
 
-    public function mapResultToModelObject(array $result): null|static
+    public function mapResultToModelObject(array $result)
     {
         $object = new static();
 
         foreach ($result as $key => $value) {
             $object->{$key} = $value;
+        }
+
+        if (request()->expectsJson()) {
+            return $object->getAttributes();
         }
 
         return $object;

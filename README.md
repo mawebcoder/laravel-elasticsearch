@@ -121,7 +121,7 @@ To rollback Migration:
 
 ``php artisan elastic:migrate-rollback``
 
-By default this command rollbacks the migrations just one step.if you want to determine steps by yourself:
+By default, this command rollbacks the migrations just one step.if you want to determine steps by yourself:
 
 ``php artisan elastic:migrate-rollback --step=<number>``
 
