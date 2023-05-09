@@ -2,10 +2,12 @@
 
 namespace Mawebcoder\Elasticsearch\Models;
 
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use JetBrains\PhpStorm\NoReturn;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
@@ -13,11 +15,14 @@ use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectExcepti
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Trait\Aggregatable;
 use ReflectionException;
 use Throwable;
 
 abstract class BaseElasticsearchModel
 {
+    use Aggregatable;
+
     public array $attributes = [];
 
     const SOURCE_KEY = '_source';
@@ -57,9 +62,12 @@ abstract class BaseElasticsearchModel
 
 
     /**
-     * @throws RequestException
-     * @throws ReflectionException
+     * @param array $options
+     * @return $this
      * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function create(array $options): static
     {
@@ -97,9 +105,12 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param array $options
+     * @return bool
+     * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
      * @throws ReflectionException
      * @throws RequestException
-     * @throws FieldNotDefinedInIndexException
      */
     public function update(array $options): bool
     {
@@ -195,8 +206,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param $id
+     * @return $this|null
      * @throws ReflectionException
-     * @throws RequestException
+     * @throws GuzzleException
      */
     public function find($id): ?static
     {
@@ -242,8 +255,9 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @return $this|null
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function first(): null|static
     {
@@ -306,9 +320,11 @@ abstract class BaseElasticsearchModel
 
 
     /**
+     * @return mixed
+     * @throws GuzzleException
      * @throws ReflectionException
      */
-    public function requestForSearch()
+    public function requestForSearch(): mixed
     {
         $response = Elasticsearch::setModel(static::class)
             ->post('_doc/_search', $this->search);
@@ -319,6 +335,7 @@ abstract class BaseElasticsearchModel
 
     /**
      * @return Collection
+     * @throws GuzzleException
      * @throws ReflectionException
      */
     public function get(): Collection
@@ -337,7 +354,8 @@ abstract class BaseElasticsearchModel
         switch ($operation) {
             case "<>":
             case "!=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                $this->search['query']['bool']['should']
+                [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                     "term" => [
                         $field => [
                             'value' => $value
@@ -820,8 +838,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
+     * @param array $ids
+     * @return bool
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function destroy(array $ids): bool
     {
@@ -832,18 +852,20 @@ abstract class BaseElasticsearchModel
             ]
         ];
 
-        $result = Elasticsearch::setModel(static::class)
+        Elasticsearch::setModel(static::class)
             ->post("_doc/_delete_by_query", $this->search);
-
-        $result->throw();
 
         return true;
     }
 
+
     /**
-     * @throws RequestException
-     * @throws ReflectionException
+     * @param array $options
+     * @return void
      * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function checkMapping(array $options): void
     {
@@ -859,8 +881,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @throws RequestException
+     * @return array
+     * @throws GuzzleException
      * @throws ReflectionException
+     * @throws RequestException
      */
     public function getFields(): array
     {
@@ -870,8 +894,9 @@ abstract class BaseElasticsearchModel
 
 
     /**
+     * @return $this
+     * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function save(): static
     {
@@ -907,12 +932,66 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @throws RequestException
+     * @return array
+     * @throws GuzzleException
      * @throws ReflectionException
+     * @throws RequestException
      */
     public function getMappings(): array
     {
         return Elasticsearch::setModel(static::class)
             ->getMappings();
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function paginate(int $perPage = 15): Collection
+    {
+        $totalRecords = $this->count();
+
+        $currentPage = request('page') ?? 1;
+
+        $firstPage = 1;
+
+        $nextLink = null;
+
+        $previousLink = null;
+
+        $lastPage = ceil($totalRecords / $perPage);
+
+        if ($currentPage > $lastPage || $currentPage < $firstPage) {
+            return collect([
+                'total_records' => $totalRecords,
+                'last_page' => $lastPage,
+                'current_page' => $currentPage,
+                'next_link' => $nextLink,
+                'prev_link' => $previousLink,
+                'data' => collect([]),
+            ]);
+        }
+
+        if ($lastPage !== $currentPage && $currentPage !== $firstPage) {
+            $nextLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage + 1]);
+        }
+
+        if ($currentPage !== $firstPage) {
+            $previousLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage - 1]);
+        }
+
+        $result = $this
+            ->limit($perPage)
+            ->offset($perPage * ($currentPage - 1))
+            ->get();
+
+        return collect([
+            'total_records' => $totalRecords,
+            'last_page' => $lastPage,
+            'current_page' => $currentPage,
+            'next_link' => $nextLink,
+            'prev_link' => $previousLink,
+            'data' => $result,
+        ]);
     }
 }

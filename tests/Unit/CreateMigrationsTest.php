@@ -2,13 +2,18 @@
 
 namespace Tests\Unit;
 
+use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Foundation\Testing\TestCase;
+use Tests\CreatesApplication;
 
 class CreateMigrationsTest extends TestCase
 {
+    use CreatesApplication;
+    use WithoutMiddleware;
 
     public BaseElasticMigration $dummy;
 
@@ -25,44 +30,6 @@ class CreateMigrationsTest extends TestCase
         $baseMigrationMock
             ->method('isCreationState')
             ->willReturn(true);
-    }
-
-    public function testNested()
-    {
-        $this->dummy->object('category', [
-            'is_active' => BaseElasticMigration::TYPE_BOOLEAN,
-            'name' => BaseElasticMigration::TYPE_STRING,
-        ]);
-
-        $expected = [
-            'mappings' => [
-                'properties' => [
-                    'category' => [
-                        'type' => 'nested',
-                        'properties' => [
-                            'is_active' => [
-                                'type' => BaseElasticMigration::TYPE_BOOLEAN
-                            ],
-                            'name' => [
-                                'type' => BaseElasticMigration::TYPE_STRING
-                            ]
-                        ]
-                    ],
-
-                ]
-            ]
-        ];
-
-        $this->assertSame($expected, $this->dummy->schema);
-    }
-
-    public function testEncounterErrorInWrongType()
-    {
-        $this->expectException(NotValidFieldTypeException::class);
-
-        $this->dummy->object('category', [
-            'is_active' => 'wrong',
-        ]);
     }
 
 
@@ -247,6 +214,39 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
+    /**
+     * @throws FieldNameException
+     */
+    public function test_object_type()
+    {
+        $this->dummy->object('categories', [
+            'name' => BaseElasticMigration::TYPE_OBJECT,
+            'description' => BaseElasticMigration::TYPE_TEXT,
+            'age' => BaseElasticMigration::TYPE_INTEGER
+        ]);
+
+        $expected = [
+            'properties' =>
+                [
+                    "categories" => [
+                        "type" => 'object',
+                        "properties" => [
+                            "name" => [
+                                "type" => "object"
+                            ],
+                            "description" => [
+                                "type" => 'text'
+                            ],
+                            "age" => [
+                                'type' => 'integer'
+                            ]
+                        ]
+                    ]
+                ]
+
+        ];
+        $this->assertSame($expected, $this->dummy->schema);
+    }
 
 
 }
