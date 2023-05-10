@@ -31,7 +31,6 @@ class AggregationsTest extends TestCase
 
         ];
 
-
         $this->assertSame($expected, $this->elasticsearch->search['aggs']);
     }
 }

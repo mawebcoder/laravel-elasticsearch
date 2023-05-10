@@ -278,7 +278,6 @@ abstract class BaseElasticsearchModel
 
         $result = $result['hits']['hits'][0][static::SOURCE_KEY];
 
-
         return $this->mapResultToModelObject($result);
     }
 
@@ -302,6 +301,10 @@ abstract class BaseElasticsearchModel
             ];
 
             $collection->add($this->mapResultToModelObject($data));
+        }
+
+        if (isset($result['aggregations'])) {
+            $collection->add(['aggregations' => $result['aggregations']]);
         }
 
         return $collection;
