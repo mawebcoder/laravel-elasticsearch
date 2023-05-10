@@ -283,12 +283,15 @@ abstract class BaseElasticsearchModel
 
     public function mapResultToCollection(array $result): Collection
     {
+        $aggregations = isset($result['aggregations']) ? $result['aggregations'] : null;
+
         $total = $result['hits']['total']['value'];
 
         if (!$total) {
             return collect();
         }
 
+        
         $results = $result['hits']['hits'];
 
 
@@ -303,8 +306,12 @@ abstract class BaseElasticsearchModel
             $collection->add($this->mapResultToModelObject($data));
         }
 
-        if (isset($result['aggregations'])) {
-            $collection->add(['aggregations' => $result['aggregations']]);
+
+        if ($aggregations) {
+            return collect([
+                'data' => $collection,
+                'aggregations' => $aggregations
+            ]);
         }
 
         return $collection;

@@ -417,8 +417,10 @@ trait Aggregatable
         return json_decode($result->getBody(), true)['count'];
     }
 
-    public function bucket(string $field, string $as): void
+    public function bucket(string $field, string $as): static
     {
         $this->search['aggs'][$as]['terms']['field'] = $field;
+
+        return $this;
     }
 }
