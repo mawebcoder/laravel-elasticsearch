@@ -248,5 +248,26 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
+    /**
+     * @throws InvalidAnalyzerType
+     */
+    public function testFieldData()
+    {
+        $this->dummy->text('text', true);
+
+        $expected = [
+            'properties' =>
+                [
+                    'text' => [
+                        'type' => 'text',
+                        'fielddata' => true
+                    ]
+                ]
+
+        ];
+
+        $this->assertSame($expected,$this->dummy->schema);
+    }
+
 
 }

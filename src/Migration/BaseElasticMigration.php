@@ -174,7 +174,7 @@ abstract class BaseElasticMigration
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = [
                 ...["type" => 'object'],
-                ...['properties'=>$types]
+                ...['properties' => $types]
             ];
 
             return;
@@ -182,7 +182,7 @@ abstract class BaseElasticMigration
 
         $this->schema['properties'][$field] = [
             ...["type" => 'object'],
-            ...["properties"=>$types]
+            ...["properties" => $types]
         ];
     }
 
@@ -270,10 +270,18 @@ abstract class BaseElasticMigration
     /**
      * @throws InvalidAnalyzerType
      */
-    public function text(string $field, ?string $analyzer = null): void
+    public function text(string $field, bool $fieldData = false, ?string $analyzer = null): void
     {
+        $mapping = ['type' => 'text'];
+
+        if ($fieldData) {
+            $mapping = [
+                ...$mapping,
+                ...["fielddata" => $fieldData]
+            ];
+        }
         if ($this->isCreationState()) {
-            $this->schema['mappings']['properties'][$field] = ['type' => 'text'];
+            $this->schema['mappings']['properties'][$field] = $mapping;
 
             if (isset($analyzer)) {
                 if (!$this->analyzerIsValid($analyzer)) {
@@ -288,7 +296,7 @@ abstract class BaseElasticMigration
             return;
         }
 
-        $this->schema['properties'][$field] = ['type' => 'text'];
+        $this->schema['properties'][$field] = $mapping;
 
         if (isset($analyzer)) {
             if (!$this->analyzerIsValid($analyzer)) {
