@@ -187,7 +187,7 @@ $this->tinyInt('value');
 ### Text
 
 ```
-$this->text('description');
+$this->text(field:'description',fieldData:true);
 ```
 
 
