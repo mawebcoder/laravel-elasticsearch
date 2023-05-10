@@ -265,7 +265,6 @@ class CreateMigrationsTest extends TestCase
                 ]
 
         ];
-
         $this->assertSame($expected,$this->dummy->schema);
     }
 
