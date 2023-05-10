@@ -57,6 +57,10 @@ abstract class BaseElasticsearchModel
 
     public function __get(string $name)
     {
+        if (!isset($this->attributes[$name])) {
+            return null;
+        }
+
         return $this->attributes[$name];
     }
 
