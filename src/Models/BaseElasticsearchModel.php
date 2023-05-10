@@ -315,9 +315,6 @@ abstract class BaseElasticsearchModel
             $object->{$key} = $value;
         }
 
-        if (request()->expectsJson()) {
-            return $object->getAttributes();
-        }
 
         return $object;
     }
