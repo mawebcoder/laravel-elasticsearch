@@ -168,16 +168,14 @@ abstract class BaseElasticMigration
                 continue;
             }
 
-            if (in_array($type, self::VALID_TYPES)) {
-                $types[$f] = ['type' => $type];
+            if (!in_array($type, self::VALID_TYPES)) {
+                $message = "type $type is not valid.must be in" . join(',', self::VALID_TYPES);
+
+                throw new InvalidTypeException($message);
             }
-            
-            throw new InvalidTypeException(
-                message: "type $type is not valid.must be in" . join(
-                    ',',
-                    self::VALID_TYPES
-                )
-            );
+
+            $types[$f] = ['type' => $type];
+
 
         }
 
