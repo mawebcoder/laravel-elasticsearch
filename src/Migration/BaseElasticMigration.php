@@ -13,6 +13,7 @@ use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use GuzzleHttp\Client;
+use Mawebcoder\Elasticsearch\Exceptions\TypeFormatIsNotValidException;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Jobs\ReIndexMigrationJob;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
@@ -150,25 +151,34 @@ abstract class BaseElasticMigration
     /**
      * this method just support object
      * @throws FieldNameException
+     * @throws TypeFormatIsNotValidException
      */
     public function object(string $field, array $options): void
     {
         $types = [];
 
+
         foreach ($options as $f => $type) {
-            if (!is_string($f)) {
-                throw new FieldNameException(message: "field with name $f is not valid.must be string");
+            $this->isTypeFormatValid($f);
+
+            if ($this->shouldAddFieldData($type)) {
+
+                $types = $this->addFieldDataToTextType($type, $types, $f);
+
+                continue;
             }
 
-            if (!in_array($type, self::VALID_TYPES)) {
-                throw new InvalidTypeException(
-                    message: "type $type is not valid.must be in" . join(
-                        ',',
-                        self::VALID_TYPES
-                    )
-                );
+            if (in_array($type, self::VALID_TYPES)) {
+                $types[$f] = ['type' => $type];
             }
-            $types[$f] = ['type' => $type];
+            
+            throw new InvalidTypeException(
+                message: "type $type is not valid.must be in" . join(
+                    ',',
+                    self::VALID_TYPES
+                )
+            );
+
         }
 
         if ($this->isCreationState()) {
@@ -527,7 +537,8 @@ abstract class BaseElasticMigration
     public function reIndexFromTempToCurrent(
         array $currentMappings,
         array $newMappings
-    ): void {
+    ): void
+    {
         $finalMappings = $currentMappings;
 
         foreach ($newMappings as $key => $newMapping) {
@@ -733,5 +744,52 @@ abstract class BaseElasticMigration
         if ($this->schema['mappings']['properties'][$field]['type'] !== self::ANALYZER_KEYWORD) {
             throw new FieldTypeIsNotKeyword(message: 'normalizer must be defined for keyword (string) fields only.');
         }
+    }
+
+    /**
+     * @param $f
+     * @return void
+     * @throws FieldNameException
+     */
+    public function isTypeFormatValid($f): void
+    {
+        if (!is_string($f)) {
+            throw new FieldNameException(message: "Field with name $f is not valid.must be string");
+        }
+    }
+
+    /**
+     * @param $type
+     * @return bool
+     */
+    public function shouldAddFieldData($type): bool
+    {
+        return is_array($type);
+    }
+
+    /**
+     * @param $type
+     * @param array $types
+     * @param $f
+     * @return array
+     * @throws FieldNameException
+     * @throws TypeFormatIsNotValidException
+     */
+    public function addFieldDataToTextType($type, array $types, $f): array
+    {
+        if (!array_key_exists('type', $type) || !array_key_exists('fielddata', $type)) {
+            throw new TypeFormatIsNotValidException('Type format is not valid');
+        }
+
+        if ($type['type'] !== self::TYPE_TEXT) {
+            throw new FieldNameException('fielddata just can be used in text type');
+        }
+
+
+        $types[$f] = [
+            'type' => $type['type'],
+            'fielddata' => $type['fielddata']
+        ];
+        return $types;
     }
 }

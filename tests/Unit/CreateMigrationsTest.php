@@ -265,6 +265,32 @@ class CreateMigrationsTest extends TestCase
                 ]
 
         ];
+        $this->assertSame($expected, $this->dummy->schema);
+    }
+
+    public function testFieldDataOnObjects()
+    {
+        $this->dummy->object('categories', [
+            'name' => [
+                'type' => 'text',
+                'fielddata' => true
+            ]
+        ]);
+
+        $expected = [
+            'properties' => [
+                'categories' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'name' => [
+                            'type' => 'text',
+                            'fielddata' => true
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
         $this->assertSame($expected,$this->dummy->schema);
     }
 
