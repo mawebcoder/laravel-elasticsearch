@@ -73,9 +73,11 @@ abstract class BaseElasticsearchModel
      * @throws ReflectionException
      * @throws RequestException
      */
-    public function create(array $options): static
+    public function save(): static
     {
         $object = new static();
+
+        $options=$this->getAttributes();
 
         $this->checkMapping(Arr::except($options, 'id'));
 
@@ -103,7 +105,11 @@ abstract class BaseElasticsearchModel
         }
 
 
-        $object->save();
+        Elasticsearch::setModel(static::class)->post(
+            path: array_key_exists('id', $this->attributes) ?
+                "_doc/" . $this->attributes['id'] : '_doc',
+            data: Arr::except($this->attributes, 'id')
+        );
 
         return $object;
     }
@@ -915,21 +921,7 @@ abstract class BaseElasticsearchModel
     }
 
 
-    /**
-     * @return $this
-     * @throws GuzzleException
-     * @throws ReflectionException
-     */
-    public function save(): static
-    {
-        Elasticsearch::setModel(static::class)->post(
-            path: array_key_exists('id', $this->attributes) ?
-                "_doc/" . $this->attributes['id'] : '_doc',
-            data: Arr::except($this->attributes, 'id')
-        );
 
-        return $this;
-    }
 
     /**
      * @param string|null $value
