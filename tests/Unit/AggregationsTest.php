@@ -19,13 +19,14 @@ class AggregationsTest extends TestCase
 
     public function test_bucket_aggregation()
     {
-        $this->elasticsearch->bucket('name', 'any-name-number');
+        $this->elasticsearch->bucket('name', 'any-name-number',1300);
 
         $expected = [
             'any-name-number' =>
                 [
                     'terms' => [
-                        'field' => 'name'
+                        'field' => 'name',
+                        'size'=>1300
                     ]
                 ]
 

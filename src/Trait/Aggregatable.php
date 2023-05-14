@@ -414,12 +414,14 @@ trait Aggregatable
         $result = Elasticsearch::setModel(static::class)
             ->post('_count', $search);
 
+        $this->refreshSearch();
+
         return json_decode($result->getBody(), true)['count'];
     }
 
-    public function bucket(string $field, string $as): static
+    public function bucket(string $field, string $as, int $size = 2147483647): static
     {
-        $this->search['aggs'][$as]['terms']['field'] = $field;
+        $this->search['aggs'][$as]['terms'] = ['field' => $field, 'size' => $size];
 
         return $this;
     }
