@@ -291,7 +291,7 @@ abstract class BaseElasticsearchModel
             return collect();
         }
 
-        
+
         $results = $result['hits']['hits'];
 
 
@@ -315,6 +315,17 @@ abstract class BaseElasticsearchModel
         }
 
         return $collection;
+    }
+
+    public function when(bool $condition, callable $callback)
+    {
+        if (!$condition) {
+            return $this;
+        }
+
+        $callback($this);
+
+        return  $this;
     }
 
     public function mapResultToModelObject(array $result)
