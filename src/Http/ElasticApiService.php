@@ -43,7 +43,13 @@ class ElasticApiService implements ElasticHttpRequestInterface
             return $this->client->post($path);
         }
 
-        return $this->client->post($path, [RequestOptions::JSON => $data]);
+        return $this->client->post(
+            $path,
+            [
+                RequestOptions::JSON => $data,
+                'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+            ]
+        );
     }
 
 
@@ -57,7 +63,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        return $this->client->get($path);
+        return $this->client->get($path, [
+            'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+        ]);
     }
 
 
@@ -71,7 +79,8 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         if (!empty($data)) {
             return $this->client->put($path, [
-                'json' => $data
+                'json' => $data,
+                'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
             ]);
         }
 
@@ -87,7 +96,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
     {
         $path = $this->generateBaseIndexPath() . '/' . trim($path);
 
-        return $this->client->delete($path);
+        return $this->client->delete($path, [
+            'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+        ]);
     }
 
     /**
