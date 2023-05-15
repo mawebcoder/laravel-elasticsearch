@@ -680,6 +680,5 @@ The result will be something like this:
 
 # Coming soon
 - Histogram
-- aggregations
 - Define normalizer and tokenizer 
 - Raw Queries
