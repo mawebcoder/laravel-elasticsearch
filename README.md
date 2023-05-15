@@ -502,6 +502,16 @@ $this->text(field:"description",fielddata:true)
 ```
 By Adding above line you can use texts as sortable and in aggregations,but  fielddata uses significant memory while indexing
 
+### Conditional Queries
+
+
+``` 
+$model=new ElasticModel();
+
+$model->when($condition,function($model){
+$model->where('age','>=',12);
+});
+```
 
 ### Get mappings fields
 
