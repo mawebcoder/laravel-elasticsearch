@@ -598,6 +598,8 @@ $eArticleModel->destroy([1,2,3]);
 
 ### Aggregations
 
+By default, all data will be return, If you want just aggregations be in your result use ``take(0)`` to prevent oveloading data in you request
+
 #### Count
 
 ``` 
@@ -624,6 +626,33 @@ $eArticleModel
 ->bucket('languages','languages-count',300) //returns 300 records maximum
 ->get();
 ```
+
+
+### Min
+
+``` 
+$model->min('year')->get()
+```
+
+### Max
+
+``` 
+$model->max('year')->get()
+```
+
+### Avg
+
+``` 
+$model->avg('year')->get()
+```
+
+### Sum
+
+``` 
+$model->sum('year')->get()
+```
+
+
 ### Pagination
 ```
 $eArticleModel
