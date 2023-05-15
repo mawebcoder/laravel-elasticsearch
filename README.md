@@ -396,6 +396,7 @@ $eArticleModel
 
 ```
 
+Note: By default Elasticsearch retrieve 10 records,if you want to set more ,just use ``take($records)`` method,
 #### Get pure Query
 
 ```
