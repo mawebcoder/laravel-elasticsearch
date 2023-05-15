@@ -1,5 +1,6 @@
 {
-  "name": "mawebcoder/elasticsearch",
+  "name": "mawebcoder/laravel-elasticsearch",
+  "description": "laravel package for Elasticsearch ORM",
   "autoload": {
     "psr-4": {
       "Mawebcoder\\Elasticsearch\\": "src/",
