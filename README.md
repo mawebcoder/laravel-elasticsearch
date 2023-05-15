@@ -13,6 +13,16 @@ We will keep you updated on this amazing package in the future. :bomb: :sparkles
 
 
 
+## Dependencies
+
+| Dependency    | version |
+|---------------|---------|
+| Elasticsearch | ^7.17.9 |
+| Laravel       | ^10     |
+| php           | ^8.1    |
+
+
+
 @github/mawebcoder @github/KomeilShadan
 # Publish config file and migration
 
