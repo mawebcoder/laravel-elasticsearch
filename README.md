@@ -284,19 +284,6 @@ $eArticleModel->save();
 
 ```
 
-or :
-
-```
-$eArticleModel=new EArticleModel();
-
-$eArticleModel->create([
-    'name'=>'mohammad',
-    'age'=>29,
-    //...
-])
-
-```
-
 - Note: If you pass any field that doesn't exist in your mappings you will encounter handled exception that prevents from storing invalid data into DB.
 - Note: If you don't pass any field that exists in mapping,we set that as null by default
 ### Find record
