@@ -22,6 +22,18 @@ Then  migrate your database :
 
 ``php artisan migrate``
 
+# Config 
+
+``` 
+'host' => 'http://localhost',
+'port' => 9200,
+'reindex_migration_driver' => "sync", //sync or queue,
+"reindex_migration_queue_name" => 'default',
+'base_migrations_path' => app_path('Elasticsearch/Migrations'),
+'base_models_path' => app_path('Elasticsearch/Models'),
+"username" => env('ELASTICSEARCH_USERNAME', null),
+'password' => env('ELASTICSEARCH_PASSWORD', null)
+```
 
 # ORM
 This package works based on the ORM Database design to induce a more comfortable use experience in using elasticsearch.
@@ -275,8 +287,8 @@ $eArticleModel->create([
 
 ```
 
-Just pay attention that if you pass any field that doesn't exist in your mappings you will encounter handled exception that prevents from storing invalid data into DB.
-
+- Note: If you pass any field that doesn't exist in your mappings you will encounter handled exception that prevents from storing invalid data into DB.
+- Note: If you don't pass any field that exists in mapping,we set that as null by default
 ### Find record
 
 ```
@@ -315,6 +327,8 @@ $eArticleModel
 ->orWhere('id','<>',10)
 ->get();
 ```
+
+- Note:Do not use ``=``,``<>``  operators on ``text`` fields because we used term in these operators.in ``text`` field you need to use ``like`` or ``not like`` operator instead
 
 #### Greater Than
 
@@ -483,6 +497,14 @@ $eArticleModel
 
 ```
 
+- Note:Do not use orderBy on ``text`` fields because text is not optimized for sorting operation in Elasticsearch.But if you want to force to sort the texts set the fielddata=true:
+
+``` 
+$this->text(field:"description",fielddata:true) 
+```
+By Adding above line you can use texts as sortable and in aggregations,but  fielddata uses significant memory while indexing
+
+
 ### Get mappings fields
 
 ```
@@ -583,7 +605,24 @@ $eArticleModel
 ->orWhere('companies.title','like','foo')
 ->count();
 ```
+#### bucket
 
+``` 
+$eArticleModel
+->bucket('languages','languages-count')
+->get();
+
+$aggregations=$eArticleModel['aggregations'];
+
+```
+
+By default, bucket method returns ``2147483647`` number of the records,if You want to change it:
+
+``` 
+$eArticleModel
+->bucket('languages','languages-count',300) //returns 300 records maximum
+->get();
+```
 ### Pagination
 ```
 $eArticleModel
