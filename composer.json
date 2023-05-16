@@ -1,6 +1,7 @@
 {
   "name": "mawebcoder/laravel-elasticsearch",
   "description": "laravel package for Elasticsearch ORM",
+  "license": "MIT",
   "autoload": {
     "psr-4": {
       "Mawebcoder\\Elasticsearch\\": "src/",
