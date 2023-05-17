@@ -323,7 +323,7 @@ abstract class BaseElasticsearchModel
         return $collection;
     }
 
-    public function when(bool $condition, callable $callback)
+    public function when($condition, callable $callback): static
     {
         if (!$condition) {
             return $this;
