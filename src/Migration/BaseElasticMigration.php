@@ -662,6 +662,9 @@ abstract class BaseElasticMigration
     {
         $this->elasticApiService->setModel($this->getModel())
             ->put(data: $this->schema);
+
+        $this->elasticApiService->setModel($this->getModel())
+            ->put(path: "_settings", data: ['index' => ['max_result_window' => PHP_INT_MAX]]);
     }
 
     abstract public function schema(BaseElasticMigration $mapper);
