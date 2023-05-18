@@ -414,8 +414,6 @@ trait Aggregatable
         $result = Elasticsearch::setModel(static::class)
             ->post('_count', $search);
 
-        $this->refreshSearch();
-
         return json_decode($result->getBody(), true)['count'];
     }
 

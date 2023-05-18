@@ -77,7 +77,7 @@ abstract class BaseElasticsearchModel
     {
         $object = new static();
 
-        $options=$this->getAttributes();
+        $options = $this->getAttributes();
 
         $this->checkMapping(Arr::except($options, 'id'));
 
@@ -331,7 +331,7 @@ abstract class BaseElasticsearchModel
 
         $callback($this);
 
-        return  $this;
+        return $this;
     }
 
     public function mapResultToModelObject(array $result)
@@ -921,8 +921,6 @@ abstract class BaseElasticsearchModel
     }
 
 
-
-
     /**
      * @param string|null $value
      * @param string|null $operation
@@ -1007,5 +1005,10 @@ abstract class BaseElasticsearchModel
             'prev_link' => $previousLink,
             'data' => $result,
         ]);
+    }
+
+    public static function newQuery(): static
+    {
+        return new static();
     }
 }
