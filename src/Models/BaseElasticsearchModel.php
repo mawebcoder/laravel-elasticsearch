@@ -1007,6 +1007,59 @@ abstract class BaseElasticsearchModel
         ]);
     }
 
+    public function whereFuzzy(
+        string $field,
+        string $value,
+        string|int $fuzziness = "AUTO",
+        int $prefixLength = 0
+    ): static {
+        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+            'fuzzy' => [
+                $field => [
+                    "value" => $value,
+                    "fuzziness" => $fuzziness,
+                    'prefix_length' => $prefixLength
+                ]
+            ]
+        ];
+
+        return $this;
+    }
+
+    public function orWhereFuzzy(
+        string $field,
+        string $value,
+        string|int $fuzziness = "AUTO",
+        int $prefixLength = 0
+    ): static {
+        $this->search['query']['bool']['should'][] = [
+            'fuzzy' => [
+                $field => [
+                    "value" => $value,
+                    "fuzziness" => $fuzziness,
+                    'prefix_length' => $prefixLength
+                ]
+            ]
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function findMany(array $ids): Collection
+    {
+        $this->refreshSearch();
+
+        $this->search['query']["ids"] = [
+            'values' => $ids
+        ];
+
+        return $this->get();
+    }
+
     public static function newQuery(): static
     {
         return new static();
