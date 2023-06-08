@@ -161,6 +161,7 @@ abstract class BaseElasticsearchModel
             DB::beginTransaction();
 
             if ($this->mustDeleteJustSpecificRecord()) {
+
                 $this->refreshQueryBuilder();
 
                 $this->search['query']['bool']['should'][] = [
@@ -168,15 +169,6 @@ abstract class BaseElasticsearchModel
                         'values' => [$this->id]
                     ]
                 ];
-            } elseif ($this->mustDeleteIndexWhileCallingDeleteMethod()) {
-                DB::table('elastic_search_migrations_logs')
-                    ->where('index', $this->getIndex())
-                    ->delete();
-
-                Elasticsearch::setModel(static::class)
-                    ->delete();
-                DB::commit();
-                return;
             }
 
             Elasticsearch::setModel(static::class)
