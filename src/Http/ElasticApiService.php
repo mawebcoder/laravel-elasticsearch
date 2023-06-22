@@ -119,7 +119,14 @@ class ElasticApiService implements ElasticHttpRequestInterface
         );
 
         if (isset($elasticModelObject)) {
-            $path .= '/' . $elasticModelObject->getIndex();
+
+            $path .= '/';
+
+            if (config('elasticsearch.index_prefix')) {
+                $path .= config('elasticsearch.index_prefix');
+            }
+
+            $path .= $elasticModelObject->getIndex();
         }
 
         return $path;
