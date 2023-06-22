@@ -61,12 +61,16 @@ class MigrateStatusElasticsearch extends Command
             $mapper[$migrationPath] = ['is_migrated' => false];
         }
 
+        $tableStatus = [];
+
         foreach ($mapper as $key => $map) {
             if ($map['is_migrated']) {
-                $this->info($key) . $this->info(' => RUN');
+                $tableStatus[$key] = 'RUN';
                 continue;
             }
-            $this->info($key) . $this->warn('=> PENDING');
+            $tableStatus[$key] = 'PENDING';
         }
+
+        $this->table(array_keys($tableStatus), array_values($tableStatus));
     }
 }
