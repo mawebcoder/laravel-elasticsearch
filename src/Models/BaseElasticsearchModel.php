@@ -28,6 +28,8 @@ abstract class BaseElasticsearchModel
 
     private int $closureCounter = 0;
 
+    private string $conditionStatus;
+
     private array $closureConditions = [];
 
     const SOURCE_KEY = '_source';
@@ -445,6 +447,7 @@ abstract class BaseElasticsearchModel
 
         if ($field instanceof Closure) {
             $this->closureCounter++;
+            $this->conditionStatus = 'where';
 
             $field($this);
 
@@ -456,7 +459,7 @@ abstract class BaseElasticsearchModel
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
 
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
@@ -597,7 +600,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
@@ -676,7 +679,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
@@ -712,7 +715,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function whereIn(string $field, array $values, bool $inClosure=false): static|array
+    public function whereIn(string $field, array $values, bool $inClosure = false): static|array
     {
         if ($inClosure) {
             return [
@@ -725,7 +728,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -745,7 +748,7 @@ abstract class BaseElasticsearchModel
     }
 
 
-    public function whereNotIn(string $field, array $values, bool $inClosure=false): static|array
+    public function whereNotIn(string $field, array $values, bool $inClosure = false): static|array
     {
         if ($inClosure) {
             return [
@@ -764,7 +767,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -811,7 +814,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -872,7 +875,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -984,7 +987,7 @@ abstract class BaseElasticsearchModel
         }
         if ($field instanceof Closure) {
             $this->closureCounter++;
-
+            $this->conditionStatus = 'orWhere';
             $field($this);
 
             return $this;
@@ -997,7 +1000,7 @@ abstract class BaseElasticsearchModel
 
 
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
@@ -1116,7 +1119,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -1153,7 +1156,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -1199,7 +1202,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -1254,7 +1257,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $values,
                 'operation' => null,
@@ -1529,7 +1532,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => null,
@@ -1573,7 +1576,7 @@ abstract class BaseElasticsearchModel
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['where'][$this->closureCounter][] = [
+            $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => null,
@@ -1641,6 +1644,7 @@ abstract class BaseElasticsearchModel
 
     public function handleOrWhereClosure(): void
     {
+        dd($this->closureConditions);
         if (!isset($this->closureConditions['orWhere'])) {
             return;
         }
@@ -1652,6 +1656,7 @@ abstract class BaseElasticsearchModel
         );
 
         $currentIndex = $this->getLastActiveKey($lastKey);
+
 
         foreach ($this->closureConditions['orWhere'] as $conditions) {
             /**
