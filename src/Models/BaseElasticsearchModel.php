@@ -306,16 +306,16 @@ abstract class BaseElasticsearchModel
         return $collection;
     }
 
-    public function when($condition, callable $callback): static
-    {
-        if (!$condition) {
-            return $this;
-        }
-
-        $callback($this);
-
-        return $this;
-    }
+//    public function when($condition, callable $callback): static
+//    {
+//        if (!$condition) {
+//            return $this;
+//        }
+//
+//        $callback($this);
+//
+//        return $this;
+//    }
 
     public function mapResultToModelObject(array $result)
     {
