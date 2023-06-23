@@ -1644,21 +1644,18 @@ abstract class BaseElasticsearchModel
 
     public function handleOrWhereClosure(): void
     {
-        dd($this->closureConditions);
         if (!isset($this->closureConditions['orWhere'])) {
             return;
         }
 
 
-        $lastKey = array_search(
-            Arr::last($this->search['query']['bool']['should']),
-            $this->search['query']['bool']['should']
-        );
-
-        $currentIndex = $this->getLastActiveKey($lastKey);
-
-
         foreach ($this->closureConditions['orWhere'] as $conditions) {
+            $lastKey = array_search(
+                Arr::last($this->search['query']['bool']['should']),
+                $this->search['query']['bool']['should']
+            );
+
+            $currentIndex = $this->getLastActiveKey($lastKey);
             /**
              * if there is "or" condition between conditional methods that has been called inside closure function
              */
@@ -1715,15 +1712,16 @@ abstract class BaseElasticsearchModel
             return;
         }
 
-        $lastKey = array_search(
-            Arr::last($this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']),
-            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']
-        );
 
-        $currentIndex = $this->getLastActiveKey($lastKey);
 
         if (isset($this->closureConditions['where'])) {
             foreach ($this->closureConditions['where'] as $conditions) {
+                $lastKey = array_search(
+                    Arr::last($this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']),
+                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']
+                );
+
+                $currentIndex = $this->getLastActiveKey($lastKey);
                 /**
                  * if there is "or" condition between conditional methods that has been called inside closure function
                  */
