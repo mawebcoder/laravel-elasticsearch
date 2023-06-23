@@ -266,92 +266,9 @@ abstract class BaseElasticsearchModel
 
     private function organizeClosuresCalls(): void
     {
-        if (isset($this->closureConditions['orWhere'])) {
-            foreach ($this->closureConditions['orWhere'] as $conditions) {
-                if ($this->isOrConditionsInClosure($conditions)) {
-                    foreach ($conditions as $condition) {
-                        $method = $condition['method'];
-                        if (is_null($condition['operator'])) {
-                            $this->search['query']['bool']['should'][]['bool']['should'][] = $this->{$method}(
-                                $condition['field'],
-                                $condition['value'],
-                                isClosure: true
-                            );
-                        } else {
-                            $this->search['query']['bool']['should'][]['bool']['should'][] = $this->{$method}(
-                                $condition['field'],
-                                $condition['operator'],
-                                $condition['value'],
-                                isClosure: true
-                            );
-                        }
-                    }
-                    continue;
-                }
+        $this->handleOrWhereClosure();
 
-                foreach ($conditions as $condition) {
-                    $method = $condition['method'];
-                    if (is_null($condition['operator'])) {
-                        $this->search['query']['bool']['should'][]['bool']['must'][] = $this->{$method}(
-                            $condition['field'],
-                            $condition['value'],
-                            isClosure: true
-                        );
-                    } else {
-                        $this->search['query']['bool']['should'][]['bool']['must'][] = $this->{$method}(
-                            $condition['field'],
-                            $condition['operator'],
-                            $condition['value'],
-                            isClosure: true
-                        );
-                    }
-                }
-            }
-        }
-
-        if (isset($this->closureConditions['where'])) {
-            foreach ($this->closureConditions['where'] as $conditions) {
-                if ($this->isOrConditionsInClosure($conditions)) {
-                    foreach ($conditions as $condition) {
-                        $method = $condition['method'];
-                        if (is_null($condition['operator'])) {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'][] = $this->{$method}(
-                                $condition['field'],
-                                $condition['value'],
-                                isClosure: true
-                            );
-                        } else {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'][] = $this->{$method}(
-                                $condition['field'],
-                                $condition['operator'],
-                                $condition['value'],
-                                isClosure: true
-                            );
-                        }
-                    }
-
-                    continue;
-                }
-
-                foreach ($conditions as $condition) {
-                    $method = $condition['method'];
-                    if (is_null($condition['operator'])) {
-                        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = $this->{$method}(
-                            $condition['field'],
-                            $condition['value'],
-                            isClosure: true
-                        );
-                    } else {
-                        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = $this->{$method}(
-                            $condition['field'],
-                            $condition['operator'],
-                            $condition['value'],
-                            isClosure: true
-                        );
-                    }
-                }
-            }
-        }
+        $this->handleWhereClosure();
     }
 
     public function mapResultToCollection(array $result): Collection
@@ -1673,6 +1590,117 @@ abstract class BaseElasticsearchModel
             }
         }
         return $isOr;
+    }
+
+
+    public function handleOrWhereClosure(): void
+    {
+        if (!isset($this->closureConditions['orWhere'])) {
+            return;
+        }
+
+        foreach ($this->closureConditions['orWhere'] as $conditions) {
+            /**
+             * if there is "or" condition between conditional methods that has been called inside closure function
+             */
+            if ($this->isOrConditionsInClosure($conditions)) {
+                foreach ($conditions as $condition) {
+                    $method = $condition['method'];
+                    if (is_null($condition['operator'])) {
+                        $this->search['query']['bool']['should'][]['bool']['should'][] = $this->{$method}(
+                            $condition['field'],
+                            $condition['value'],
+                            isClosure: true
+                        );
+                    } else {
+                        $this->search['query']['bool']['should'][]['bool']['should'][] = $this->{$method}(
+                            $condition['field'],
+                            $condition['operator'],
+                            $condition['value'],
+                            isClosure: true
+                        );
+                    }
+                }
+            } else {
+                /**
+                 * if there is "and" condition between conditional methods that has been called inside closure function
+                 */
+                foreach ($conditions as $condition) {
+                    $method = $condition['method'];
+                    if (is_null($condition['operator'])) {
+                        $this->search['query']['bool']['should'][]['bool']['must'][] = $this->{$method}(
+                            $condition['field'],
+                            $condition['value'],
+                            isClosure: true
+                        );
+                    } else {
+                        $this->search['query']['bool']['should'][]['bool']['must'][] = $this->{$method}(
+                            $condition['field'],
+                            $condition['operator'],
+                            $condition['value'],
+                            isClosure: true
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function handleWhereClosure(): void
+    {
+        if (!isset($this->closureConditions['where'])) {
+            return;
+        }
+        if (isset($this->closureConditions['where'])) {
+            foreach ($this->closureConditions['where'] as $conditions) {
+                /**
+                 * if there is "or" condition between conditional methods that has been called inside closure function
+                 */
+                if ($this->isOrConditionsInClosure($conditions)) {
+                    foreach ($conditions as $condition) {
+                        $method = $condition['method'];
+                        if (is_null($condition['operator'])) {
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'][] = $this->{$method}(
+                                $condition['field'],
+                                $condition['value'],
+                                isClosure: true
+                            );
+                        } else {
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'][] = $this->{$method}(
+                                $condition['field'],
+                                $condition['operator'],
+                                $condition['value'],
+                                isClosure: true
+                            );
+                        }
+                    }
+                } else {
+                    /**
+                     * if there is "and" condition between conditional methods that has been called inside closure function
+                     */
+                    foreach ($conditions as $condition) {
+                        $method = $condition['method'];
+                        if (is_null($condition['operator'])) {
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = $this->{$method}(
+                                $condition['field'],
+                                $condition['value'],
+                                isClosure: true
+                            );
+                        } else {
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = $this->{$method}(
+                                $condition['field'],
+                                $condition['operator'],
+                                $condition['value'],
+                                isClosure: true
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }
