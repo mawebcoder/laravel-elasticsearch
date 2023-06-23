@@ -273,7 +273,7 @@ abstract class BaseElasticsearchModel
 
     public function mapResultToCollection(array $result): Collection
     {
-        $aggregations = isset($result['aggregations']) ? $result['aggregations'] : null;
+        $aggregations = $result['aggregations'] ?? null;
 
         $total = $result['hits']['total']['value'];
 
@@ -1592,12 +1592,28 @@ abstract class BaseElasticsearchModel
         return $isOr;
     }
 
+    private function getLastActiveKey(false|int|string $lastKey): bool|int|string
+    {
+        if ($lastKey === 0 || $lastKey) {
+            $lastKey++;
+        } else {
+            $lastKey = 0;
+        }
+        return $lastKey;
+    }
 
     public function handleOrWhereClosure(): void
     {
         if (!isset($this->closureConditions['orWhere'])) {
             return;
         }
+
+        $lastKey = array_search(
+            Arr::last($this->search['query']['bool']['should']),
+            $this->search['query']['bool']['should']
+        );
+
+        $currentIndex = $this->getLastActiveKey($lastKey);
 
         foreach ($this->closureConditions['orWhere'] as $conditions) {
             /**
@@ -1607,13 +1623,13 @@ abstract class BaseElasticsearchModel
                 foreach ($conditions as $condition) {
                     $method = $condition['method'];
                     if (is_null($condition['operator'])) {
-                        $this->search['query']['bool']['should'][]['bool']['should'][] = $this->{$method}(
+                        $this->search['query']['bool']['should'][$currentIndex]['bool']['should'][] = $this->{$method}(
                             $condition['field'],
                             $condition['value'],
                             isClosure: true
                         );
                     } else {
-                        $this->search['query']['bool']['should'][]['bool']['should'][] = $this->{$method}(
+                        $this->search['query']['bool']['should'][$currentIndex]['bool']['should'][] = $this->{$method}(
                             $condition['field'],
                             $condition['operator'],
                             $condition['value'],
@@ -1628,13 +1644,13 @@ abstract class BaseElasticsearchModel
                 foreach ($conditions as $condition) {
                     $method = $condition['method'];
                     if (is_null($condition['operator'])) {
-                        $this->search['query']['bool']['should'][]['bool']['must'][] = $this->{$method}(
+                        $this->search['query']['bool']['should'][$currentIndex]['bool']['must'][] = $this->{$method}(
                             $condition['field'],
                             $condition['value'],
                             isClosure: true
                         );
                     } else {
-                        $this->search['query']['bool']['should'][]['bool']['must'][] = $this->{$method}(
+                        $this->search['query']['bool']['should'][$currentIndex]['bool']['must'][] = $this->{$method}(
                             $condition['field'],
                             $condition['operator'],
                             $condition['value'],
@@ -1654,6 +1670,14 @@ abstract class BaseElasticsearchModel
         if (!isset($this->closureConditions['where'])) {
             return;
         }
+
+        $lastKey = array_search(
+            Arr::last($this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']),
+            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']
+        );
+
+        $currentIndex = $this->getLastActiveKey($lastKey);
+
         if (isset($this->closureConditions['where'])) {
             foreach ($this->closureConditions['where'] as $conditions) {
                 /**
@@ -1663,13 +1687,13 @@ abstract class BaseElasticsearchModel
                     foreach ($conditions as $condition) {
                         $method = $condition['method'];
                         if (is_null($condition['operator'])) {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'][] = $this->{$method}(
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['should'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['value'],
                                 isClosure: true
                             );
                         } else {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'][] = $this->{$method}(
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['should'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['operator'],
                                 $condition['value'],
@@ -1684,13 +1708,13 @@ abstract class BaseElasticsearchModel
                     foreach ($conditions as $condition) {
                         $method = $condition['method'];
                         if (is_null($condition['operator'])) {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = $this->{$method}(
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['must'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['value'],
                                 isClosure: true
                             );
                         } else {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = $this->{$method}(
+                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['must'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['operator'],
                                 $condition['value'],
