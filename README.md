@@ -403,15 +403,30 @@ $eArticleModel
 $eArticleModel=new EArticleModel();
 
 $eArticleModel
-->where(function(EArticleModel $eArticleModel){
-$eArticleModel->where('name,'ali')
-->orWhereIn('id',[1,2,3]);
-})
+->where( function(EArticleModel $eArticleModel){
+            $eArticleModel->where('name,'mawebcoder')
+            ->orWhereIn('id',[1,2,3]);
+})->orWhere(function(EArticleModel $eArticleModel){
+            $eArticleModel->whereFuzzy('name,'mawebcoder',fuzziness:3)
+            ->orWhereFuzzy('category.name','mawebcoder',fuzziness:2);
+})->where('category.name','car')
+->get();
 
+```
+#### Fuzzy Search
+
+Note: fuzzy search just works on the text fields
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->whereFuzzy('name','mawebcoder',fuzziness:3)
 ->get();
 
 ```
 
+You can change the fuzziness value as you want
 
 Note: By default Elasticsearch retrieve 10 records,if you want to set more ,just use ``take($records)`` method,
 #### Get pure Query
