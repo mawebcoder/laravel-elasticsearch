@@ -397,6 +397,22 @@ $eArticleModel
 
 ```
 
+### Callback Conditions
+
+```
+$eArticleModel=new EArticleModel();
+
+$eArticleModel
+->where(function(EArticleModel $eArticleModel){
+$eArticleModel->where('name,'ali')
+->orWhereIn('id',[1,2,3]);
+})
+
+->get();
+
+```
+
+
 Note: By default Elasticsearch retrieve 10 records,if you want to set more ,just use ``take($records)`` method,
 #### Get pure Query
 
