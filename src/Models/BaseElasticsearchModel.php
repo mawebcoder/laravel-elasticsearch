@@ -299,24 +299,18 @@ abstract class BaseElasticsearchModel
 //        ];
 
 
-
         if (isset($this->closureConditions['orWhere'])) {
-            foreach ($this->closureConditions['orWhere'] as  $conditions) {
+            foreach ($this->closureConditions['orWhere'] as $conditions) {
                 if ($this->AreAllAnd($conditions)) {
-
-
-                    foreach ($conditions as $condition){
-                        $this->search['query']['bool']['should'][]['bool']['must'][]='';
+                    foreach ($conditions as $condition) {
+                        $this->search['query']['bool']['should'][]['bool']['must'][] = '';
                     }
                     continue;
                 }
 
                 if ($this->allAreOr($conditions)) {
-
-
-                    foreach ($conditions as $condition){
-                        $this->search['query']['bool']['should'][]['bool']['should'][]='';
-
+                    foreach ($conditions as $condition) {
+                        $this->search['query']['bool']['should'][]['bool']['should'][] = '';
                     }
                 }
             }
@@ -325,17 +319,13 @@ abstract class BaseElasticsearchModel
         if (isset($this->closureConditions['where'])) {
             foreach ($this->closureConditions['where'] as $conditions) {
                 if ($this->AreAllAnd($conditions)) {
-
-                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must']='';
+                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'] = '';
                     continue;
                 }
 
                 if ($this->allAreOr($conditions)) {
-
-
-                    foreach ($conditions as $condition){
-                        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should']='';
-
+                    foreach ($conditions as $condition) {
+                        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['should'] = '';
                     }
                 }
             }
@@ -444,13 +434,13 @@ abstract class BaseElasticsearchModel
 
         [$value, $operation] = $this->getOperationValue($value, $operation);
 
-
         if ($this->isCalledFromClosure()) {
             $this->closureConditions['where'][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
-                'condition' => 'and'
+                'condition' => 'and',
+                'method' => 'where'
             ];
 
             return $this;
@@ -549,6 +539,18 @@ abstract class BaseElasticsearchModel
     {
         list($value, $operation) = $this->getOperationValue($value, $operation);
 
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $value,
+                'operation' => $operation,
+                'condition' => 'and',
+                'method' => 'whereTerm'
+            ];
+            return $this;
+        }
+
         switch ($operation) {
             case "<>":
             case "!=":
@@ -586,6 +588,14 @@ abstract class BaseElasticsearchModel
         list($value, $operation) = $this->getOperationValue($value, $operation);
 
         if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $value,
+                'operation' => $operation,
+                'condition' => 'or',
+                'method' => 'orWhereTerm'
+            ];
+            return $this;
         }
 
         switch ($operation) {
@@ -616,6 +626,17 @@ abstract class BaseElasticsearchModel
 
     public function whereIn(string $field, array $values): static
     {
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'and',
+                'method' => 'whereIn'
+            ];
+            return $this;
+        }
+
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
                 $field => $values
@@ -628,6 +649,17 @@ abstract class BaseElasticsearchModel
 
     public function whereNotIn(string $field, array $values): static
     {
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'and',
+                'method' => 'whereNotIn'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
                 $field => $values
@@ -652,6 +684,17 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'and',
+                'method' => 'whereBetween'
+            ];
+            return $this;
+        }
+
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $field => [
@@ -664,7 +707,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function dd()
+    #[NoReturn] public function dd():void
     {
         dd($this->search);
     }
@@ -681,6 +724,17 @@ abstract class BaseElasticsearchModel
 
         if (!$this->isNumericArray($values)) {
             throw new WrongArgumentType(message: 'values must be numeric.');
+        }
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'and',
+                'method' => 'whereNotBetween'
+            ];
+            return $this;
         }
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
@@ -715,6 +769,16 @@ abstract class BaseElasticsearchModel
 
         list($value, $operation) = $this->getOperationValue($value, $operation);
 
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $value,
+                'operation' => $operation,
+                'condition' => 'or',
+                'method' => 'orWhere'
+            ];
+            return $this;
+        }
 
         if ($this->isCalledFromClosure()) {
             $this->closureConditions['orWhere'][$this->closureCounter][] = [
@@ -812,6 +876,17 @@ abstract class BaseElasticsearchModel
 
     public function orWhereIn(string $field, array $values): static
     {
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'or',
+                'method' => 'orWhereIn'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][] = [
             'terms' => [
                 $field => $values
@@ -823,6 +898,17 @@ abstract class BaseElasticsearchModel
 
     public function orWhereNotIn(string $field, array $values): static
     {
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'or',
+                'method' => 'orWhereNotIn'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
             'terms' => [
                 $field => $values
@@ -846,6 +932,16 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'or',
+                'method' => 'orWhereBetween'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][] = [
             'range' => [
                 $field => [
@@ -872,6 +968,16 @@ abstract class BaseElasticsearchModel
             throw new WrongArgumentType(message: 'values must be numeric.');
         }
 
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $values,
+                'operation' => null,
+                'condition' => 'or',
+                'method' => 'orWhereNotBetween'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
             'range' => [
                 $field => [
@@ -1117,9 +1223,20 @@ abstract class BaseElasticsearchModel
     public function whereFuzzy(
         string $field,
         string $value,
-        string|int $fuzziness = "AUTO",
+        string|int $fuzziness = 3,
         int $prefixLength = 0
     ): static {
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $value,
+                'operation' => null,
+                'condition' => 'and',
+                'method' => 'whereFuzzy'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'fuzzy' => [
                 $field => [
@@ -1136,9 +1253,20 @@ abstract class BaseElasticsearchModel
     public function orWhereFuzzy(
         string $field,
         string $value,
-        string|int $fuzziness = "AUTO",
+        string|int $fuzziness = 3,
         int $prefixLength = 0
     ): static {
+
+        if ($this->isCalledFromClosure()) {
+            $this->closureConditions['where'][$this->closureCounter][] = [
+                'field' => $field,
+                'value' => $value,
+                'operation' => null,
+                'condition' => 'or',
+                'method' => 'whereFuzzy'
+            ];
+            return $this;
+        }
         $this->search['query']['bool']['should'][] = [
             'fuzzy' => [
                 $field => [
@@ -1176,10 +1304,10 @@ abstract class BaseElasticsearchModel
     {
         $backtrace = debug_backtrace();
 
-        foreach ($backtrace as $trace) {
-            if (isset($trace['function']) && $trace['function'] == '{closure}') {
-                return true;
-            }
+        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+
+        if ($parentFunction == '{closure}') {
+            return true;
         }
 
         return false;
