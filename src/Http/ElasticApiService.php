@@ -119,7 +119,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
         );
 
         if (isset($elasticModelObject)) {
-
             $path .= '/';
 
             if (config('elasticsearch.index_prefix')) {
@@ -204,7 +203,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $response = $this->get('_mapping');
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
-
+        $index = config('elasticsearch.index_prefix') . $index;
         $jsonResponse = json_decode($response->getBody(), true);
 
         if (array_key_exists('properties', $jsonResponse[$index]['mappings'])) {
@@ -224,6 +223,8 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $response = $this->get('_mapping');
 
         $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
+
+        $index = config('elasticsearch.index_prefix') . $index;
 
         $jsonResponse = json_decode($response->getBody(), true);
 
