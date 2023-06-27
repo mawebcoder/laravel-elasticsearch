@@ -71,12 +71,12 @@ class MigrateElasticsearchMigrationsCommand extends Command
     }
 
 
-    private function registerMigrationIntoLog(string $path, int $latestBatch, string $index)
+    private function registerMigrationIntoLog(string $path, int $latestBatch, string $index): void
     {
         DB::table('elastic_search_migrations_logs')->insert([
             'batch' => $latestBatch,
             'migrations' => $path,
-            'index' => $index
+            'index' => config('elasticsearch.index_prefix') . $index
         ]);
     }
 
@@ -108,9 +108,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     ->where('migrations', $migration->migrations)
                     ->delete();
 
-                $result->down(
-
-                );
+                $result->down();
 
                 $this->info('reset done : ' . $migration->migrations);
 
@@ -131,7 +129,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
     {
         try {
             DB::beginTransaction();
-
 
             $this->warn('dropping all indices');
 
