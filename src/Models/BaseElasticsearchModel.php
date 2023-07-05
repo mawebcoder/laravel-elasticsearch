@@ -308,18 +308,8 @@ abstract class BaseElasticsearchModel
         return $collection;
     }
 
-//    public function when($condition, callable $callback): static
-//    {
-//        if (!$condition) {
-//            return $this;
-//        }
-//
-//        $callback($this);
-//
-//        return $this;
-//    }
 
-    public function mapResultToModelObject(array $result)
+    public function mapResultToModelObject(array $result): static
     {
         $object = new static();
 
@@ -365,12 +355,14 @@ abstract class BaseElasticsearchModel
      * @throws Throwable
      */
     public function where(
-        string|Closure $field,
-        ?string $operation = null,
-        ?string $value = null,
+        $field,
+        $operation = null,
+        $value = null,
         bool $inClosure = false
     ): static|array {
-        [$value, $operation] = $this->getOperationValue($value, $operation);
+        $numberOfArguments = count(func_get_args());
+
+        [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
             return match ($operation) {
@@ -566,11 +558,13 @@ abstract class BaseElasticsearchModel
 
     public function whereTerm(
         string $field,
-        ?string $operation = null,
-        ?string $value = null,
+        $operation = null,
+        $value = null,
         bool $inClosure = false
     ): static|array {
-        list($value, $operation) = $this->getOperationValue($value, $operation);
+        $numberOfArguments = count(func_get_args());
+
+        list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
             return match ($operation) {
@@ -637,12 +631,14 @@ abstract class BaseElasticsearchModel
     }
 
     public function orWhereTerm(
-        string|Closure $field,
-        ?string $operation = null,
-        ?string $value = null,
+        $field,
+        $operation = null,
+        $value = null,
         bool $inClosure = false
     ): static|array {
-        list($value, $operation) = $this->getOperationValue($value, $operation);
+        $numberOfArguments = count(func_get_args());
+
+        list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
             return match ($operation) {
@@ -906,12 +902,14 @@ abstract class BaseElasticsearchModel
     }
 
     public function orWhere(
-        string|Closure $field,
-        ?string $operation = null,
-        ?string $value = null,
+        $field,
+        $operation = null,
+        $value = null,
         bool $inClosure = false
     ): static|array {
-        list($value, $operation) = $this->getOperationValue($value, $operation);
+        $numberOfArguments = count(func_get_args());
+
+        list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
             return match ($operation) {
@@ -1422,20 +1420,14 @@ abstract class BaseElasticsearchModel
     }
 
 
-    /**
-     * @param string|null $value
-     * @param string|null $operation
-     * @return null[]|string[]
-     */
-    public function getOperationValue(?string $value, ?string $operation): array
+    public function getOperationValue($value, $operation, int $numberOfArguments): array
     {
-        if (!$value) {
+        if ($numberOfArguments === 2) {
             $value = $operation;
-            $operation = '=';
+
+            return array($value, $operation);
         }
-        if (!$operation) {
-            $operation = '=';
-        }
+
         return array($value, $operation);
     }
 
@@ -1711,7 +1703,6 @@ abstract class BaseElasticsearchModel
         if (!isset($this->closureConditions['where'])) {
             return;
         }
-
 
 
         if (isset($this->closureConditions['where'])) {
