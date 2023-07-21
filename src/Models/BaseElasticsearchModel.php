@@ -1424,7 +1424,7 @@ abstract class BaseElasticsearchModel
     {
         if ($numberOfArguments === 2) {
             $value = $operation;
-
+            $operation = '=';
             return array($value, $operation);
         }
 
