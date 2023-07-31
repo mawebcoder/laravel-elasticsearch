@@ -162,7 +162,6 @@ abstract class BaseElasticMigration
             $this->isTypeFormatValid($f);
 
             if ($this->shouldAddFieldData($type)) {
-
                 $types = $this->addFieldDataToTextType($type, $types, $f);
 
                 continue;
@@ -175,8 +174,6 @@ abstract class BaseElasticMigration
             }
 
             $types[$f] = ['type' => $type];
-
-
         }
 
         if ($this->isCreationState()) {
@@ -510,8 +507,8 @@ abstract class BaseElasticMigration
     public function removeModelIndex(): void
     {
         $this->elasticApiService
-            ->setModel(null)
-            ->delete($this->getModelIndex());
+            ->setModel($this->getModel())
+            ->delete();
     }
 
 
@@ -524,6 +521,7 @@ abstract class BaseElasticMigration
     {
         $this->elasticApiService
             ->setModel(null)
+            ->isTempIndex()
             ->delete($this->tempIndex);
     }
 
@@ -535,8 +533,7 @@ abstract class BaseElasticMigration
     public function reIndexFromTempToCurrent(
         array $currentMappings,
         array $newMappings
-    ): void
-    {
+    ): void {
         $finalMappings = $currentMappings;
 
         foreach ($newMappings as $key => $newMapping) {
@@ -552,19 +549,23 @@ abstract class BaseElasticMigration
         $chosenSource = array_keys(Arr::except($finalMappings, array_keys($this->dropMappingFields)));
 
         $this->elasticApiService
-            ->setModel(null)
-            ->put($this->getModelIndex() . DIRECTORY_SEPARATOR . '_mapping', [
+            ->setModel($this->getModel())
+            ->put('_mapping', [
                 "properties" => $finalMappings
             ]);
 
         $this->elasticApiService->setModel(null)
             ->post(path: '_reindex', data: [
                 "source" => [
-                    "index" => $this->tempIndex,
+                    "index" => config('elasticsearch.index_prefix') ? config(
+                            'elasticsearch.index_prefix'
+                        ) . $this->tempIndex : $this->tempIndex,
                     "_source" => $chosenSource
                 ],
                 "dest" => [
-                    "index" => $this->getModelIndex()
+                    "index" => config('elasticsearch.index_prefix') ? config(
+                            'elasticsearch.index_prefix'
+                        ) . $this->getModelIndex() : $this->getModelIndex()
                 ]
             ]);
     }
@@ -576,8 +577,8 @@ abstract class BaseElasticMigration
      */
     public function registerModelIndexWithoutChangedFieldTypes(): void
     {
-        $this->elasticApiService->setModel(null)
-            ->put($this->getModelIndex());
+        $this->elasticApiService->setModel($this->getModel())
+            ->put();
     }
 
 
@@ -591,10 +592,14 @@ abstract class BaseElasticMigration
     {
         $reIndexData = [
             'source' => [
-                'index' => $this->getModelIndex()
+                'index' => config('elasticsearch.index_prefix') ? config(
+                        'elasticsearch.index_prefix'
+                    ) . $this->getModelIndex() : $this->getModelIndex()
             ],
             'dest' => [
-                'index' => $this->tempIndex
+                'index' => config('elasticsearch.index_prefix') ? config(
+                        'elasticsearch.index_prefix'
+                    ) . $this->tempIndex : $this->tempIndex
             ]
         ];
 
@@ -641,16 +646,15 @@ abstract class BaseElasticMigration
      * @param Client $client
      * @return void
      * @throws GuzzleException
+     * @throws ReflectionException
      */
     public function createTempIndex(): void
     {
         $this->tempIndex = strtolower(Str::random(10));
 
-        $path = trim($this->basePath, '/') .
-            '/' .
-            $this->tempIndex;
-
-        $this->client->put($path);
+        $this->elasticApiService->isTempIndex()
+            ->setModel(null)
+            ->put($this->tempIndex);
     }
 
     /**

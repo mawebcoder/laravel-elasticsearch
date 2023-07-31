@@ -2,6 +2,7 @@
 
 namespace Tests\Integration;
 
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
@@ -10,6 +11,7 @@ use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Illuminate\Foundation\Testing\TestCase;
 use ReflectionException;
@@ -50,15 +52,11 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
             'migrate --path=' . database_path('migrations/2023_03_26_create_elastic_search_migrations_logs_table.php')
         );
 
+        sleep(2);
+
         $this->artisan('elastic:migrate');
     }
 
-    public function tearDown(): void
-    {
-        $this->rollbackTestMigration();
-
-        parent::tearDown();
-    }
 
     public function rollbackTestMigration(): void
     {
@@ -70,18 +68,18 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws RequestException
+     * @throws GuzzleException
      */
     public function testFindMethod()
     {
         $data = [
-            'id' => 1,
-            'name' => 'mohammad amiri',
-            'is_active' => true,
-            'details' => 'this is test text',
-            'age' => 13
+            'id' => 2,
+            'name' => 'mohammad'
         ];
 
-        $this->elastic->create($data);
+        $this->elastic->name = $data['name'];
+        $this->elastic->{BaseElasticsearchModel::FIELD_ID} = $data['id'];
+        $this->elastic->save();
 
         /**
          * elastic implements creating ,updating and deleting action as  asynchronous,
@@ -90,6 +88,7 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         sleep(2);
 
         $record = $this->elastic->find($data['id']);
+
 
         $this->assertEquals($data, $record->getAttributes());
     }

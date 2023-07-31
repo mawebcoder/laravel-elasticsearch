@@ -12,13 +12,9 @@ return new class extends BaseElasticMigration {
 
     public function schema(BaseElasticMigration $mapper): void
     {
-        $mapper->dropField('name');
-        $mapper->boolean('new_field');
-    }
-
-    public function alterDown(BaseElasticMigration $mapper): void
-    {
         $mapper->string('name');
-        $mapper->dropField('new_field');
+        $mapper->integer('age');
+        $mapper->string('details');
+        $mapper->boolean('is_active');
     }
 };

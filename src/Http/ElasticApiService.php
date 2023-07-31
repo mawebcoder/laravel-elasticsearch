@@ -19,10 +19,17 @@ class ElasticApiService implements ElasticHttpRequestInterface
     public string $index;
 
     public Client $client;
+    public bool $isTempIndex = false;
 
     public function __construct()
     {
         $this->client = new Client();
+    }
+
+    public function isTempIndex(): static
+    {
+        $this->isTempIndex = true;
+        return $this;
     }
 
     public static array $migrationsPath = [];
@@ -37,12 +44,17 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function post(?string $path = null, array $data = []): ResponseInterface
     {
-        $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        if ($this->isTempIndex) {
+            $path = $this->generateBaseIndexPath() . trim($path);
+        } else {
+            $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        }
 
         if (empty($data)) {
             return $this->client->post($path);
         }
 
+        $this->refreshTempIndex();
         return $this->client->post(
             $path,
             [
@@ -61,7 +73,13 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function get(?string $path = null): ResponseInterface
     {
-        $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        if ($this->isTempIndex) {
+            $path = $this->generateBaseIndexPath() . trim($path);
+        } else {
+            $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        }
+
+        $this->refreshTempIndex();
 
         return $this->client->get($path, [
             'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
@@ -75,7 +93,12 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function put(?string $path = null, array $data = []): ResponseInterface
     {
-        $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
+        if ($this->isTempIndex) {
+            $path = trim($this->generateBaseIndexPath() . trim($path), '/');
+        } else {
+            $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
+        }
+
 
         if (!empty($data)) {
             return $this->client->put($path, [
@@ -83,6 +106,8 @@ class ElasticApiService implements ElasticHttpRequestInterface
                 'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
             ]);
         }
+
+        $this->refreshTempIndex();
 
         return $this->client->put($path);
     }
@@ -94,11 +119,22 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function delete(?string $path = null, array $data = []): ResponseInterface
     {
-        $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        if ($this->isTempIndex) {
+            $path = $this->generateBaseIndexPath() . trim($path);
+        } else {
+            $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        }
+
+        $this->refreshTempIndex();
 
         return $this->client->delete($path, [
             'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
         ]);
+    }
+
+    public function refreshTempIndex(): void
+    {
+        $this->isTempIndex = false;
     }
 
     /**
@@ -112,19 +148,19 @@ class ElasticApiService implements ElasticHttpRequestInterface
              */
             $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
         }
-
-
         $path = trim(
             config('elasticsearch.host') . ":" . config("elasticsearch.port")
         );
 
-        if (isset($elasticModelObject)) {
+        if ($this->isTempIndex || $this->elasticModel) {
             $path .= '/';
 
             if (config('elasticsearch.index_prefix')) {
                 $path .= config('elasticsearch.index_prefix');
             }
+        }
 
+        if (isset($elasticModelObject)) {
             $path .= $elasticModelObject->getIndex();
         }
 
@@ -147,6 +183,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
          */
         $modelObject = (new ReflectionClass($this->elasticModel))->newInstance();
 
+        $this->refreshTempIndex();
         return $modelObject->getIndex();
     }
 
@@ -188,7 +225,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $response = $this->client->get($path);
 
         $result = json_decode($response->getBody(), true);
-
+        if (isset($result['.tasks'])) {
+            unset($result['..tasks']);
+        }
         return array_keys($result);
     }
 

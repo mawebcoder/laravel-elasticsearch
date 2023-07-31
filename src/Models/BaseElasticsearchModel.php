@@ -85,8 +85,6 @@ abstract class BaseElasticsearchModel
 
         $options = $this->getAttributes();
 
-        $this->checkMapping(Arr::except($options, 'id'));
-
         $fields = $this->getFields();
 
         $notValuedFields = array_values(array_diff($fields, array_keys($options)));

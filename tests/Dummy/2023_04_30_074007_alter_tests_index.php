@@ -8,7 +8,7 @@ return new class extends BaseElasticMigration implements AlterElasticIndexMigrat
 
     public function alterDown(BaseElasticMigration $mapper): void
     {
-        $mapper->integer('age');
+        $mapper->dropField('age');
     }
 
     public function getModel(): string
@@ -18,8 +18,6 @@ return new class extends BaseElasticMigration implements AlterElasticIndexMigrat
 
     public function schema(BaseElasticMigration $mapper): void
     {
-        $mapper->dropField('age');
-
-        $mapper->text('body');
+        $mapper->integer('age');
     }
 };

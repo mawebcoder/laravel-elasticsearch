@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use ReflectionClass;
@@ -56,7 +57,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
         foreach ($migrationsPath as $path) {
             $files = File::files($path);
 
-
             foreach ($files as $file) {
                 $migrationObject = require $file->getRealPath();
 
@@ -66,7 +66,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
                 $migrations[] = $file->getRealPath();
             }
         }
-
         return array_diff($migrations, $migratedFiles);
     }
 
@@ -104,6 +103,11 @@ class MigrateElasticsearchMigrationsCommand extends Command
                  */
                 $result = require $path;
 
+                $allIndexes = $elasticApiService->getAllIndexes();
+                $modelIndex = (new ReflectionClass($result->getModel()))->newInstance()->getIndex();
+                if (!in_array($modelIndex, $allIndexes)) {
+                    continue;
+                }
                 DB::table('elastic_search_migrations_logs')
                     ->where('migrations', $migration->migrations)
                     ->delete();
@@ -148,7 +152,14 @@ class MigrateElasticsearchMigrationsCommand extends Command
                  */
                 $migrationObject = require $path;
 
-                $index = (new ReflectionClass($migrationObject->getModel()))->newInstance()->getIndex();
+                if ($migrationObject instanceof AlterElasticIndexMigrationInterface) {
+                    continue;
+                }
+
+                $index = config('elasticsearch.index_prefix') ? config(
+                        'elasticsearch.index_prefix'
+                    ) . (new ReflectionClass($migrationObject->getModel()))->newInstance()->getIndex(
+                    ) : (new ReflectionClass($migrationObject->getModel()))->newInstance()->getIndex();
 
                 if (!in_array($index, $allIndices)) {
                     continue;
