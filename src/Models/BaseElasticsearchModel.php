@@ -32,6 +32,8 @@ abstract class BaseElasticsearchModel
 
     private array $closureConditions = [];
 
+    const KEY_ID = 'id';
+
     const SOURCE_KEY = '_source';
 
     const FIELD_ID = 'id';

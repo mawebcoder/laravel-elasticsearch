@@ -2,22 +2,21 @@
 
 namespace Mawebcoder\Elasticsearch\Migration;
 
-use Carbon\Exceptions\InvalidTypeException;
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Http\Client\RequestException;
+use GuzzleHttp\Client;
+use ReflectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
-use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
-use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
-use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
-use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
-use GuzzleHttp\Client;
-use Mawebcoder\Elasticsearch\Exceptions\TypeFormatIsNotValidException;
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Jobs\ReIndexMigrationJob;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
-use ReflectionException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
+use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
+use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidNormalizerTokenFilter;
+use Mawebcoder\Elasticsearch\Exceptions\TypeFormatIsNotValidException;
 
 abstract class BaseElasticMigration
 {
@@ -54,6 +53,7 @@ abstract class BaseElasticMigration
     public const TYPE_OBJECT = 'object';
     public const TYPE_FLOAT = 'float';
     public const TYPE_DATETIME = 'date';
+    public const TYPE_NESTED = 'nested';
 
     public const ANALYZER_STANDARD = 'standard';
     public const ANALYZER_SIMPLE = 'simple';
@@ -96,6 +96,7 @@ abstract class BaseElasticMigration
         self::TYPE_TINYINT,
         self::TYPE_BIGINT,
         self::TYPE_INTEGER,
+        self::TYPE_NESTED
     ];
 
     public const VALID_ANALYZERS = [
@@ -158,22 +159,28 @@ abstract class BaseElasticMigration
         $types = [];
 
 
-        foreach ($options as $f => $type) {
-            $this->isTypeFormatValid($f);
-
-            if ($this->shouldAddFieldData($type)) {
-                $types = $this->addFieldDataToTextType($type, $types, $f);
+        foreach ($options as $fieldName => $typeOrOptions) {
+            $this->isTypeFormatValid($fieldName);
+            if ($this->shouldAddFieldData($typeOrOptions)) {
+                $types = $this->addFieldDataToTextType($typeOrOptions, $types, $fieldName);
 
                 continue;
             }
 
-            if (!in_array($type, self::VALID_TYPES)) {
-                $message = "type $type is not valid.must be in" . join(',', self::VALID_TYPES);
-
-                throw new InvalidTypeException($message);
+            // sure type isn't options
+            if (!is_array($typeOrOptions)) {
+                $types[$fieldName] = ['type' => $typeOrOptions];
+                continue;
             }
 
-            $types[$f] = ['type' => $type];
+            // one object in another nested
+            if (!array_key_exists('type', $typeOrOptions)) {
+                $types[$fieldName]['type'] = 'object';
+
+                foreach ($typeOrOptions as $subFieldName => $typeSubField) {
+                    $types = $this->setObjectValues($typeOrOptions, $types, $typeSubField, $fieldName, $subFieldName);
+                }
+            }
         }
 
         if ($this->isCreationState()) {
@@ -187,6 +194,37 @@ abstract class BaseElasticMigration
 
         $this->schema['properties'][$field] = [
             ...["type" => 'object'],
+            ...["properties" => $types]
+        ];
+    }
+
+    public function nested(string $field, array $properties): void
+    {
+        $types = [];
+
+        foreach ($properties as $fieldName => $type) {
+            $this->isTypeFormatValid($fieldName);
+
+            if ($this->shouldAddFieldData($type)) {
+                $types = $this->addFieldDataToTextType($type, $types, $fieldName);
+                continue;
+            }
+
+
+            $types[$fieldName] = ['type' => $type];
+        }
+
+        if ($this->isCreationState()) {
+            $this->schema['mappings']['properties'][$field] = [
+                ...["type" => 'nested'],
+                ...['properties' => $types]
+            ];
+
+            return;
+        }
+
+        $this->schema['properties'][$field] = [
+            ...["nested" => 'nested'],
             ...["properties" => $types]
         ];
     }
@@ -769,18 +807,18 @@ abstract class BaseElasticMigration
      */
     public function shouldAddFieldData($type): bool
     {
-        return is_array($type);
+        return is_array($type) && ($type['type'] ?? false) == self::TYPE_TEXT;
     }
 
     /**
      * @param $type
      * @param array $types
-     * @param $f
+     * @param $columnName
      * @return array
      * @throws FieldNameException
      * @throws TypeFormatIsNotValidException
      */
-    public function addFieldDataToTextType($type, array $types, $f): array
+    public function addFieldDataToTextType($type, array $types, $columnName): array
     {
         if (!array_key_exists('type', $type) || !array_key_exists('fielddata', $type)) {
             throw new TypeFormatIsNotValidException('Type format is not valid');
@@ -791,10 +829,29 @@ abstract class BaseElasticMigration
         }
 
 
-        $types[$f] = [
+        $types[$columnName] = [
             'type' => $type['type'],
             'fielddata' => $type['fielddata']
         ];
+        return $types;
+    }
+
+    private function setObjectValues($typeOrOptions, &$types, $typeSubField, $fieldName, $subFieldName): array
+    {
+        $hasType = array_key_exists('type', $typeOrOptions);
+
+        if ($hasType) {
+            $types[$fieldName]['properties'][$subFieldName]['type'] = $typeOrOptions['type'];
+        } else {
+            $types[$fieldName]['properties'][$subFieldName]['type'] = $typeSubField;
+        }
+
+        $hasNullValue = array_key_exists('null_value', $typeOrOptions);
+
+        if ($hasNullValue) {
+            $types[$fieldName]['properties'][$subFieldName]['null_value'] = $typeOrOptions['null_value'];
+        }
+
         return $types;
     }
 }
