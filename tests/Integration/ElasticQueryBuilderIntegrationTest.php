@@ -174,7 +174,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         sleep(2);
 
-        $results = $this->elasticModel->select(elasticModel::FILED_NAME, 'id')
+        $results = $this->elasticModel->select(elasticModel::KEY_NAME, 'id')
             ->get();
 
         $firstResultAttributes = $results->first()->getAttributes();

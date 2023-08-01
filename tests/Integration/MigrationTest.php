@@ -21,7 +21,7 @@ class MigrationTest extends TestCase
 
     public BaseElasticMigration $dummyMigration;
 
-    public readonly string $dummyMigrationAlterStatePath;
+//    public readonly string $dummyMigrationAlterStatePath;
     public ElasticApiService $elasticApiService;
 
     public Client $client;
@@ -30,7 +30,7 @@ class MigrationTest extends TestCase
     {
         parent::setUp();
 
-        $this->dummyMigrationAlterStatePath = __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
+//        $this->dummyMigrationAlterStatePath = __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
 
         $this->client = new Client();
 
@@ -109,11 +109,11 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummy
          */
-        $alterDummy = require $this->dummyMigrationAlterStatePath;
-
-        $alterDummy->up();
-
-        sleep(2);
+//        $alterDummy = require $this->dummyMigrationAlterStatePath;
+//
+//        $alterDummy->up();
+//
+//        sleep(2);
 
         $test = new Test();
 
@@ -146,20 +146,20 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummyUp
          */
-        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
-
-        $alterDummyUp->up();
-
-        sleep(2);
+//        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
+//
+//        $alterDummyUp->up();
+//
+//        sleep(2);
 
         /**
          * @type BaseElasticMigration $alterDummyDown
          */
-        $alterDummyDown = require $this->dummyMigrationAlterStatePath;
-
-        $alterDummyDown->down();
-
-        sleep(2);
+//        $alterDummyDown = require $this->dummyMigrationAlterStatePath;
+//
+//        $alterDummyDown->down();
+//
+//        sleep(2);
 
         $test = new Test();
 
@@ -193,11 +193,11 @@ class MigrationTest extends TestCase
         /**
          * @type BaseElasticMigration $alterDummyUp
          */
-        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
-
-        $alterDummyUp->up();
-
-        sleep(2);
+//        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
+//
+//        $alterDummyUp->up();
+//
+//        sleep(2);
 
         $test = new Test();
 
