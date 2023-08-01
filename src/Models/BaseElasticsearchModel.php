@@ -130,7 +130,6 @@ abstract class BaseElasticsearchModel
      */
     public function update(array $options): bool
     {
-        $this->checkMapping($options);
 
         $this->search['script']['source'] = '';
 
@@ -213,9 +212,7 @@ abstract class BaseElasticsearchModel
 
         $result = json_decode($response->getBody(), true);
 
-
         $result = $result['hits']['hits'];
-
 
         if (!count($result)) {
             return null;
@@ -1383,28 +1380,6 @@ abstract class BaseElasticsearchModel
             ->post("_doc/_delete_by_query", $this->search);
 
         return true;
-    }
-
-
-    /**
-     * @param array $options
-     * @return void
-     * @throws FieldNotDefinedInIndexException
-     * @throws GuzzleException
-     * @throws ReflectionException
-     * @throws RequestException
-     */
-    public function checkMapping(array $options): void
-    {
-        $fields = $this->getFields();
-
-        foreach ($options as $field => $option) {
-            if (!in_array($field, $fields)) {
-                throw new FieldNotDefinedInIndexException(
-                    message: "field with name " . $field . " not defined in model index"
-                );
-            }
-        }
     }
 
     /**
