@@ -14,6 +14,7 @@ use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 
 class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCase
 {
@@ -35,16 +36,9 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $elasticModel = new elasticModel();
 
-
         $this->insertElasticDocument($elasticModel, $data);
 
-        /**
-         * elastic implements creating ,updating and deleting action as  asynchronous,
-         * so we wait 2 seconds to be sure that elasticsearch added the data
-         */
-        sleep(2);
-
-        $record = $this->elasticModel->find($data['id']);
+        $record = elasticModel::newQuery()->find($data['id']);
 
         $this->assertEquals($data, $record->getAttributes());
     }
@@ -67,13 +61,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $this->insertElasticDocument($elasticModel, $data);
 
-        /**
-         * elastic implements creating ,updating and deleting action as  asynchronous,
-         * so we wait 2 seconds to be sure that elasticsearch added the data
-         */
-        sleep(2);
-
-        $result = $this->elasticModel->find($data['id']);
+        $result = elasticModel::newQuery()->find($data['id']);
 
         $this->assertEquals(
             ['id' => 1, 'description' => 'this is name'],
@@ -99,12 +87,6 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $this->insertElasticDocument(new elasticModel(), $data);
 
-        /**
-         * elastic implements creating ,updating and deleting action as  asynchronous,
-         * so we wait 2 seconds to be sure that elasticsearch added the data
-         */
-        sleep(2);
-
         $model = elasticModel::newQuery()->find(1);
 
         $newData = [
@@ -115,7 +97,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $model->update($newData);
 
-        sleep(2);
+        sleep(1);
 
         $model = elasticModel::newQuery()->find(1);
 
@@ -140,22 +122,16 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = [
             BaseElasticsearchModel::FIELD_ID => 1,
-            elasticModel::FILED_DESCRIPTION => 'this is description'
+            elasticModel::KEY_DESCRIPTION => 'this is description'
         ];
 
         $this->insertElasticDocument(new elasticModel(), $data);
-
-        /**
-         * elastic implements creating ,updating and deleting action as  asynchronous,
-         * so we wait 2 seconds to be sure that elasticsearch added the data
-         */
-        sleep(2);
 
         $model = elasticModel::newQuery()->find($data['id']);
 
         $model->delete();
 
-        sleep(2);
+        sleep(1);
 
         $model = elasticModel::newQuery()->find(1);
 
@@ -176,15 +152,13 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->select(elasticModel::FILED_NAME, BaseElasticsearchModel::FIELD_ID)
+            ->select(elasticModel::KEY_NAME, BaseElasticsearchModel::KEY_ID)
             ->get();
 
         $firstResultAttributes = $results->first()->getAttributes();
 
-        $this->assertEquals([elasticModel::FILED_NAME, BaseElasticsearchModel::FIELD_ID],
+        $this->assertEquals([elasticModel::KEY_NAME, BaseElasticsearchModel::KEY_ID],
             array_keys($firstResultAttributes));
     }
 
@@ -197,8 +171,6 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     public function testTake()
     {
         $this->registerSomeRecords();
-
-        sleep(2);
 
         $results = elasticModel::newQuery()
             ->take(1)
@@ -217,14 +189,12 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
             ->offset(1)
             ->take(1)
             ->get();
 
-        $this->assertEquals(2, $results->first()->getAttributes()['id']);
+        $this->assertEquals(2, $results->first()->getAttributes()[BaseElasticsearchModel::KEY_ID]);
     }
 
 
@@ -240,20 +210,18 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testWhereEqualCondition()
     {
-        $this->registerSomeRecords();
-
-        sleep(2);
+        $data = $this->registerSomeRecords();
 
         $results = elasticModel::newQuery()
-            ->where('name', 'ali')
-            ->select('name')
+            ->where(elasticModel::KEY_NAME, $data[0]->{elasticModel::KEY_NAME})
+            ->select(elasticModel::KEY_NAME)
             ->get();
 
         $this->assertEquals(1, $results->count());
 
-        $firstResult = $results->first()->attributes['name'];
+        $firstResult = $results->first()->attributes[elasticModel::KEY_NAME];
 
-        $this->assertEquals('ali', $firstResult);
+        $this->assertEquals($data[0]->{elasticModel::KEY_NAME}, $firstResult);
     }
 
 
@@ -268,20 +236,14 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testWhereNotEqualCondition()
     {
-        $this->registerSomeRecords();
+        $data = $this->registerSomeRecords();
 
-        sleep(2);
-
-        $results = $this->elasticModel
-            ->where('name', '<>', 'ali')
-            ->select('name')
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_NAME, '<>', $data[0]->{elasticModel::KEY_NAME})
+            ->select(elasticModel::KEY_NAME)
             ->get();
 
         $this->assertEquals(2, $results->count());
-
-        $this->assertTrue($results->contains(fn($row) => $row->name === 'ahmad'));
-
-        $this->assertTrue($results->contains(fn($row) => $row->name === 'jafar'));
     }
 
 
@@ -296,21 +258,23 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testOrWhereCondition()
     {
-        $this->registerSomeRecords();
-
-        sleep(2);
+        $data = $this->registerSomeRecords();
 
         $results = elasticModel::newQuery()
-            ->where('name', 'ali')
-            ->orWhere('name', 'jafar')
-            ->select('name')
+            ->where(elasticModel::KEY_NAME, $data[0]->{elasticModel::KEY_NAME})
+            ->orWhere(elasticModel::KEY_AGE, $data[1]->{elasticModel::KEY_AGE})
+            ->select(elasticModel::KEY_NAME, elasticModel::KEY_AGE)
             ->get();
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === 'ali'));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_NAME} == $data[0]->{elasticModel::KEY_NAME})
+        );
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === 'jafar'));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} == $data[1]->{elasticModel::KEY_AGE})
+        );
     }
 
 
@@ -324,19 +288,21 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testWhereBetweenCondition()
     {
-        $this->registerSomeRecords();
-
-        sleep(2);
+        $data = $this->registerSomeRecords();
 
         $results = elasticModel::newQuery()
-            ->whereBetween('age', [22, 26])
-            ->get();
+            ->whereBetween(elasticModel::KEY_AGE, [$data[0]->{elasticModel::KEY_AGE}, $data[1]->{elasticModel::KEY_AGE}]
+            )->get();
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 22));
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[0]->{elasticModel::KEY_AGE})
+        );
 
-        $this->assertTrue($results->contains(fn($row) => $row->age === 26));
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[1]->{elasticModel::KEY_AGE})
+        );
     }
 
     /**
@@ -349,18 +315,17 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testNotBetweenCondition()
     {
-        $this->registerSomeRecords();
-
-        sleep(2);
+        $data = $this->registerSomeRecords();
 
         $results = elasticModel::newQuery()
-            ->whereNotBetween('age', [22, 26])
-            ->get();
-
+            ->whereNotBetween(
+                elasticModel::KEY_AGE,
+                [$data[0]->{elasticModel::KEY_AGE}, $data[1]->{elasticModel::KEY_AGE}]
+            )->get();
 
         $this->assertEquals(1, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => intval($row->age) === 30));
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === $data[2]->{elasticModel::KEY_AGE}));
     }
 
 
@@ -377,20 +342,26 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->where('age', $data[1]->age)
-            ->orWhereBetween('age', [$data[0]->age, $data[2]->age])
-            ->get();
+            ->where(elasticModel::KEY_AGE, $data[1]->{elasticModel::KEY_AGE})
+            ->orWhereBetween(
+                elasticModel::KEY_AGE,
+                [$data[0]->{elasticModel::KEY_AGE}, $data[2]->{elasticModel::KEY_AGE}]
+            )->get();
 
         $this->assertEquals(3, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => intval($row->age) === $data[0]->age));
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[0]->{elasticModel::KEY_AGE})
+        );
 
-        $this->assertTrue($results->contains(fn($row) => intval($row->age) === $data[1]->age));
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[1]->{elasticModel::KEY_AGE})
+        );
 
-        $this->assertTrue($results->contains(fn($row) => intval($row->age) === $data[2]->age));
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[2]->{elasticModel::KEY_AGE})
+        );
     }
 
 
@@ -403,12 +374,10 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testOrderByAsc()
     {
-        $this->registerSomeRecords();
-
-        sleep(2);
+        $data = $this->registerSomeRecords();
 
         $results = elasticModel::newQuery()
-            ->orderBy('age')
+            ->orderBy(elasticModel::KEY_AGE)
             ->get();
 
         $first = $results->first();
@@ -417,11 +386,11 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $third = $results[2];
 
-        $this->assertEquals(22, $first->age);
+        $this->assertEquals($data[0]->{elasticModel::KEY_AGE}, $first->{elasticModel::KEY_AGE});
 
-        $this->assertEquals(26, $second->age);
+        $this->assertEquals($data[1]->{elasticModel::KEY_AGE}, $second->{elasticModel::KEY_AGE});
 
-        $this->assertEquals(30, $third->age);
+        $this->assertEquals($data[2]->{elasticModel::KEY_AGE}, $third->{elasticModel::KEY_AGE});
     }
 
     /**
@@ -433,12 +402,10 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      */
     public function testOrderByDesc()
     {
-        $this->registerSomeRecords();
-
-        sleep(2);
+        $data = $this->registerSomeRecords();
 
         $results = elasticModel::newQuery()
-            ->orderBy('age', 'desc')
+            ->orderBy(elasticModel::KEY_AGE, 'desc')
             ->get();
 
         $first = $results->first();
@@ -447,11 +414,11 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $third = $results[2];
 
-        $this->assertEquals(30, $first->age);
+        $this->assertEquals($data[2]->{elasticModel::KEY_AGE}, $first->{elasticModel::KEY_AGE});
 
-        $this->assertEquals(26, $second->age);
+        $this->assertEquals($data[1]->{elasticModel::KEY_AGE}, $second->{elasticModel::KEY_AGE});
 
-        $this->assertEquals(22, $third->age);
+        $this->assertEquals($data[0]->{elasticModel::KEY_AGE}, $third->{elasticModel::KEY_AGE});
     }
 
     /**
@@ -464,15 +431,15 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->whereTerm('name', $data[0]->name)
+            ->whereTerm(elasticModel::KEY_NAME, $data[0]->{elasticModel::KEY_NAME})
             ->get();
 
         $this->assertEquals(1, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[0]->name));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_NAME} === $data[0]->{elasticModel::KEY_NAME})
+        );
     }
 
     /**
@@ -486,18 +453,20 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->where('name', $data[0]->name)
-            ->orWhereTerm('name', $data[1]->name)
+            ->where(elasticModel::KEY_NAME, $data[0]->{elasticModel::KEY_NAME})
+            ->orWhereTerm(elasticModel::KEY_NAME, $data[1]->{elasticModel::KEY_NAME})
             ->get();
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[0]->name));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_NAME} === $data[0]->{elasticModel::KEY_NAME})
+        );
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->name));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_NAME} === $data[1]->{elasticModel::KEY_NAME})
+        );
     }
 
     /**
@@ -510,17 +479,15 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->whereTerm('name', '<>', $data[0]->name)
+            ->whereTerm(elasticModel::KEY_NAME, '<>', $data[0]->{elasticModel::KEY_NAME})
             ->get();
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->name));
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->{elasticModel::KEY_NAME}));
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[2]->name));
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[2]->{elasticModel::KEY_NAME}));
     }
 
 
@@ -534,18 +501,16 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->where(elasticModel::FILED_NAME, $data[0]->name)
-            ->orWhere(elasticModel::FILED_NAME, $data[1]->name)
+            ->where(elasticModel::KEY_NAME, $data[0]->{elasticModel::KEY_NAME})
+            ->orWhere(elasticModel::KEY_NAME, $data[1]->{elasticModel::KEY_NAME})
             ->get();
 
         $this->assertEquals(2, $results->count());
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[0]->name));
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[0]->{elasticModel::KEY_NAME}));
 
-        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->name));
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->{elasticModel::KEY_NAME}));
     }
 
 
@@ -560,463 +525,298 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     {
         $data = $this->registerSomeRecords();
 
-        sleep(2);
-
         $results = elasticModel::newQuery()
-            ->where('age', '>', $data[0]->age)
+            ->where(elasticModel::KEY_AGE, '>', $data[0]->{elasticModel::KEY_AGE})
             ->get();
 
         $this->assertCount(2, $results);
 
-        $this->assertTrue($results->contains(fn($row) => $row->age === $data[1]->age));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[1]->{elasticModel::KEY_AGE})
+        );
 
-        $this->assertTrue($results->contains(fn($row) => $row->age === $data[2]->age));
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[2]->{elasticModel::KEY_AGE})
+        );
     }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws RequestException
-//     * @throws ReflectionException
-//     */
-//    public function testOrWhereGreaterThan()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'first',
-//            'details' => 'number one'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'second',
-//            'details' => 'number 2'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', 9)
-//            ->orWhere('age', '>', 9)
-//            ->get();
-//
-//        $this->assertEquals(2, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
-//    }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testWhereLessThan()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'first',
-//            'details' => 'number one'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'second',
-//            'details' => 'number 2'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', '<', 19)
-//            ->get();
-//
-//        $this->assertEquals(1, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
-//    }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testOrWhereLessThan()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'first',
-//            'details' => 'number one'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'second',
-//            'details' => 'number 2'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', 19)
-//            ->orWhere('age', '<', 19)
-//            ->get();
-//
-//        $this->assertEquals(2, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
-//    }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testWhereLike()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('details', 'like', 'to be hap')
-//            ->get();
-//
-//        $this->assertEquals(1, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->details === $data2['details']));
-//    }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testWhereNotLike()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('details', 'not like', 'to be hap')
-//            ->get();
-//
-//        $this->assertEquals(1, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->details === $data['details']));
-//    }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testOrWhereLike()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', 19)
-//            ->orWhere('details', 'like', 'to be hap')
-//            ->get();
-//
-//        $this->assertEquals(2, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->details === $data2['details']));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === $data['age']));
-//    }
-//
-//    /**
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testWhereGreaterThanOrEqual()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $data3 = [
-//            'id' => 3,
-//            'age' => 21,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        $this->elasticModel->create($data3);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', '>=', 19)
-//            ->get();
-//
-//        $this->assertEquals(2, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
-//    }
-//
-//    /**
-//     * @throws RequestException
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     */
-//    public function testOrWhereGreaterThanOrEqual()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $data3 = [
-//            'id' => 3,
-//            'age' => 21,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        $this->elasticModel->create($data3);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', 9)
-//            ->orWhere('age', '>=', 21)
-//            ->get();
-//
-//        $this->assertEquals(2, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
-//    }
-//
-//    /**
-//     * @throws RequestException
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     */
-//    public function testWhereLessThanOrEqual()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $data3 = [
-//            'id' => 3,
-//            'age' => 21,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        $this->elasticModel->create($data3);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', '<=', 19)
-//            ->get();
-//
-//        $this->assertEquals(2, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
-//    }
-//
-//    /**
-//     * @throws RequestException
-//     * @throws FieldNotDefinedInIndexException
-//     * @throws ReflectionException
-//     */
-//    public function testOrWhereLessThanOrEqual()
-//    {
-//        $data = [
-//            'id' => 1,
-//            'age' => 19,
-//            'name' => 'mohammad',
-//            'details' => 'he studied at line school'
-//        ];
-//
-//        $data2 = [
-//            'id' => 2,
-//            'age' => 9,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $data3 = [
-//            'id' => 3,
-//            'age' => 21,
-//            'name' => 'narges',
-//            'details' => 'she wants to be happy with other people'
-//        ];
-//
-//        $this->elasticModel->create($data);
-//
-//        $this->elasticModel->create($data2);
-//
-//        $this->elasticModel->create($data3);
-//
-//        sleep(2);
-//
-//        $results = $this->elasticModel
-//            ->where('age', 9)
-//            ->orWhere('age', '<=', 21)
-//            ->get();
-//
-//        $this->assertEquals(3, $results->count());
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 19));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 9));
-//
-//        $this->assertTrue($results->contains(fn($row) => $row->age === 21));
-//    }
-//
-//
-//    /**
-//     * @throws ReflectionException
-//     * @throws RequestException
-//     */
-//    public function testGetMappings()
-//    {
-//        $mappings = $this->elasticModel->getMappings();
-//
-//        $expected = [
-//            "age" => [
-//                'type' => 'integer'
-//            ],
-//            "details" => [
-//                "type" => 'text'
-//            ],
-//            "id" => [
-//                "type" => "integer"
-//            ],
-//            "is_active" => [
-//                "type" => "boolean"
-//            ],
-//            "name" => [
-//                "type" => "keyword"
-//            ]
-//        ];
-//
-//        $this->assertSame($expected, $mappings);
-//    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws Throwable
+     */
+    public function testOrWhereGreaterThan()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, $data[0]->{elasticModel::KEY_AGE})
+            ->orWhere(elasticModel::KEY_AGE, '>', $data[1]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[2]->{elasticModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws Throwable
+     */
+    public function testWhereLessThan()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, '<', $data[1]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === $data[0]->{elasticModel::KEY_AGE}));
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function testOrWhereLessThan()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, $data[2]->{elasticModel::KEY_AGE})
+            ->orWhere(elasticModel::KEY_AGE, '<', $data[1]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[2]->{elasticModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[0]->{elasticModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function testWhereLike()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_DESCRIPTION, 'like', $data[0]->{elasticModel::KEY_DESCRIPTION})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{elasticModel::KEY_DESCRIPTION} === $data[0]->{elasticModel::KEY_DESCRIPTION}
+            )
+        );
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function testWhereNotLike()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_DESCRIPTION, 'not like', $data[0]->{elasticModel::KEY_DESCRIPTION})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{elasticModel::KEY_DESCRIPTION} === $data[1]->{elasticModel::KEY_DESCRIPTION}
+            )
+        );
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{elasticModel::KEY_DESCRIPTION} === $data[2]->{elasticModel::KEY_DESCRIPTION}
+            )
+        );
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws Throwable
+     */
+    public function testOrWhereLike()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, $data[0]->{elasticModel::KEY_AGE})
+            ->orWhere(elasticModel::KEY_DESCRIPTION, 'like', $data[1]->{elasticModel::KEY_DESCRIPTION})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[0]->{elasticModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{elasticModel::KEY_DESCRIPTION} === $data[1]->{elasticModel::KEY_DESCRIPTION}
+            )
+        );
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function testWhereGreaterThanOrEqual()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, '>=', $data[1]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[2]->{elasticModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[1]->{elasticModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws Throwable
+     */
+    public function testOrWhereGreaterThanOrEqual()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, $data[0]->{elasticModel::KEY_AGE})
+            ->orWhere(elasticModel::KEY_AGE, '>=', $data[1]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(3, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[0]->{elasticModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[1]->{elasticModel::KEY_AGE})
+        );
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[2]->{elasticModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws Throwable
+     */
+    public function testWhereLessThanOrEqual()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, '<=', $data[0]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[0]->{elasticModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * @throws RequestException
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws Throwable
+     */
+    public function testOrWhereLessThanOrEqual()
+    {
+        $data = $this->registerSomeRecords();
+
+        $results = elasticModel::newQuery()
+            ->where(elasticModel::KEY_AGE, $data[2]->{elasticModel::KEY_AGE})
+            ->orWhere(elasticModel::KEY_AGE, '<=', $data[0]->{elasticModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[0]->{elasticModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{elasticModel::KEY_AGE} === $data[2]->{elasticModel::KEY_AGE})
+        );
+    }
+
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     */
+    public function testGetMappings()
+    {
+        $mappings = elasticModel::newQuery()->getMappings();
+
+
+        $expected = [
+            elasticModel::KEY_AGE => [
+                'type' => 'integer'
+            ],
+
+            elasticModel::KEY_IS_ACTIVE => [
+                "type" => "boolean"
+            ],
+            elasticModel::KEY_NAME => [
+                "type" => "keyword"
+            ],
+            elasticModel::KEY_DESCRIPTION => [
+                "type" => "text"
+            ]
+        ];
+
+        $this->assertEquals($expected, $mappings);
+    }
 }

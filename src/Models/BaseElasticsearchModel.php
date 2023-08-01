@@ -33,11 +33,14 @@ abstract class BaseElasticsearchModel
 
     private array $closureConditions = [];
 
-    const KEY_ID = 'id';
+    /**
+     * @deprecated please use KEY_ID instead
+     */
+    const FIELD_ID = 'id';
 
     const SOURCE_KEY = '_source';
 
-    const FIELD_ID = 'id';
+    const KEY_ID = 'id';
     public const MUST_INDEX = 0;
     public const MUST_NOT_INDEX = 1;
     public array $search = [
@@ -276,9 +279,7 @@ abstract class BaseElasticsearchModel
             return collect();
         }
 
-
         $results = $result['hits']['hits'];
-
 
         $collection = collect();
 
@@ -290,7 +291,6 @@ abstract class BaseElasticsearchModel
 
             $collection->add($this->mapResultToModelObject($data));
         }
-
 
         if ($aggregations) {
             return collect([
@@ -305,11 +305,13 @@ abstract class BaseElasticsearchModel
 
     public function mapResultToModelObject($result): static
     {
+        $object = new static();
+
         foreach ($result as $key => $value) {
-            $this->{$key} = $value;
+            $object->{$key} = $value;
         }
 
-        return $this;
+        return $object;
     }
 
 
