@@ -11,9 +11,9 @@ return new class extends BaseElasticMigration {
 
     public function schema(BaseElasticMigration $mapper): void
     {
-        $mapper->string(Elasticsearch::FILED_NAME);
-        $mapper->integer(Elasticsearch::FILED_AGE);
-        $mapper->boolean(Elasticsearch::FILED_IS_ACTIVE);
-        $mapper->text(Elasticsearch::FILED_DESCRIPTION);
+        $mapper->string(Elasticsearch::KEY_NAME);
+        $mapper->integer(Elasticsearch::KEY_AGE);
+        $mapper->boolean(Elasticsearch::KEY_IS_ACTIVE);
+        $mapper->text(Elasticsearch::KEY_DESCRIPTION);
     }
 };
