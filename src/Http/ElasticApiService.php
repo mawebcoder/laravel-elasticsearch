@@ -3,16 +3,16 @@
 namespace Mawebcoder\Elasticsearch\Http;
 
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\RequestOptions;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\Client\Response;
-use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
-use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
-use Psr\Http\Message\ResponseInterface;
 use ReflectionClass;
+use GuzzleHttp\Client;
 use ReflectionException;
+use GuzzleHttp\RequestOptions;
+use Illuminate\Http\Client\Response;
+use Psr\Http\Message\ResponseInterface;
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 
 class ElasticApiService implements ElasticHttpRequestInterface
 {
@@ -26,7 +26,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $this->client = new Client();
     }
 
-    public function isTempIndex(): static
+    public function setTempIndex(): static
     {
         $this->isTempIndex = true;
         return $this;
@@ -93,6 +93,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function put(?string $path = null, array $data = []): ResponseInterface
     {
+        // append the prefix feature that package provide
         if ($this->isTempIndex) {
             $path = trim($this->generateBaseIndexPath() . trim($path), '/');
         } else {
