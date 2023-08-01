@@ -4,74 +4,20 @@ namespace Tests\Integration;
 
 use Throwable;
 use ReflectionException;
-use Tests\TestCaseUtility;
-use Tests\CreatesApplication;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Foundation\Testing\TestCase;
+use Tests\ElasticSearchIntegrationTestCase;
 use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
-use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 
 
-class ElasticQueryBuilderIntegrationTest extends TestCase
+class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCase
 {
-    use CreatesApplication;
-    use TestCaseUtility;
-    use WithoutMiddleware;
-
-    public elasticModel $elastic;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutMiddleware();
-
-        $this->elastic = new elasticModel();
-
-        $this->loadTestMigration();
-
-        $this->migrateTestMigration();
-    }
-
-
-    private function loadTestMigration(): void
-    {
-        Elasticsearch::loadMigrationsFrom(__DIR__ . '/../Dummy');
-    }
-
-    private function migrateTestMigration(): void
-    {
-        $this->artisan(
-            'migrate --path=' . database_path('migrations/2023_03_26_create_elastic_search_migrations_logs_table.php')
-        );
-
-        sleep(2);
-
-        $this->artisan('elastic:migrate');
-    }
-
-    public function tearDown(): void
-    {
-        $this->rollbackTestMigration();
-
-        parent::tearDown();
-    }
-
-    public function rollbackTestMigration(): void
-    {
-        $this->artisan('elastic:migrate --reset');
-    }
-
-
     /**
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
