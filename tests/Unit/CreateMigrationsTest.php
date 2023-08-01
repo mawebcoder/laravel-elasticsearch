@@ -2,13 +2,13 @@
 
 namespace Tests\Unit;
 
+use Tests\CreatesApplication;
+use Illuminate\Foundation\Testing\TestCase;
+
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
-use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
-use Illuminate\Foundation\Testing\TestCase;
-use Tests\CreatesApplication;
 
 class CreateMigrationsTest extends TestCase
 {
@@ -226,25 +226,27 @@ class CreateMigrationsTest extends TestCase
         ]);
 
         $expected = [
-            'properties' =>
-                [
-                    "categories" => [
-                        "type" => 'object',
-                        "properties" => [
-                            "name" => [
-                                "type" => "object"
-                            ],
-                            "description" => [
-                                "type" => 'text'
-                            ],
-                            "age" => [
-                                'type' => 'integer'
+            'mappings' => [
+                'properties' =>
+                    [
+                        "categories" => [
+                            "type" => 'object',
+                            "properties" => [
+                                "name" => [
+                                    "type" => "object"
+                                ],
+                                "description" => [
+                                    "type" => 'text'
+                                ],
+                                "age" => [
+                                    'type' => 'integer'
+                                ]
                             ]
                         ]
                     ]
-                ]
-
+            ]
         ];
+
         $this->assertSame($expected, $this->dummy->schema);
     }
 
@@ -256,15 +258,17 @@ class CreateMigrationsTest extends TestCase
         $this->dummy->text('text', true);
 
         $expected = [
-            'properties' =>
-                [
-                    'text' => [
-                        'type' => 'text',
-                        'fielddata' => true
+            'mappings' => [
+                'properties' =>
+                    [
+                        'text' => [
+                            'type' => 'text',
+                            'fielddata' => true
+                        ]
                     ]
-                ]
-
+            ]
         ];
+
         $this->assertSame($expected, $this->dummy->schema);
     }
 
@@ -278,20 +282,22 @@ class CreateMigrationsTest extends TestCase
         ]);
 
         $expected = [
-            'properties' => [
-                'categories' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'name' => [
-                            'type' => 'text',
-                            'fielddata' => true
+            'mappings' => [
+                'properties' => [
+                    'categories' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'name' => [
+                                'type' => 'text',
+                                'fielddata' => true
+                            ]
                         ]
                     ]
                 ]
             ]
         ];
 
-        $this->assertSame($expected,$this->dummy->schema);
+        $this->assertSame($expected, $this->dummy->schema);
     }
 
 
