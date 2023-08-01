@@ -217,6 +217,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
      */
     public function setMigration(string $path, int $latestBatch): void
     {
+        // todo: kar az mohkam kari Eyb nemikone :)
         if ($this->isMigratedAlready($path)) {
             return;
         }
@@ -229,6 +230,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
             $result = require $path;
 
             if (!$result instanceof BaseElasticMigration) {
+                // todo: check if laravel throw exception us also exception ...
                 return;
             }
 
@@ -276,7 +278,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
             return;
         }
 
-
+        // use batch to handle rollback mechanism
         $latestBatch = 0;
 
         $latestMigrationRecord = DB::table('elastic_search_migrations_logs')

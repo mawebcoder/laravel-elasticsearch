@@ -409,7 +409,8 @@ abstract class BaseElasticMigration
             return;
         }
 
-        if ($this->isThereAnyChangesInFieldsThatShouldBeImplemented() === false) {
+        // sure user add the new mapping method in migration or drop a fields
+        if ($this->isSchemaOrDroppingFieldsEmpty() === false) {
             return;
         }
 
@@ -417,7 +418,7 @@ abstract class BaseElasticMigration
         $this->alterIndex();
     }
 
-    public function isThereAnyChangesInFieldsThatShouldBeImplemented(): bool
+    public function isSchemaOrDroppingFieldsEmpty(): bool
     {
         return !empty($this->schema) || !empty($this->dropMappingFields);
     }
@@ -444,7 +445,7 @@ abstract class BaseElasticMigration
 
         $this->alterDown($this);
 
-        if ($this->isThereAnyChangesInFieldsThatShouldBeImplemented() === false) {
+        if ($this->isSchemaOrDroppingFieldsEmpty() === false) {
             return;
         }
 
@@ -482,9 +483,9 @@ abstract class BaseElasticMigration
 
         $taskId = $response['task'];
 
-        $this->removeModelIndex();
+        $this->removeCurrentIndex();
 
-        $this->registerModelIndexWithoutChangedFieldTypes();
+        $this->registerIndexWithoutMapping();
 
         if (config('elasticsearch.reindex_migration_driver') !== 'queue') {
             dump(
@@ -542,7 +543,7 @@ abstract class BaseElasticMigration
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function removeModelIndex(): void
+    public function removeCurrentIndex(): void
     {
         $this->elasticApiService
             ->setModel($this->getModel())
@@ -559,7 +560,7 @@ abstract class BaseElasticMigration
     {
         $this->elasticApiService
             ->setModel(null)
-            ->isTempIndex()
+            ->setTempIndex()
             ->delete($this->tempIndex);
     }
 
@@ -584,7 +585,8 @@ abstract class BaseElasticMigration
 
         $finalMappings = Arr::except($finalMappings, array_keys($this->dropMappingFields));
 
-        $chosenSource = array_keys(Arr::except($finalMappings, array_keys($this->dropMappingFields)));
+        // todo: doesn't support nested object
+        $chosenSource = array_keys($finalMappings);
 
         $this->elasticApiService
             ->setModel($this->getModel())
@@ -595,15 +597,15 @@ abstract class BaseElasticMigration
         $this->elasticApiService->setModel(null)
             ->post(path: '_reindex', data: [
                 "source" => [
-                    "index" => config('elasticsearch.index_prefix') ? config(
-                            'elasticsearch.index_prefix'
-                        ) . $this->tempIndex : $this->tempIndex,
+                    "index" => config('elasticsearch.index_prefix')
+                        ? sprintf("%s%s", config('elasticsearch.index_prefix'), $this->tempIndex)
+                        : $this->tempIndex,
                     "_source" => $chosenSource
                 ],
                 "dest" => [
-                    "index" => config('elasticsearch.index_prefix') ? config(
-                            'elasticsearch.index_prefix'
-                        ) . $this->getModelIndex() : $this->getModelIndex()
+                    "index" => config('elasticsearch.index_prefix')
+                        ? sprintf("%s%s", config('elasticsearch.index_prefix'), $this->getModelIndex())
+                        : $this->getModelIndex()
                 ]
             ]);
     }
@@ -613,7 +615,7 @@ abstract class BaseElasticMigration
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function registerModelIndexWithoutChangedFieldTypes(): void
+    public function registerIndexWithoutMapping(): void
     {
         $this->elasticApiService->setModel($this->getModel())
             ->put();
@@ -628,6 +630,8 @@ abstract class BaseElasticMigration
      */
     public function reIndexToTempIndex(): mixed
     {
+        // todo: refactor the config('elasticsearch.index_prefix') use the helper method instead
+
         $reIndexData = [
             'source' => [
                 'index' => config('elasticsearch.index_prefix') ? config(
@@ -690,7 +694,7 @@ abstract class BaseElasticMigration
     {
         $this->tempIndex = strtolower(Str::random(10));
 
-        $this->elasticApiService->isTempIndex()
+        $this->elasticApiService->setTempIndex()
             ->setModel(null)
             ->put($this->tempIndex);
     }
@@ -705,6 +709,9 @@ abstract class BaseElasticMigration
         $this->elasticApiService->setModel($this->getModel())
             ->put(data: $this->schema);
 
+        /** Remove pagination limit from elasticsearch
+         * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html
+         */
         $this->elasticApiService->setModel($this->getModel())
             ->put(path: "_settings", data: ['index' => ['max_result_window' => 2147483647]]);
     }
@@ -712,6 +719,8 @@ abstract class BaseElasticMigration
     abstract public function schema(BaseElasticMigration $mapper);
 
     /**
+     * Check the (user try to drop or update field (like change data type))
+     * and we decide to create temp index (reindex progress) and move all data into it then genreate new one
      * @throws RequestException
      * @throws ReflectionException
      */

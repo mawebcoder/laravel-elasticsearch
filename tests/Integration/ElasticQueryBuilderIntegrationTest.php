@@ -2,27 +2,29 @@
 
 namespace Tests\Integration;
 
+use Throwable;
+use ReflectionException;
+use Tests\TestCaseUtility;
+use Tests\CreatesApplication;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
-use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
-use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
-use Illuminate\Foundation\Testing\TestCase;
-use ReflectionException;
-use Tests\CreatesApplication;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Throwable;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
+use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 
 
 class ElasticQueryBuilderIntegrationTest extends TestCase
 {
     use CreatesApplication;
+    use TestCaseUtility;
     use WithoutMiddleware;
 
     public elasticModel $elastic;
@@ -57,6 +59,12 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
         $this->artisan('elastic:migrate');
     }
 
+    public function tearDown(): void
+    {
+        $this->rollbackTestMigration();
+
+        parent::tearDown();
+    }
 
     public function rollbackTestMigration(): void
     {
@@ -101,26 +109,41 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
      */
     public function testCanCreateData()
     {
-        $data = [
+        $result = $this->insertElasticDocument($this->elastic, [
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
             'details' => 'this is test text',
             'age' => 30
-        ];
-
-        $result = $this->elastic->create($data);
-
-
-        sleep(2);
+        ]);
 
         $attributes = $result->attributes;
 
-        $this->assertEquals($attributes, $data);
+        $this->assertEquals($attributes, [
+            'id' => 1,
+            'name' => 'mohammad amiri',
+            'is_active' => true,
+            'details' => 'this is test text',
+            'age' => 30
+        ]);
 
-        $record = $this->elastic->find($data['id']);
+        $record = $this->elastic->find(
+            [
+                'id' => 1,
+                'name' => 'mohammad amiri',
+                'is_active' => true,
+                'details' => 'this is test text',
+                'age' => 30
+            ]['id']
+        );
 
-        $this->assertEquals($data, $record->getAttributes());
+        $this->assertEquals([
+            'id' => 1,
+            'name' => 'mohammad amiri',
+            'is_active' => true,
+            'details' => 'this is test text',
+            'age' => 30
+        ], $record->getAttributes());
     }
 
 
@@ -1420,6 +1443,4 @@ class ElasticQueryBuilderIntegrationTest extends TestCase
 
         $this->assertSame($expected, $mappings);
     }
-
-
 }
