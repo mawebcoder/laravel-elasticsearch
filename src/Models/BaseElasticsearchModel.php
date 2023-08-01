@@ -3,26 +3,27 @@
 namespace Mawebcoder\Elasticsearch\Models;
 
 use Closure;
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Http\Client\RequestException;
+use Throwable;
+use ReflectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use JetBrains\PhpStorm\NoReturn;
-use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Trait\Aggregatable;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Trait\HasElasticsearchResponseParser;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Mawebcoder\Elasticsearch\Trait\Aggregatable;
-use ReflectionException;
-use Throwable;
 
 abstract class BaseElasticsearchModel
 {
     use Aggregatable;
+    use HasElasticsearchResponseParser;
 
     public array $attributes = [];
 
@@ -83,39 +84,39 @@ abstract class BaseElasticsearchModel
      */
     public function save(): static
     {
+        $path = array_key_exists('id', $this->attributes)
+            ? sprintf("_doc/%s", $this->attributes['id'])
+            : '_doc';
+
+        $response = Elasticsearch::setModel(static::class)
+            ->post(path: $path, data: Arr::except($this->attributes, 'id'));
+
         $object = new static();
 
-        $options = $this->getAttributes();
-
+        $attributes = $this->getAttributes();
         $fields = $this->getFields();
+        $notValuedFields = array_values(array_diff($fields, array_keys($attributes)));
 
-        $notValuedFields = array_values(array_diff($fields, array_keys($options)));
-
-        /**
-         * ignore id
-         */
+        // ignore id
+        // Todo:needs more explanation
         if (in_array('id', $notValuedFields)) {
             unset($notValuedFields[array_search('id', $notValuedFields)]);
         }
 
-        if (array_key_exists('id', $options)) {
-            $object->id = $options['id'];
+        // sure if it doesn't have id and get if from elasticsearch
+        // update the search query and also set the id that get from elasticsearch
+        if (!$isAttributesHasId = array_key_exists('id', $attributes)) {
+            $object->id = $isAttributesHasId ? $attributes['id'] : $this->parseId($response);
+            $this->updateQueryWithInsinuatedObject($object->id, $object);
         }
 
-        foreach ($options as $key => $value) {
+        foreach ($attributes as $key => $value) {
             $object->{$key} = $value;
         }
 
         foreach ($notValuedFields as $notValuedField) {
             $object->{$notValuedField} = null;
         }
-
-
-        Elasticsearch::setModel(static::class)->post(
-            path: array_key_exists('id', $this->attributes) ?
-                "_doc/" . $this->attributes['id'] : '_doc',
-            data: Arr::except($this->attributes, 'id')
-        );
 
         return $object;
     }
@@ -130,6 +131,7 @@ abstract class BaseElasticsearchModel
      */
     public function update(array $options): bool
     {
+        $this->checkMapping($options);
 
         $this->search['script']['source'] = '';
 
@@ -143,7 +145,6 @@ abstract class BaseElasticsearchModel
 
         Elasticsearch::setModel(static::class)
             ->post('_update_by_query', $this->search);
-
 
         $this->refreshQueryBuilder();
 
@@ -198,17 +199,10 @@ abstract class BaseElasticsearchModel
      */
     public function find($id): ?static
     {
-        $this->search['query']['bool']['should'] = [];
-
-        $this->search['query']['bool']['should'][] = [
-            'ids' => [
-                'values' => [$id]
-            ]
-        ];
+        $this->updateQueryWithInsinuatedObject($id);
 
         $response = Elasticsearch::setModel(static::class)
             ->post('_search', $this->search);
-
 
         $result = json_decode($response->getBody(), true);
 
@@ -218,9 +212,13 @@ abstract class BaseElasticsearchModel
             return null;
         }
 
+        $rawId = $result[0]['_id'];
+
         $object = new static();
 
-        $object->{self::FIELD_ID} = $result[0]['_id'];
+        $object->{self::FIELD_ID} = is_numeric($rawId) ? intval($rawId) : $rawId;
+
+        $object->search = $this->search;
 
         $result = $result[0][self::SOURCE_KEY];
 
@@ -255,7 +253,6 @@ abstract class BaseElasticsearchModel
         if (!$resultCount) {
             return null;
         }
-
 
         $result = $result['hits']['hits'][0][static::SOURCE_KEY];
 
@@ -306,16 +303,13 @@ abstract class BaseElasticsearchModel
     }
 
 
-    public function mapResultToModelObject(array $result): static
+    public function mapResultToModelObject($result): static
     {
-        $object = new static();
-
         foreach ($result as $key => $value) {
-            $object->{$key} = $value;
+            $this->{$key} = $value;
         }
 
-
-        return $object;
+        return $this;
     }
 
 
@@ -328,7 +322,6 @@ abstract class BaseElasticsearchModel
     {
         $response = Elasticsearch::setModel(static::class)
             ->post('_doc/_search', $this->search);
-
 
         return json_decode($response->getBody(), true);
     }
@@ -829,7 +822,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    #[NoReturn] public function dd(): void
+    public function dd(): void
     {
         $this->organizeClosuresCalls();
 
@@ -1382,6 +1375,28 @@ abstract class BaseElasticsearchModel
         return true;
     }
 
+
+    /**
+     * @param array $options
+     * @return void
+     * @throws FieldNotDefinedInIndexException
+     * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function checkMapping(array $options): void
+    {
+        $fields = $this->getFields();
+
+        foreach ($options as $field => $option) {
+            if (!in_array($field, $fields)) {
+                throw new FieldNotDefinedInIndexException(
+                    message: "field with name " . $field . " not defined in model index"
+                );
+            }
+        }
+    }
+
     /**
      * @return array
      * @throws GuzzleException
@@ -1735,4 +1750,16 @@ abstract class BaseElasticsearchModel
         }
     }
 
+
+    private function updateQueryWithInsinuatedObject($id, ?object $object = null): void
+    {
+        $targetObject = $object ?? $this;
+
+        $targetObject->search['query']['bool']['should'] = [];
+        $targetObject->search['query']['bool']['should'][] = [
+            'ids' => [
+                'values' => [$id]
+            ]
+        ];
+    }
 }

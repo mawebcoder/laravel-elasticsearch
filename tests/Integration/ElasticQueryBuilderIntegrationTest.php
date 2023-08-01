@@ -4,15 +4,10 @@ namespace Tests\Integration;
 
 use Throwable;
 use ReflectionException;
-use Tests\TestCaseUtility;
-use Tests\CreatesApplication;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Foundation\Testing\TestCase;
+use Tests\ElasticSearchIntegrationTestCase;
 use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
-use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
@@ -20,42 +15,8 @@ use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 
-
-class ElasticQueryBuilderIntegrationTest extends TestCase
+class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCase
 {
-    use CreatesApplication;
-    use TestCaseUtility;
-    use WithoutMiddleware;
-
-    public elasticModel $elasticModel;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutMiddleware();
-
-        $this->elasticModel = new elasticModel();
-
-        $this->loadTestMigration();
-
-        $this->artisan(
-            'migrate --path=' . database_path('migrations/2023_03_26_create_elastic_search_migrations_logs_table.php')
-        );
-    }
-
-
-    private function loadTestMigration(): void
-    {
-        Elasticsearch::loadMigrationsFrom(__DIR__ . '/../Dummy');
-    }
-
-    public function refreshMigrations(): void
-    {
-        $this->artisan('elastic:migrate --fresh');
-    }
-
-
     /**
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
