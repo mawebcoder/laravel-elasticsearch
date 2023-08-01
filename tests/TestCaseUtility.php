@@ -36,37 +36,40 @@ trait TestCaseUtility
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    private function registerSomeRecords():array
+    private function registerSomeRecords(): array
     {
         $data = [
             'id' => 1,
             'name' => 'ahmad',
+            'age' => 22,
             'description' => 'number one'
         ];
 
         $data2 = [
             'id' => 2,
             'name' => 'jafar',
+            'age' => 26,
             'description' => 'number 2'
         ];
 
         $data3 = [
             'id' => 3,
+            'age' => 30,
             'name' => 'ali',
             'description' => 'number 3'
         ];
 
         $elasticModelOne = new elasticModel();
 
-        $this->insertElasticDocument($elasticModelOne, $data);
+        $elasticModelOne = $this->insertElasticDocument($elasticModelOne, $data);
 
         $elasticModelTwo = new elasticModel();
 
-        $this->insertElasticDocument($elasticModelTwo, $data2);
+        $elasticModelTwo = $this->insertElasticDocument($elasticModelTwo, $data2);
 
         $elasticModelThree = new elasticModel();
 
-        $this->insertElasticDocument($elasticModelThree, $data3);
+        $elasticModelThree = $this->insertElasticDocument($elasticModelThree, $data3);
 
         return [
             $elasticModelOne,
