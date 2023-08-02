@@ -561,7 +561,7 @@ abstract class BaseElasticMigration
         $this->elasticApiService
             ->setModel(null)
             ->setTempIndex()
-            ->delete($this->tempIndex);
+            ->delete(path: $this->tempIndex);
     }
 
 

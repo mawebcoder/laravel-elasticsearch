@@ -8,15 +8,18 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Models\Test;
+use ReflectionException;
 use Tests\ElasticSearchIntegrationTestCase;
+use Throwable;
 
 class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
 {
     /**
      * @throws RequestException
      * @throws FieldNotDefinedInIndexException
-     * @throws \ReflectionException
+     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function test_update_method_works_correctly_after_insert_update_immediately_with_id()
     {
@@ -39,10 +42,10 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
         ], $userDocument->getAttributes());
 
         // run update method
-        $updateResult = $userDocument->update(['name' => 'Ali Ghorbani', 'age' => 21]);
+        $updateResult = $userDocument->mustBeSync()->update(['name' => 'Ali Ghorbani', 'age' => 21]);
         $this->assertTrue($updateResult);
 
-        sleep(1);
+
 
         $userAfterUpdate = $model->find(1);
 
@@ -60,8 +63,9 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
     /**
      * @throws RequestException
      * @throws FieldNotDefinedInIndexException
-     * @throws \ReflectionException
+     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function test_update_method_works_correctly_after_insert_then_find_and_update_with_id()
     {
@@ -107,8 +111,9 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
     /**
      * @throws RequestException
      * @throws FieldNotDefinedInIndexException
-     * @throws \ReflectionException
+     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function test_update_method_works_correctly_after_insert_without_id()
     {
@@ -156,6 +161,13 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
+    /**
+     * @throws RequestException
+     * @throws Throwable
+     * @throws FieldNotDefinedInIndexException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
     public function test_update_method_works_correctly_after_insert_then_find_and_update_without_id()
     {
         $model = new Test();

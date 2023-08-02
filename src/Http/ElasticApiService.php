@@ -42,13 +42,28 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function post(?string $path = null, array $data = []): ResponseInterface
+    public function post(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
     {
         if ($this->isTempIndex) {
             $path = $this->generateBaseIndexPath() . trim($path);
         } else {
             $path = $this->generateBaseIndexPath() . '/' . trim($path);
         }
+
+
+        $parts = parse_url($path);
+
+        if ($mustBeSync) {
+            /**
+             * if already some query params exists in path
+             */
+            if (isset($parts['query'])) {
+                $path .= '&refresh=true';
+            } else {
+                $path .= '?refresh=true';
+            }
+        }
+
 
         if (empty($data)) {
             return $this->client->post($path);
@@ -91,13 +106,26 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function put(?string $path = null, array $data = []): ResponseInterface
+    public function put(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
     {
         // append the prefix feature that package provide
         if ($this->isTempIndex) {
-            $path = trim($this->generateBaseIndexPath() . trim($path), '/');
+            $path = trim($this->generateBaseIndexPath() . trim($path, '/'), '/');
         } else {
-            $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
+            $path = trim($this->generateBaseIndexPath() . '/' . trim($path,'/'), '/');
+        }
+
+        $parts = parse_url($path);
+
+        if ($mustBeSync) {
+            /**
+             * if already some query params exists in path
+             */
+            if (isset($parts['query'])) {
+                $path .= '&refresh=true';
+            } else {
+                $path .= '?refresh=true';
+            }
         }
 
 
@@ -118,12 +146,25 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function delete(?string $path = null, array $data = []): ResponseInterface
+    public function delete(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
     {
         if ($this->isTempIndex) {
-            $path = $this->generateBaseIndexPath() . trim($path);
+            $path = trim($this->generateBaseIndexPath() . trim($path), '/');
         } else {
-            $path = $this->generateBaseIndexPath() . '/' . trim($path);
+            $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
+        }
+
+        $parts = parse_url($path);
+
+        if ($mustBeSync) {
+            /**
+             * if already some query params exists in path
+             */
+            if (isset($parts['query'])) {
+                $path .= '&refresh=true';
+            } else {
+                $path .= '?refresh=true';
+            }
         }
 
         $this->refreshTempIndex();
@@ -214,7 +255,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         return $this->client->delete($fullPath);
     }
-
 
     /**
      * @throws GuzzleException

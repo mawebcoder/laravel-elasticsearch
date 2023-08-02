@@ -29,6 +29,8 @@ abstract class BaseElasticsearchModel
 
     private int $closureCounter = 0;
 
+    private bool $mustBeSync = false;
+
     private string $conditionStatus;
 
     private array $closureConditions = [];
@@ -79,6 +81,26 @@ abstract class BaseElasticsearchModel
 
 
     /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function truncate(): void
+    {
+        $this->search = [
+            'query' => [
+                'match_all' => [
+                    "boost" => 2.0,
+                    "_name" => "match_all_query"
+                ]
+            ]
+        ];
+
+        Elasticsearch::setModel(static::class)
+            ->post('_delete_by_query', $this->search, $this->mustBeSync);
+    }
+
+
+    /**
      * @return $this
      * @throws FieldNotDefinedInIndexException
      * @throws GuzzleException
@@ -92,7 +114,7 @@ abstract class BaseElasticsearchModel
             : '_doc';
 
         $response = Elasticsearch::setModel(static::class)
-            ->post(path: $path, data: Arr::except($this->attributes, 'id'));
+            ->post(path: $path, data: Arr::except($this->attributes, 'id'), mustBeSync: $this->mustBeSync);
 
         $object = new static();
 
@@ -147,11 +169,23 @@ abstract class BaseElasticsearchModel
         $this->search['script']['source'] = trim($this->search['script']['source'], ';');
 
         Elasticsearch::setModel(static::class)
-            ->post('_update_by_query', $this->search);
+            ->post('_update_by_query', $this->search, $this->mustBeSync);
 
         $this->refreshQueryBuilder();
 
         return true;
+    }
+
+    public function mustBeSync(): static
+    {
+        $this->mustBeSync = true;
+        return $this;
+    }
+
+    public function mustBeAsync(): static
+    {
+        $this->mustBeSync = false;
+        return $this;
     }
 
     private function refreshQueryBuilder(): void
@@ -170,6 +204,7 @@ abstract class BaseElasticsearchModel
             DB::beginTransaction();
 
             if ($this->mustDeleteJustSpecificRecord()) {
+
                 $this->refreshQueryBuilder();
 
                 $this->search['query']['bool']['should'][] = [
@@ -177,10 +212,11 @@ abstract class BaseElasticsearchModel
                         'values' => [$this->id]
                     ]
                 ];
+
             }
 
             Elasticsearch::setModel(static::class)
-                ->post('_delete_by_query', $this->search);
+                ->post('_delete_by_query', $this->search, $this->mustBeSync);
 
             DB::commit();
         } catch (Throwable $exception) {

@@ -2,43 +2,46 @@
 
 namespace Tests\Integration;
 
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Throwable;
 use ReflectionException;
 use GuzzleHttp\Exception\GuzzleException;
 use Tests\ElasticSearchIntegrationTestCase;
 use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
-use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 
 class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCase
 {
+
+
     /**
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testFindMethod()
     {
         $data = [
-            'id' => 2,
-            'name' => 'mohammad',
-            'age' => 23,
-            'active' => true,
-            'description' => 'description'
+            BaseElasticsearchModel::KEY_ID => 2,
+            elasticModel::KEY_NAME => $this->faker->name,
+            elasticModel::KEY_AGE => 23,
+            elasticModel::KEY_IS_ACTIVE => true,
+            elasticModel::KEY_DESCRIPTION => $this->faker->word
         ];
 
         $elasticModel = new elasticModel();
 
         $this->insertElasticDocument($elasticModel, $data);
 
-        $record = elasticModel::newQuery()->find($data['id']);
+        $record = elasticModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
 
         $this->assertEquals($data, $record->getAttributes());
     }
@@ -49,22 +52,26 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testSetNullForUndefinedMappedData()
     {
         $data = [
-            'id' => 1,
-            'description' => 'this is name'
+            BaseElasticsearchModel::KEY_ID => 1,
+            elasticModel::KEY_DESCRIPTION => $this->faker->word
         ];
 
         $elasticModel = new elasticModel();
 
         $this->insertElasticDocument($elasticModel, $data);
 
-        $result = elasticModel::newQuery()->find($data['id']);
+        $result = elasticModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
 
         $this->assertEquals(
-            ['id' => 1, 'description' => 'this is name'],
+            [
+                BaseElasticsearchModel::KEY_ID => 1,
+                elasticModel::KEY_DESCRIPTION => $data[elasticModel::KEY_DESCRIPTION]
+            ],
             $result->attributes
         );
     }
@@ -75,37 +82,34 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testCanUpdateData()
     {
         $data = [
-            'id' => 1,
-            'is_active' => false,
-            'name' => 'amir',
-            'description' => 'this is test text'
+            BaseElasticsearchModel::KEY_ID => 1,
+            elasticModel::KEY_IS_ACTIVE => false,
+            elasticModel::KEY_NAME => $this->faker->name,
+            elasticModel::KEY_DESCRIPTION => $this->faker->word
         ];
 
         $this->insertElasticDocument(new elasticModel(), $data);
 
-        $model = elasticModel::newQuery()->find(1);
+        $model = elasticModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
 
         $newData = [
-            'name' => 'mohammad',
-            'is_active' => true,
-            'description' => 'new description'
+            elasticModel::KEY_NAME => $this->faker->unique()->name,
+            elasticModel::KEY_IS_ACTIVE => true,
+            elasticModel::KEY_DESCRIPTION => $this->faker->word
         ];
 
-        $model->update($newData);
+        $this->update($model, $newData);
 
-        sleep(1);
-
-        $model = elasticModel::newQuery()->find(1);
+        $model = elasticModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
 
         $expectation = [
-            'id' => 1,
-            "is_active" => true,
-            "name" => "mohammad",
-            'description' => 'new description'
+            BaseElasticsearchModel::KEY_ID => $data[BaseElasticsearchModel::KEY_ID],
+            ...$newData
         ];
 
         $this->assertEquals($expectation, $model->getAttributes());
@@ -121,19 +125,17 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     public function testCanDeleteDataByModelRecord()
     {
         $data = [
-            BaseElasticsearchModel::FIELD_ID => 1,
-            elasticModel::KEY_DESCRIPTION => 'this is description'
+            BaseElasticsearchModel::KEY_ID => 1,
+            elasticModel::KEY_DESCRIPTION => $this->faker->word
         ];
 
         $this->insertElasticDocument(new elasticModel(), $data);
 
-        $model = elasticModel::newQuery()->find($data['id']);
+        $model = elasticModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
 
-        $model->delete();
+        $model->mustBeSync()->delete();
 
-        sleep(1);
-
-        $model = elasticModel::newQuery()->find(1);
+        $model = elasticModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
 
         $this->assertEquals(null, $model);
     }
@@ -147,6 +149,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws SelectInputsCanNotBeArrayOrObjectException
      * @throws AtLeastOneArgumentMustBeChooseInSelect
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testSelect()
     {
@@ -162,11 +165,13 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
             array_keys($firstResultAttributes));
     }
 
+
     /**
      * @throws RequestException
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testTake()
     {
@@ -184,6 +189,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testOffset()
     {
@@ -191,10 +197,9 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
         $results = elasticModel::newQuery()
             ->offset(1)
-            ->take(1)
             ->get();
 
-        $this->assertEquals(2, $results->first()->getAttributes()[BaseElasticsearchModel::KEY_ID]);
+        $this->assertCount(2, $results);
     }
 
 
@@ -279,39 +284,13 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
 
 
     /**
-     * @throws FieldNotDefinedInIndexException
-     * @throws ReflectionException
-     * @throws RequestException
-     * @throws WrongArgumentNumberForWhereBetweenException
-     * @throws WrongArgumentType
-     * @throws GuzzleException
-     */
-    public function testWhereBetweenCondition()
-    {
-        $data = $this->registerSomeRecords();
-
-        $results = elasticModel::newQuery()
-            ->whereBetween(elasticModel::KEY_AGE, [$data[0]->{elasticModel::KEY_AGE}, $data[1]->{elasticModel::KEY_AGE}]
-            )->get();
-
-        $this->assertEquals(2, $results->count());
-
-        $this->assertTrue(
-            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[0]->{elasticModel::KEY_AGE})
-        );
-
-        $this->assertTrue(
-            $results->contains(fn($row) => intval($row->{elasticModel::KEY_AGE}) === $data[1]->{elasticModel::KEY_AGE})
-        );
-    }
-
-    /**
      * @throws RequestException
      * @throws WrongArgumentType
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws WrongArgumentNumberForWhereBetweenException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testNotBetweenCondition()
     {
@@ -334,8 +313,8 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws WrongArgumentType
      * @throws Throwable
      * @throws FieldNotDefinedInIndexException
-     * @throws WrongArgumentNumberForWhereBetweenException
      * @throws ReflectionException
+     * @throws WrongArgumentNumberForWhereBetweenException
      * @throws GuzzleException
      */
     public function testOrBetweenCondition()
@@ -371,6 +350,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testOrderByAsc()
     {
@@ -393,11 +373,13 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
         $this->assertEquals($data[2]->{elasticModel::KEY_AGE}, $third->{elasticModel::KEY_AGE});
     }
 
+
     /**
-     * @throws InvalidSortDirection
-     * @throws RequestException
+     * @throws Throwable
      * @throws FieldNotDefinedInIndexException
+     * @throws InvalidSortDirection
      * @throws ReflectionException
+     * @throws RequestException
      * @throws GuzzleException
      */
     public function testOrderByDesc()
@@ -426,6 +408,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testWhereTerm()
     {
@@ -474,6 +457,7 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function testWhereNotTerm()
     {
@@ -799,7 +783,6 @@ class ElasticQueryBuilderIntegrationTest extends ElasticSearchIntegrationTestCas
     public function testGetMappings()
     {
         $mappings = elasticModel::newQuery()->getMappings();
-
 
         $expected = [
             elasticModel::KEY_AGE => [

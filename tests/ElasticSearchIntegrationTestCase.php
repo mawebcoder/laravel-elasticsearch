@@ -6,55 +6,75 @@ use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Artisan;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
 use Mawebcoder\Elasticsearch\Models\Elasticsearch as ElasticSearchModel;
 use ReflectionException;
+use Throwable;
 
+use ReflectionClass;
 
 abstract class ElasticSearchIntegrationTestCase extends TestCase
 {
     use CreatesApplication;
+
     use WithFaker;
 
-    public ElasticSearchModel $elastic;
-
-    protected function setUp(): void
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public static function setUpBeforeClass(): void
     {
-        parent::setUp();
+        static::bootApplication();
 
-        $this->withoutMiddleware();
+        static::loadTestMigration();
 
-        $this->elastic = new ElasticSearchModel();
+        static::migrateTestMigration();
 
-        $this->loadTestMigration();
+        static::migrateElasticsearchMigrations();
 
-        $this->migrateTestMigration();
+        elasticModel::newQuery()->mustBeSync()->truncate();
     }
 
-    private function loadTestMigration(): void
+    private static function bootApplication(): void
+    {
+        $testName = (new ReflectionClass(static::class))->getName();
+
+        (new static($testName))->setUp();
+    }
+
+    private static function loadTestMigration(): void
     {
         Elasticsearch::loadMigrationsFrom(__DIR__ . '/Dummy');
     }
 
-    private function migrateTestMigration(): void
+    private static function migrateTestMigration(): void
     {
-        $this->artisan(
+        Artisan::call(
             'migrate --path=' . database_path('migrations/2023_03_26_create_elastic_search_migrations_logs_table.php')
         );
-
-       $this->freshMigrations();
-
-        sleep(1);
     }
 
-
-
-    public function freshMigrations(): void
+    public static function migrateElasticsearchMigrations(): void
     {
-        $this->artisan('elastic:migrate --fresh');
+        Artisan::call('elastic:migrate --fresh');
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    protected function tearDown(): void
+    {
+        elasticModel::newQuery()
+            ->mustBeSync()->truncate();
+
+        parent::tearDown();
     }
 
     /**
@@ -62,6 +82,7 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function insertElasticDocument(BaseElasticsearchModel $model, array $data): BaseElasticsearchModel
     {
@@ -69,11 +90,7 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
             $model->{$key} = $value;
         }
 
-        $result = $model->save();
-
-        sleep(1);
-
-        return $result;
+        return $model->mustBeSync()->save();
     }
 
     /**
@@ -81,6 +98,7 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
      * @throws FieldNotDefinedInIndexException
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Throwable
      */
     public function registerSomeRecords(): array
     {
@@ -90,6 +108,7 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
             elasticModel::KEY_AGE => 22,
             elasticModel::KEY_DESCRIPTION => $this->faker->word
         ];
+
 
         $data2 = [
             BaseElasticsearchModel::KEY_ID => $this->faker->numberBetween(10, 20),
@@ -123,4 +142,36 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
             $elasticModelThree
         ];
     }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function truncateModel(ElasticSearchModel $elasticsearch): void
+    {
+        $elasticsearch->mustBeSync()->truncate();
+    }
+
+    /**
+     * @throws FieldNotDefinedInIndexException
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function update(BaseElasticsearchModel $elasticsearch, array $data): void
+    {
+        $elasticsearch->mustBeSync()->update($data);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function deleteModel(BaseElasticsearchModel $elasticsearch): void
+    {
+        $elasticsearch->mustBeSync()->delete();
+    }
+
+
 }
