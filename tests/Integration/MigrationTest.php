@@ -4,10 +4,10 @@ namespace Tests\Integration;
 
 use ReflectionException;
 use Tests\CreatesApplication;
-use Mawebcoder\Elasticsearch\Mappings;
 use Illuminate\Support\Facades\Artisan;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ClientException;
+use Mawebcoder\Elasticsearch\ElasticSchema;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Http\Client\RequestException;
 use Tests\DummyRequirements\Models\EUserModel;
@@ -20,20 +20,24 @@ class MigrationTest extends TestCase
 {
     use CreatesApplication;
     use WithoutMiddleware;
+    
+    public ElasticApiService $elasticApiService;
 
     public BaseElasticMigration $dummyMigration;
-    public ElasticApiService $elasticApiService;
+
+    public BaseElasticMigration $dummyMigrationAlterState;
 
     protected function setUp(): void
     {
         $this->afterApplicationCreated(function () {
             // remove all the current migrations and all the data exists in elasticsearch
             Artisan::call('migrate:fresh');
-            Mappings::deleteIfExists(EUserModel::class);
+            ElasticSchema::deleteIndexIfExists(EUserModel::class);
 
 
             // setup test migrations as property
             $this->dummyMigration = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
+
             $this->dummyMigrationAlterState = new class extends BaseElasticMigration implements
                 AlterElasticIndexMigrationInterface {
 
