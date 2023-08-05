@@ -1,0 +1,687 @@
+<?php
+
+namespace Tests\Integration;
+
+use Throwable;
+use ReflectionException;
+use GuzzleHttp\Exception\GuzzleException;
+use Tests\ElasticSearchIntegrationTestCase;
+use Illuminate\Http\Client\RequestException;
+use Tests\DummyRequirements\Models\EUserModel;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
+use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+
+/**
+ * @depends MigrationTest
+ */
+class QueryBuilderTest extends ElasticSearchIntegrationTestCase
+{
+
+    /**
+     * NOTHING
+     */
+    public function testFindMethod()
+    {
+        $data = [
+            BaseElasticsearchModel::KEY_ID => 2,
+            EUserModel::KEY_NAME => 'mamad',
+            EUserModel::KEY_AGE => 23,
+            EUserModel::KEY_IS_ACTIVE => true,
+            EUserModel::KEY_DESCRIPTION => 'dummy description'
+        ];
+
+        $user = new EUserModel();
+
+        $this->insertElasticDocument($user, $data);
+
+        $record = EUserModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
+
+        $this->assertEquals($data, $record->getAttributes());
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testSetNullForUndefinedMappedData()
+    {
+        $data = [
+            BaseElasticsearchModel::KEY_ID => 1,
+            EUserModel::KEY_DESCRIPTION => 'dummy description'
+        ];
+
+        $userModel = new EUserModel();
+
+        $this->insertElasticDocument($userModel, $data);
+
+        $result = EUserModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
+
+        $this->assertEquals(
+            [
+                BaseElasticsearchModel::KEY_ID => 1,
+                EUserModel::KEY_DESCRIPTION => $data[EUserModel::KEY_DESCRIPTION],
+                EUserModel::KEY_NAME => null,
+                EUserModel::KEY_AGE => null,
+                EUserModel::KEY_IS_ACTIVE => null,
+            ],
+            $result->attributes
+        );
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testCanUpdateData()
+    {
+        $data = [
+            BaseElasticsearchModel::KEY_ID => 1,
+            EUserModel::KEY_IS_ACTIVE => false,
+            EUserModel::KEY_NAME => 'mamad',
+            EUserModel::KEY_DESCRIPTION => 'dummy description'
+        ];
+
+        $this->insertElasticDocument(new EUserModel(), $data);
+
+        $model = EUserModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
+
+        $newData = [
+            EUserModel::KEY_NAME => $this->faker->unique()->name,
+            EUserModel::KEY_IS_ACTIVE => true,
+            EUserModel::KEY_DESCRIPTION => 'dummy description'
+        ];
+
+        $this->update($model, $newData);
+
+        $model = EUserModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
+
+        $expectation = [
+            BaseElasticsearchModel::KEY_ID => $data[BaseElasticsearchModel::KEY_ID],
+            EUserModel::KEY_NAME => $newData[EUserModel::KEY_NAME],
+            EUserModel::KEY_IS_ACTIVE => true,
+            EUserModel::KEY_DESCRIPTION => $newData[EUserModel::KEY_DESCRIPTION],
+            EUserModel::KEY_AGE => null
+        ];
+
+        $this->assertEquals($expectation, $model->getAttributes());
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testCanDeleteDataByModelRecord()
+    {
+        $data = [
+            BaseElasticsearchModel::KEY_ID => 1,
+            EUserModel::KEY_DESCRIPTION => 'dummy description'
+        ];
+
+        $this->insertElasticDocument(new EUserModel(), $data);
+
+        $model = EUserModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
+
+        $model->mustBeSync()->delete();
+
+        $model = EUserModel::newQuery()->find($data[BaseElasticsearchModel::KEY_ID]);
+
+        $this->assertEquals(null, $model);
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testSelect()
+    {
+        $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->select(EUserModel::KEY_NAME, BaseElasticsearchModel::KEY_ID)
+            ->get();
+
+        $firstResultAttributes = $results->first()->getAttributes();
+
+        $this->assertEquals([EUserModel::KEY_NAME, BaseElasticsearchModel::KEY_ID],
+            array_keys($firstResultAttributes));
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testTake()
+    {
+        $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->take(1)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOffset()
+    {
+        $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->offset(1)
+            ->get();
+
+        $this->assertCount(2, $results);
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testWhereEqualCondition()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_NAME, $data[0]->{EUserModel::KEY_NAME})
+            ->select(EUserModel::KEY_NAME)
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $firstResult = $results->first()->attributes[EUserModel::KEY_NAME];
+
+        $this->assertEquals($data[0]->{EUserModel::KEY_NAME}, $firstResult);
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testWhereNotEqualCondition()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_NAME, '<>', $data[0]->{EUserModel::KEY_NAME})
+            ->select(EUserModel::KEY_NAME)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereCondition()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_NAME, $data[0]->{EUserModel::KEY_NAME})
+            ->orWhere(EUserModel::KEY_AGE, $data[1]->{EUserModel::KEY_AGE})
+            ->select(EUserModel::KEY_NAME, EUserModel::KEY_AGE)
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_NAME} == $data[0]->{EUserModel::KEY_NAME})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} == $data[1]->{EUserModel::KEY_AGE})
+        );
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testNotBetweenCondition()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->whereNotBetween(
+                EUserModel::KEY_AGE,
+                [$data[0]->{EUserModel::KEY_AGE}, $data[1]->{EUserModel::KEY_AGE}]
+            )->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => intval($row->age) === $data[2]->{EUserModel::KEY_AGE}));
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testOrBetweenCondition()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, $data[1]->{EUserModel::KEY_AGE})
+            ->orWhereBetween(
+                EUserModel::KEY_AGE,
+                [$data[0]->{EUserModel::KEY_AGE}, $data[2]->{EUserModel::KEY_AGE}]
+            )->get();
+
+        $this->assertEquals(3, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{EUserModel::KEY_AGE}) === $data[0]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{EUserModel::KEY_AGE}) === $data[1]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => intval($row->{EUserModel::KEY_AGE}) === $data[2]->{EUserModel::KEY_AGE})
+        );
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testOrderByAsc()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->orderBy(EUserModel::KEY_AGE)
+            ->get();
+
+        $first = $results->first();
+
+        $second = $results[1];
+
+        $third = $results[2];
+
+        $this->assertEquals($data[0]->{EUserModel::KEY_AGE}, $first->{EUserModel::KEY_AGE});
+
+        $this->assertEquals($data[1]->{EUserModel::KEY_AGE}, $second->{EUserModel::KEY_AGE});
+
+        $this->assertEquals($data[2]->{EUserModel::KEY_AGE}, $third->{EUserModel::KEY_AGE});
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testOrderByDesc()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->orderBy(EUserModel::KEY_AGE, 'desc')
+            ->get();
+
+        $first = $results->first();
+
+        $second = $results[1];
+
+        $third = $results[2];
+
+        $this->assertEquals($data[2]->{EUserModel::KEY_AGE}, $first->{EUserModel::KEY_AGE});
+
+        $this->assertEquals($data[1]->{EUserModel::KEY_AGE}, $second->{EUserModel::KEY_AGE});
+
+        $this->assertEquals($data[0]->{EUserModel::KEY_AGE}, $third->{EUserModel::KEY_AGE});
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereTerm()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->whereTerm(EUserModel::KEY_NAME, $data[0]->{EUserModel::KEY_NAME})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_NAME} === $data[0]->{EUserModel::KEY_NAME})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereTerm()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_NAME, $data[0]->{EUserModel::KEY_NAME})
+            ->orWhereTerm(EUserModel::KEY_NAME, $data[1]->{EUserModel::KEY_NAME})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_NAME} === $data[0]->{EUserModel::KEY_NAME})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_NAME} === $data[1]->{EUserModel::KEY_NAME})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereNotTerm()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->whereTerm(EUserModel::KEY_NAME, '<>', $data[0]->{EUserModel::KEY_NAME})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->{EUserModel::KEY_NAME}));
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[2]->{EUserModel::KEY_NAME}));
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereEqual()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_NAME, $data[0]->{EUserModel::KEY_NAME})
+            ->orWhere(EUserModel::KEY_NAME, $data[1]->{EUserModel::KEY_NAME})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[0]->{EUserModel::KEY_NAME}));
+
+        $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->{EUserModel::KEY_NAME}));
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testWhereGreaterThan()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, '>', $data[0]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertCount(2, $results);
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[1]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[2]->{EUserModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereGreaterThan()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, $data[0]->{EUserModel::KEY_AGE})
+            ->orWhere(EUserModel::KEY_AGE, '>', $data[1]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[2]->{EUserModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereLessThan()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, '<', $data[1]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue($results->contains(fn($row) => $row->age === $data[0]->{EUserModel::KEY_AGE}));
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereLessThan()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, $data[2]->{EUserModel::KEY_AGE})
+            ->orWhere(EUserModel::KEY_AGE, '<', $data[1]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[2]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[0]->{EUserModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereLike()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_DESCRIPTION, 'like', $data[0]->{EUserModel::KEY_DESCRIPTION})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{EUserModel::KEY_DESCRIPTION} === $data[0]->{EUserModel::KEY_DESCRIPTION}
+            )
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereNotLike()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_DESCRIPTION, 'not like', $data[0]->{EUserModel::KEY_DESCRIPTION})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{EUserModel::KEY_DESCRIPTION} === $data[1]->{EUserModel::KEY_DESCRIPTION}
+            )
+        );
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{EUserModel::KEY_DESCRIPTION} === $data[2]->{EUserModel::KEY_DESCRIPTION}
+            )
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereLike()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, $data[0]->{EUserModel::KEY_AGE})
+            ->orWhere(EUserModel::KEY_DESCRIPTION, 'like', $data[1]->{EUserModel::KEY_DESCRIPTION})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[0]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(
+                fn($row) => $row->{EUserModel::KEY_DESCRIPTION} === $data[1]->{EUserModel::KEY_DESCRIPTION}
+            )
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereGreaterThanOrEqual()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, '>=', $data[1]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[2]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[1]->{EUserModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereGreaterThanOrEqual()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, $data[0]->{EUserModel::KEY_AGE})
+            ->orWhere(EUserModel::KEY_AGE, '>=', $data[1]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(3, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[0]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[1]->{EUserModel::KEY_AGE})
+        );
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[2]->{EUserModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testWhereLessThanOrEqual()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, '<=', $data[0]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(1, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[0]->{EUserModel::KEY_AGE})
+        );
+    }
+
+    /**
+     * NOTHING
+     */
+    public function testOrWhereLessThanOrEqual()
+    {
+        $data = $this->registerSomeTestUserRecords();
+
+        $results = EUserModel::newQuery()
+            ->where(EUserModel::KEY_AGE, $data[2]->{EUserModel::KEY_AGE})
+            ->orWhere(EUserModel::KEY_AGE, '<=', $data[0]->{EUserModel::KEY_AGE})
+            ->get();
+
+        $this->assertEquals(2, $results->count());
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[0]->{EUserModel::KEY_AGE})
+        );
+
+        $this->assertTrue(
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[2]->{EUserModel::KEY_AGE})
+        );
+    }
+
+
+    /**
+     * NOTHING
+     */
+    public function testGetMappings()
+    {
+        $mappings = EUserModel::newQuery()->getMappings();
+
+        $expected = [
+            EUserModel::KEY_AGE => [
+                'type' => 'integer'
+            ],
+            EUserModel::KEY_IS_ACTIVE => [
+                "type" => "boolean"
+            ],
+            EUserModel::KEY_NAME => [
+                "type" => "keyword"
+            ],
+            EUserModel::KEY_DESCRIPTION => [
+                "type" => "text"
+            ]
+        ];
+
+        $this->assertEquals($expected, $mappings);
+    }
+}

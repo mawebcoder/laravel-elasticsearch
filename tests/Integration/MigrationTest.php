@@ -2,17 +2,19 @@
 
 namespace Tests\Integration;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Foundation\Testing\TestCase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
-use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Http\ElasticApiService;
-use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
-use Mawebcoder\Elasticsearch\Models\Test;
 use ReflectionException;
 use Tests\CreatesApplication;
-use Throwable;
+use Mawebcoder\Elasticsearch\Mappings;
+use Illuminate\Support\Facades\Artisan;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ClientException;
+use Illuminate\Foundation\Testing\TestCase;
+use Illuminate\Http\Client\RequestException;
+use Tests\DummyRequirements\Models\EUserModel;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
+use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 
 class MigrationTest extends TestCase
 {
@@ -20,27 +22,47 @@ class MigrationTest extends TestCase
     use WithoutMiddleware;
 
     public BaseElasticMigration $dummyMigration;
-
-//    public readonly string $dummyMigrationAlterStatePath;
     public ElasticApiService $elasticApiService;
-
-    public Client $client;
 
     protected function setUp(): void
     {
+        $this->afterApplicationCreated(function () {
+            // remove all the current migrations and all the data exists in elasticsearch
+            Artisan::call('migrate:fresh');
+            Mappings::deleteIfExists(EUserModel::class);
+
+
+            // setup test migrations as property
+            $this->dummyMigration = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
+            $this->dummyMigrationAlterState = new class extends BaseElasticMigration implements
+                AlterElasticIndexMigrationInterface {
+
+                public function getModel(): string
+                {
+                    return EUserModel::class;
+                }
+
+                public function schema(BaseElasticMigration $mapper)
+                {
+                    $mapper->string('city');
+                }
+
+                public function alterDown(BaseElasticMigration $mapper): void
+                {
+                    $mapper->dropField('city');
+                }
+            };
+
+            // setup elastic api service
+            $this->elasticApiService = new ElasticApiService();
+        });
+
         parent::setUp();
-
-//        $this->dummyMigrationAlterStatePath = __DIR__ . '/../Dummy/2023_04_30_074007_alter_tests_index.php';
-
-        $this->client = new Client();
-
-        $this->dummyMigration = require __DIR__ . '/../Dummy/2023_04_16_074007_create_tests_table.php';
-
-        $this->elasticApiService = new ElasticApiService();
     }
 
 
     /**
+     * @group MigrationTest
      * @throws RequestException
      * @throws ReflectionException
      * @throws GuzzleException
@@ -49,16 +71,15 @@ class MigrationTest extends TestCase
     {
         $this->dummyMigration->up();
 
-        $test = new Test();
-
         sleep(2);
 
+        $test = new EUserModel();
+
         $expectedMappings = [
-            'age',
-            'details',
-            'id',
-            'is_active',
-            'name'
+            EUserModel::KEY_AGE,
+            EUserModel::KEY_DESCRIPTION,
+            EUserModel::KEY_IS_ACTIVE,
+            EUserModel::KEY_NAME
         ];
 
         $actualValues = array_keys($test->getMappings());
@@ -70,6 +91,7 @@ class MigrationTest extends TestCase
 
 
     /**
+     * @group MigrationTest
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
@@ -80,52 +102,40 @@ class MigrationTest extends TestCase
 
         $this->dummyMigration->down();
 
-        $this->withExceptionHandling();
-
-        try {
-            $test = new Test();
-
+        $this->assertThrows(function () {
+            $test = new EUserModel();
             $test->getMappings();
-        } catch (Throwable $exception) {
-            $this->assertStringContainsString(
-                '"type":"index_not_found_exception","reason":"no such index [test]'
-                ,
-                $exception->getMessage()
-            );
-        }
+        }, ClientException::class);
     }
 
     /**
+     * @group MigrationTest
      * @throws RequestException
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function testAlterStateMigrationForDropField()
+    public function testAlterStateMigrationForAddField()
     {
         $this->dummyMigration->up();
 
+        $this->dummyMigrationAlterState->up();
+
         sleep(3);
 
-        /**
-         * @type BaseElasticMigration $alterDummy
-         */
-//        $alterDummy = require $this->dummyMigrationAlterStatePath;
-//
-//        $alterDummy->up();
-//
-//        sleep(2);
-
-        $test = new Test();
+        $test = new EUserModel();
 
         $actualMappings = array_keys($test->getMappings());
 
         $expectedMappings = [
-            'body',
-            'details',
-            'id',
-            'is_active',
-            'name'
+            EUserModel::KEY_NAME,
+            EUserModel::KEY_AGE,
+            EUserModel::KEY_IS_ACTIVE,
+            EUserModel::KEY_DESCRIPTION,
+            'city'
         ];
+
+        // sorting expectations (base elastic mapping sort result)
+        sort($expectedMappings);
 
         $this->assertSame($expectedMappings, $actualMappings);
 
@@ -133,87 +143,36 @@ class MigrationTest extends TestCase
     }
 
     /**
+     * @group MigrationTest
      * @throws RequestException
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function testDownInAlterStateMigration()
+    public function testMigrationDropField()
     {
         $this->dummyMigration->up();
 
-        sleep(3);
-
-        /**
-         * @type BaseElasticMigration $alterDummyUp
-         */
-//        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
-//
-//        $alterDummyUp->up();
-//
-//        sleep(2);
-
-        /**
-         * @type BaseElasticMigration $alterDummyDown
-         */
-//        $alterDummyDown = require $this->dummyMigrationAlterStatePath;
-//
-//        $alterDummyDown->down();
-//
-//        sleep(2);
-
-        $test = new Test();
-
-        $actualMappings = array_keys($test->getMappings());
-
-        $expected = [
-            'age',
-            'body',
-            'details',
-            'id',
-            'is_active',
-            'name'
-        ];
-
-        $this->assertSame($expected, $actualMappings);
-
-        $this->dummyMigration->down();
-    }
-
-    /**
-     * @throws RequestException
-     * @throws ReflectionException
-     * @throws GuzzleException
-     */
-    public function testAlterStateForAddingField()
-    {
-        $this->dummyMigration->up();
+        $this->dummyMigrationAlterState->up();
 
         sleep(3);
 
-        /**
-         * @type BaseElasticMigration $alterDummyUp
-         */
-//        $alterDummyUp = require $this->dummyMigrationAlterStatePath;
-//
-//        $alterDummyUp->up();
-//
-//        sleep(2);
+        $expectedMappings = [
+            EUserModel::KEY_NAME,
+            EUserModel::KEY_AGE,
+            EUserModel::KEY_IS_ACTIVE,
+            EUserModel::KEY_DESCRIPTION,
+        ];
 
-        $test = new Test();
+        sort($expectedMappings);
+
+        $this->dummyMigrationAlterState->down();
+
+        $test = new EUserModel();
 
         $actualMappings = array_keys($test->getMappings());
 
-        $expected = [
-            'body',
-            'details',
-            'id',
-            'is_active',
-            'name'
-        ];
-
-        $this->assertSame($expected, $actualMappings);
+        $this->assertSame($expectedMappings, $actualMappings);
 
         $this->dummyMigration->down();
     }
-
 }

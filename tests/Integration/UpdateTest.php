@@ -2,35 +2,30 @@
 
 namespace Tests\Integration;
 
-
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Arr;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
-use Mawebcoder\Elasticsearch\Models\Test;
-use ReflectionException;
-use Tests\ElasticSearchIntegrationTestCase;
 use Throwable;
+use ReflectionException;
+use Illuminate\Support\Arr;
+use GuzzleHttp\Exception\GuzzleException;
+use Tests\ElasticSearchIntegrationTestCase;
+use Tests\DummyRequirements\Models\EUserModel;
+use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 
-class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
+
+class UpdateTest extends ElasticSearchIntegrationTestCase
 {
     /**
-     * @throws RequestException
-     * @throws FieldNotDefinedInIndexException
-     * @throws ReflectionException
-     * @throws GuzzleException
-     * @throws Throwable
+     * NOTHING
      */
     public function test_update_method_works_correctly_after_insert_update_immediately_with_id()
     {
-        $model = new Test();
+        $model = new EUserModel();
 
         $userDocument = $this->insertElasticDocument($model, [
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'age' => 30,
-            'description' => null
+            'age' => 30
         ]);
 
         $this->assertEquals([
@@ -38,14 +33,12 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
             'name' => 'mohammad amiri',
             'is_active' => true,
             'age' => 30,
-            'description' => null
+            'description' => null,
         ], $userDocument->getAttributes());
 
         // run update method
         $updateResult = $userDocument->mustBeSync()->update(['name' => 'Ali Ghorbani', 'age' => 21]);
         $this->assertTrue($updateResult);
-
-
 
         $userAfterUpdate = $model->find(1);
 
@@ -53,29 +46,24 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
             'id' => 1,
             'name' => 'Ali Ghorbani',
             'is_active' => true,
+            'age' => 21,
             'description' => null,
-            'age' => 21
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
     /**
-     * @throws RequestException
-     * @throws FieldNotDefinedInIndexException
-     * @throws ReflectionException
-     * @throws GuzzleException
-     * @throws Throwable
+     * NOTHING
      */
     public function test_update_method_works_correctly_after_insert_then_find_and_update_with_id()
     {
-        $model = new Test();
+        $model = new EUserModel();
 
         $userDocument = $this->insertElasticDocument($model, [
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text',
             'age' => 30
         ]);
 
@@ -83,17 +71,15 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text',
-            'age' => 30
+            'age' => 30,
+            'description' => null,
         ], $userDocument->getAttributes());
 
         $userDocument = $model->find(1);
 
         // run update method
-        $updateResult = $userDocument->update(['name' => 'ali']);
+        $updateResult = $this->update($userDocument, ['name' => 'ali']);
         $this->assertTrue($updateResult);
-
-        sleep(1);
 
         $userAfterUpdate = $model->find(1);
 
@@ -101,28 +87,23 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
             'id' => 1,
             'name' => 'ali',
             'is_active' => true,
-            'details' => 'this is test text',
-            'age' => 30
+            'age' => 30,
+            'description' => null,
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
     /**
-     * @throws RequestException
-     * @throws FieldNotDefinedInIndexException
-     * @throws ReflectionException
-     * @throws GuzzleException
-     * @throws Throwable
+     * NOTHING
      */
     public function test_update_method_works_correctly_after_insert_without_id()
     {
-        $model = new Test();
+        $model = new EUserModel();
 
         $userDocument = $this->insertElasticDocument($model, [
             'name' => 'Mohsen Souri',
             'is_active' => true,
-            'description'=>'description',
             'age' => 25
         ]);
 
@@ -132,21 +113,18 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
         $this->assertEquals([
             'name' => 'Mohsen Souri',
             'is_active' => true,
-            'description'=>'description',
-            'age' => 25
+            'age' => 25,
+            'description' => null,
         ], Arr::except($userDocument->getAttributes(), 'id'));
 
         // run update method
-        $updateResult = $userDocument->update([
+        $updateResult = $this->update($userDocument, [
             'name' => 'Mohsen Souri',
             'is_active' => true,
-            'description'=>'description',
             'age' => 25
         ]);
 
         $this->assertTrue($updateResult);
-
-        sleep(1);
 
         $userAfterUpdate = $model->find($idAfterInsert);
 
@@ -154,28 +132,23 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
             'id' => $idAfterInsert,
             'name' => 'Mohsen Souri',
             'is_active' => true,
-            'description'=>'description',
-            'age' => 25
+            'age' => 25,
+            'description' => null,
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
     /**
-     * @throws RequestException
-     * @throws Throwable
-     * @throws FieldNotDefinedInIndexException
-     * @throws ReflectionException
-     * @throws GuzzleException
+     * NOTHING
      */
     public function test_update_method_works_correctly_after_insert_then_find_and_update_without_id()
     {
-        $model = new Test();
+        $model = new EUserModel();
 
         $userDocument = $this->insertElasticDocument($model, [
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text',
             'age' => 30
         ]);
 
@@ -184,17 +157,15 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
         $this->assertEquals(Arr::except($userDocument->getAttributes(), 'id'), [
             'name' => 'mohammad amiri',
             'is_active' => true,
-            'details' => 'this is test text',
-            'age' => 30
+            'age' => 30,
+            'description' => null
         ]);
 
         $userDocument = $model->find($idAfterInsert);
 
         // run update method
-        $updateResult = $userDocument->update(['name' => 'ali']);
+        $updateResult = $this->update($userDocument, ['name' => 'ali']);
         $this->assertTrue($updateResult);
-
-        sleep(1);
 
         $userAfterUpdate = $model->find($idAfterInsert);
 
@@ -202,8 +173,8 @@ class UpdateElasticsearchDocumentsTest extends ElasticSearchIntegrationTestCase
             'id' => $idAfterInsert,
             'name' => 'ali',
             'is_active' => true,
-            'details' => 'this is test text',
-            'age' => 30
+            'age' => 30,
+            'description' => null
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
