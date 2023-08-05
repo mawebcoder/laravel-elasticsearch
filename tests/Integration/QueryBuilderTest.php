@@ -2,24 +2,14 @@
 
 namespace Tests\Integration;
 
-use Throwable;
-use ReflectionException;
-use GuzzleHttp\Exception\GuzzleException;
-use Tests\ElasticSearchIntegrationTestCase;
-use Illuminate\Http\Client\RequestException;
 use Tests\DummyRequirements\Models\EUserModel;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
-use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
-use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
-use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Tests\TestCase\Integration\BaseIntegrationTestCase;
 
 /**
  * @depends MigrationTest
  */
-class QueryBuilderTest extends ElasticSearchIntegrationTestCase
+class QueryBuilderTest extends BaseIntegrationTestCase
 {
 
     /**

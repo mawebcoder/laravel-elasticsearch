@@ -5,7 +5,9 @@ namespace Tests\Unit;
 use Tests\CreatesApplication;
 use Illuminate\Foundation\Testing\TestCase;
 
+use Tests\DummyRequirements\Models\EUserModel;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Tests\TestCase\Integration\Traits\HasFakeMigration;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
@@ -13,6 +15,7 @@ use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 class CreateMigrationsTest extends TestCase
 {
     use CreatesApplication;
+    use HasFakeMigration;
     use WithoutMiddleware;
 
     public BaseElasticMigration $dummy;
@@ -21,7 +24,7 @@ class CreateMigrationsTest extends TestCase
     {
         parent::setUp();
 
-        $this->dummy = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
+        $this->dummy = require $this->getMigrationPathByModel(EUserModel::class);
 
         $baseMigrationMock = $this->getMockBuilder(BaseElasticMigration::class)
             ->disableOriginalConstructor()

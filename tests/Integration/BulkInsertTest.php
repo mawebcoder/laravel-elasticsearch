@@ -2,10 +2,10 @@
 
 namespace Tests\Integration;
 
-use Tests\ElasticSearchIntegrationTestCase;
 use Tests\DummyRequirements\Models\EUserModel;
+use Tests\TestCase\Integration\BaseIntegrationTestCase;
 
-class BulkInsertTest extends ElasticSearchIntegrationTestCase
+class BulkInsertTest extends BaseIntegrationTestCase
 {
     /**
      * NOTHING

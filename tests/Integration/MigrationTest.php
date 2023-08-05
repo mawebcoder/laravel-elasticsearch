@@ -13,14 +13,16 @@ use Illuminate\Http\Client\RequestException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Tests\TestCase\Integration\Traits\HasFakeMigration;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 
 class MigrationTest extends TestCase
 {
     use CreatesApplication;
+    use HasFakeMigration;
     use WithoutMiddleware;
-    
+
     public ElasticApiService $elasticApiService;
 
     public BaseElasticMigration $dummyMigration;
@@ -30,13 +32,17 @@ class MigrationTest extends TestCase
     protected function setUp(): void
     {
         $this->afterApplicationCreated(function () {
-            // remove all the current migrations and all the data exists in elasticsearch
-            Artisan::call('migrate:fresh');
+
+            Artisan::call(
+                'migrate --path="' . database_path(
+                    'migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
+                ) . '"'
+            );
+
             ElasticSchema::deleteIndexIfExists(EUserModel::class);
 
-
             // setup test migrations as property
-            $this->dummyMigration = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
+            $this->dummyMigration = require $this->getMigrationPathByModel(EUserModel::class);
 
             $this->dummyMigrationAlterState = new class extends BaseElasticMigration implements
                 AlterElasticIndexMigrationInterface {

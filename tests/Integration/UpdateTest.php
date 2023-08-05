@@ -2,17 +2,12 @@
 
 namespace Tests\Integration;
 
-use Throwable;
-use ReflectionException;
 use Illuminate\Support\Arr;
-use GuzzleHttp\Exception\GuzzleException;
-use Tests\ElasticSearchIntegrationTestCase;
 use Tests\DummyRequirements\Models\EUserModel;
-use Illuminate\Http\Client\RequestException;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Tests\TestCase\Integration\BaseIntegrationTestCase;
 
 
-class UpdateTest extends ElasticSearchIntegrationTestCase
+class UpdateTest extends BaseIntegrationTestCase
 {
     /**
      * NOTHING
