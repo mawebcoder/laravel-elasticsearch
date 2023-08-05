@@ -42,35 +42,39 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function post(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
+    public function post(?string $path = null, string|array $data = [], bool $mustBeSync = false): ResponseInterface
     {
-        if ($this->isTempIndex) {
-            $path = $this->generateBaseIndexPath() . trim($path);
-        } else {
-            $path = $this->generateBaseIndexPath() . '/' . trim($path);
-        }
-
-
-        $parts = parse_url($path);
-
-        if ($mustBeSync) {
-            /**
-             * if already some query params exists in path
-             */
-            if (isset($parts['query'])) {
-                $path .= '&refresh=true';
-            } else {
-                $path .= '?refresh=true';
-            }
-        }
-
+        $path = $this->buildPath($path, $mustBeSync);
 
         if (empty($data)) {
             return $this->client->post($path);
         }
 
         $this->refreshTempIndex();
-        return $this->client->post(
+
+        $options = [
+            RequestOptions::AUTH => [config('elasticsearch.username'), config('elasticsearch.password')],
+            RequestOptions::HEADERS => ['Accept' => 'application/json', 'Content-Type' => 'application/json'],
+        ];
+
+        // sure is user need to pass the whole request body (like NDJSON format used for bulk insert)
+        // or use the JSON Format!
+        $options[is_array($data) ? RequestOptions::JSON : RequestOptions::BODY] = $data;
+
+        return $this->client->post($path, $options);
+    }
+
+    public function head(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
+    {
+        $path = $this->buildPath($path, $mustBeSync);
+        $path = trim($path, '/');
+
+        if (empty($data)) {
+            return $this->client->head($path);
+        }
+
+        $this->refreshTempIndex();
+        return $this->client->head(
             $path,
             [
                 RequestOptions::JSON => $data,
@@ -78,7 +82,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
             ]
         );
     }
-
 
     /**
      * @param string|null $path
@@ -112,22 +115,18 @@ class ElasticApiService implements ElasticHttpRequestInterface
         if ($this->isTempIndex) {
             $path = trim($this->generateBaseIndexPath() . trim($path, '/'), '/');
         } else {
-            $path = trim($this->generateBaseIndexPath() . '/' . trim($path,'/'), '/');
+            $path = trim($this->generateBaseIndexPath() . '/' . trim($path, '/'), '/');
         }
 
         $parts = parse_url($path);
 
         if ($mustBeSync) {
-            /**
-             * if already some query params exists in path
-             */
             if (isset($parts['query'])) {
                 $path .= '&refresh=true';
             } else {
                 $path .= '?refresh=true';
             }
         }
-
 
         if (!empty($data)) {
             return $this->client->put($path, [
@@ -146,7 +145,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function delete(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
+    public function delete(?string $path = null, array $data = [], bool $mustBeSync = false): bool
     {
         if ($this->isTempIndex) {
             $path = trim($this->generateBaseIndexPath() . trim($path), '/');
@@ -169,14 +168,38 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $this->refreshTempIndex();
 
-        return $this->client->delete($path, [
+        $response = $this->client->delete($path, [
             'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
         ]);
+
+        return json_decode($response->getBody(), true)['acknowledged'] ?? false;
     }
 
     public function refreshTempIndex(): void
     {
         $this->isTempIndex = false;
+    }
+
+
+    public function getIndexNameWithPrefix(): string
+    {
+        /**
+         * @type BaseElasticsearchModel $elasticModelObject
+         */
+
+        if (!isset($this->elasticModel)) {
+            throw new \Exception("You must set the model then call this method!");
+        }
+
+        $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
+
+        $indexName = $elasticModelObject->getIndex();
+
+        if ($prefix = config('elasticsearch.index_prefix')) {
+            return $prefix . $indexName;
+        }
+
+        return $indexName;
     }
 
     /**
@@ -190,6 +213,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
              */
             $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
         }
+
         $path = trim(
             config('elasticsearch.host') . ":" . config("elasticsearch.port")
         );
@@ -311,5 +335,24 @@ class ElasticApiService implements ElasticHttpRequestInterface
         return $jsonResponse[$index]['mappings']['properties'];
     }
 
+    /**
+     * @param string|null $path
+     * @param bool $mustBeSync
+     * @return string
+     * @throws ReflectionException
+     */
+    public function buildPath(?string $path, bool $mustBeSync): string
+    {
+        if ($this->isTempIndex) {
+            $path = $this->generateBaseIndexPath() . trim($path);
+        } else {
+            $path = $this->generateBaseIndexPath() . '/' . trim($path);
+        }
 
+        $parts = parse_url($path);
+
+        $mustBeSync && $path .= isset($parts['query']) ? '&refresh=true' : '?refresh=true';
+
+        return $path;
+    }
 }
