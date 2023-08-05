@@ -6,12 +6,13 @@ use GuzzleHttp\Client;
 use ReflectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Mawebcoder\Elasticsearch\Mappings;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Jobs\ReIndexMigrationJob;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNameException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidAnalyzerType;
 use Mawebcoder\Elasticsearch\Exceptions\FieldTypeIsNotKeyword;
 use Mawebcoder\Elasticsearch\Exceptions\NotValidFieldTypeException;
@@ -439,7 +440,7 @@ abstract class BaseElasticMigration
     public function down(): void
     {
         if ($this->isCreationState()) {
-            $this->elasticApiService->setModel($this->getModel())->delete();
+            Mappings::deleteIfExists($this->getModel());
             return;
         }
 
@@ -712,7 +713,7 @@ abstract class BaseElasticMigration
         /** Remove pagination limit from elasticsearch
          * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html
          */
-        $this->elasticApiService->setModel($this->getModel())
+       $this->elasticApiService->setModel($this->getModel())
             ->put(path: "_settings", data: ['index' => ['max_result_window' => 2147483647]]);
     }
 
