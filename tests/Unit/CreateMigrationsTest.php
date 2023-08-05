@@ -21,7 +21,7 @@ class CreateMigrationsTest extends TestCase
     {
         parent::setUp();
 
-        $this->dummy = require __DIR__ . '/../Dummy/2023_04_16_074007_create_tests_table.php';
+        $this->dummy = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
 
         $baseMigrationMock = $this->getMockBuilder(BaseElasticMigration::class)
             ->disableOriginalConstructor()

@@ -2,79 +2,78 @@
 
 namespace Tests;
 
+
+use Throwable;
+use ReflectionClass;
+use ReflectionException;
+use Illuminate\Support\Facades\Artisan;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Artisan;
-use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
-use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
-use Mawebcoder\Elasticsearch\Models\Elasticsearch as elasticModel;
-use Mawebcoder\Elasticsearch\Models\Elasticsearch as ElasticSearchModel;
-use ReflectionException;
-use Throwable;
-
-use ReflectionClass;
+use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
 
 abstract class ElasticSearchIntegrationTestCase extends TestCase
 {
+    use WithFaker;
     use CreatesApplication;
 
-    use WithFaker;
+    const MODELS_MUST_TRUNCATE_BETWEEN_TEST_CASE = [
+        EUserModel::class
+    ];
 
-    /**
-     * @throws ReflectionException
-     * @throws GuzzleException
-     */
+    public static function tearDownAfterClass(): void
+    {
+        Artisan::call('elastic:migrate --just --fresh');
+    }
+
+    protected function tearDown(): void
+    {
+        self::truncateTestModels();
+
+        parent::tearDown();
+    }
+
     public static function setUpBeforeClass(): void
     {
-        static::bootApplication();
+        self::bootApplication();
 
-        static::loadTestMigration();
-
-        static::migrateTestMigration();
-
-        static::migrateElasticsearchMigrations();
-
-        elasticModel::newQuery()->mustBeSync()->truncate();
+        self::bootTestMigrations();
     }
 
-    private static function bootApplication(): void
+    public static function bootApplication(): void
     {
-        $testName = (new ReflectionClass(static::class))->getName();
+        $classReferenceCurrentTest = (new ReflectionClass(static::class))->getName();
 
-        (new static($testName))->setUp();
+        $integrationTest = new static($classReferenceCurrentTest);
+
+        $integrationTest->setUp();
     }
 
-    private static function loadTestMigration(): void
+    /**
+     * @return void
+     */
+    public static function bootTestMigrations(): void
     {
-        Elasticsearch::loadMigrationsFrom(__DIR__ . '/Dummy');
-    }
-
-    private static function migrateTestMigration(): void
-    {
+        // remove all the migration from primary database
         Artisan::call(
             'migrate --path=' . database_path('migrations/2023_03_26_create_elastic_search_migrations_logs_table.php')
         );
-    }
 
-    public static function migrateElasticsearchMigrations(): void
-    {
+        // load the test elastic migrations
+        Elasticsearch::loadMigrationsFrom(__DIR__ . '/DummyRequirements/Migrations');
         Artisan::call('elastic:migrate --fresh');
     }
 
-    /**
-     * @throws ReflectionException
-     * @throws GuzzleException
-     */
-    protected function tearDown(): void
+    public static function truncateTestModels()
     {
-        elasticModel::newQuery()
-            ->mustBeSync()->truncate();
-
-        parent::tearDown();
+        /* @var BaseElasticsearchModel $model */
+        foreach (self::MODELS_MUST_TRUNCATE_BETWEEN_TEST_CASE as $model) {
+                $model::newQuery()->truncate();
+        }
     }
 
     /**
@@ -100,46 +99,37 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
      * @throws GuzzleException
      * @throws Throwable
      */
-    public function registerSomeRecords(): array
+    public function registerSomeTestUserRecords(): array
     {
-        $data = [
-            BaseElasticsearchModel::KEY_ID => $this->faker->unique()->numberBetween(1, 20),
-            elasticModel::KEY_NAME => $this->faker->unique()->name,
-            elasticModel::KEY_AGE => 22,
-            elasticModel::KEY_DESCRIPTION => $this->faker->word
-        ];
+        $userId1 = $this->faker->unique()->numberBetween(1, 9);
+        $userId2 = $this->faker->numberBetween(10, 14);
+        $userId3 = $this->faker->numberBetween(15, 20);
 
-
-        $data2 = [
-            BaseElasticsearchModel::KEY_ID => $this->faker->numberBetween(10, 20),
-            elasticModel::KEY_NAME => $this->faker->unique()->name,
-            elasticModel::KEY_AGE => 26,
-            elasticModel::KEY_DESCRIPTION => $this->faker->word
-        ];
-
-        $data3 = [
-            BaseElasticsearchModel::KEY_ID => $this->faker->numberBetween(10, 20),
-            elasticModel::KEY_NAME => $this->faker->unique()->name,
-            elasticModel::KEY_AGE => 30,
-            elasticModel::KEY_DESCRIPTION => $this->faker->word
-        ];
-
-        $elasticModelOne = new elasticModel();
-
-        $this->insertElasticDocument($elasticModelOne, $data);
-
-        $elasticModelTwo = new elasticModel();
-
-        $this->insertElasticDocument($elasticModelTwo, $data2);
-
-        $elasticModelThree = new elasticModel();
-
-        $this->insertElasticDocument($elasticModelThree, $data3);
+        EUserModel::newQuery()->mustBeSync()->saveMany([
+            [
+                BaseElasticsearchModel::KEY_ID => $userId1,
+                EUserModel::KEY_NAME => $this->faker->unique()->name,
+                EUserModel::KEY_AGE => 22,
+                EUserModel::KEY_DESCRIPTION => $this->faker->word
+            ],
+            [
+                BaseElasticsearchModel::KEY_ID => $userId2,
+                EUserModel::KEY_NAME => $this->faker->unique()->name,
+                EUserModel::KEY_AGE => 26,
+                EUserModel::KEY_DESCRIPTION => $this->faker->word
+            ],
+            [
+                BaseElasticsearchModel::KEY_ID => $userId3,
+                EUserModel::KEY_NAME => $this->faker->unique()->name,
+                EUserModel::KEY_AGE => 30,
+                EUserModel::KEY_DESCRIPTION => $this->faker->word
+            ]
+        ]);
 
         return [
-            $elasticModelOne,
-            $elasticModelTwo,
-            $elasticModelThree
+            EUserModel::newQuery()->find($userId1),
+            EUserModel::newQuery()->find($userId2),
+            EUserModel::newQuery()->find($userId3)
         ];
     }
 
@@ -147,7 +137,7 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function truncateModel(ElasticSearchModel $elasticsearch): void
+    public function truncateModel(BaseElasticsearchModel $elasticsearch): void
     {
         $elasticsearch->mustBeSync()->truncate();
     }
@@ -158,9 +148,9 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function update(BaseElasticsearchModel $elasticsearch, array $data): void
+    public function update(BaseElasticsearchModel $elasticsearch, array $data): bool
     {
-        $elasticsearch->mustBeSync()->update($data);
+        return $elasticsearch->mustBeSync()->update($data);
     }
 
     /**
@@ -172,6 +162,4 @@ abstract class ElasticSearchIntegrationTestCase extends TestCase
     {
         $elasticsearch->mustBeSync()->delete();
     }
-
-
 }

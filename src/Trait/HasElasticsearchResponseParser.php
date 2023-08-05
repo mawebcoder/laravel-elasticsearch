@@ -14,7 +14,7 @@ trait HasElasticsearchResponseParser
      * @param ResponseInterface $response
      * @return false|string
      */
-    protected function parseId(ResponseInterface $response): false|string
+    protected function getIdFromElasticsearchResponse(ResponseInterface $response): false|string
     {
         $segments = explode('/', $response->getHeader(self::ID_LOCATION)[self::FIRST_INDEX]);
 

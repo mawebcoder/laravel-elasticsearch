@@ -3,11 +3,9 @@
 namespace Mawebcoder\Elasticsearch\Commands;
 
 use Exception;
-use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\File;
+use Illuminate\Console\Command;
 use Mawebcoder\Elasticsearch\Exceptions\CanNotCreateTheFileException;
-use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 
 class MakeModelCommand extends Command
 {

@@ -2,20 +2,17 @@
 
 namespace Tests\Unit;
 
-use Mawebcoder\Elasticsearch\Models\Elasticsearch;
-use PHPUnit\Framework\TestCase;
 use Throwable;
+use PHPUnit\Framework\TestCase;
+use Tests\DummyRequirements\Models\EUserModel;
 
 class ConditionsOperatorTest extends TestCase
 {
-
-    public Elasticsearch $elasticsearch;
+    public EUserModel $elasticsearch;
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        $this->elasticsearch = new  Elasticsearch();
+        $this->elasticsearch = new EUserModel();
     }
 
     /**
@@ -278,7 +275,7 @@ class ConditionsOperatorTest extends TestCase
             "_source" => []
         ];
 
-        $this->assertSame($arr,$this->elasticsearch->search);
+        $this->assertSame($arr, $this->elasticsearch->search);
     }
 
 }
