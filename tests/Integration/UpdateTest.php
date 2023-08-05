@@ -9,9 +9,7 @@ use Tests\TestCase\Integration\BaseIntegrationTestCase;
 
 class UpdateTest extends BaseIntegrationTestCase
 {
-    /**
-     * NOTHING
-     */
+
     public function test_update_method_works_correctly_after_insert_update_immediately_with_id()
     {
         $model = new EUserModel();
@@ -48,9 +46,7 @@ class UpdateTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
-    /**
-     * NOTHING
-     */
+
     public function test_update_method_works_correctly_after_insert_then_find_and_update_with_id()
     {
         $model = new EUserModel();
@@ -89,9 +85,7 @@ class UpdateTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
-    /**
-     * NOTHING
-     */
+
     public function test_update_method_works_correctly_after_insert_without_id()
     {
         $model = new EUserModel();
@@ -134,9 +128,7 @@ class UpdateTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
-    /**
-     * NOTHING
-     */
+
     public function test_update_method_works_correctly_after_insert_then_find_and_update_without_id()
     {
         $model = new EUserModel();

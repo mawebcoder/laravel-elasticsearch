@@ -12,9 +12,7 @@ use Tests\TestCase\Integration\BaseIntegrationTestCase;
 class QueryBuilderTest extends BaseIntegrationTestCase
 {
 
-    /**
-     * NOTHING
-     */
+
     public function testFindMethod()
     {
         $data = [
@@ -35,9 +33,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testSetNullForUndefinedMappedData()
     {
         $data = [
@@ -64,9 +60,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testCanUpdateData()
     {
         $data = [
@@ -102,9 +96,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testCanDeleteDataByModelRecord()
     {
         $data = [
@@ -124,9 +116,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testSelect()
     {
         $this->registerSomeTestUserRecords();
@@ -142,9 +132,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testTake()
     {
         $this->registerSomeTestUserRecords();
@@ -156,9 +144,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals(1, $results->count());
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOffset()
     {
         $this->registerSomeTestUserRecords();
@@ -171,9 +157,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereEqualCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -191,9 +175,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereNotEqualCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -207,9 +189,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -232,9 +212,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testNotBetweenCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -251,9 +229,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testOrBetweenCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -281,9 +257,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testOrderByAsc()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -306,9 +280,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testOrderByDesc()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -330,9 +302,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($data[0]->{EUserModel::KEY_AGE}, $third->{EUserModel::KEY_AGE});
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereTerm()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -348,9 +318,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereTerm()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -371,9 +339,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereNotTerm()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -390,9 +356,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereEqual()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -410,9 +374,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereGreaterThan()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -432,9 +394,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereGreaterThan()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -451,9 +411,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereLessThan()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -467,9 +425,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertTrue($results->contains(fn($row) => $row->age === $data[0]->{EUserModel::KEY_AGE}));
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereLessThan()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -490,9 +446,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereLike()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -510,9 +464,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereNotLike()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -535,9 +487,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereLike()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -560,9 +510,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereGreaterThanOrEqual()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -582,9 +530,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereGreaterThanOrEqual()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -608,9 +554,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testWhereLessThanOrEqual()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -626,9 +570,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         );
     }
 
-    /**
-     * NOTHING
-     */
+
     public function testOrWhereLessThanOrEqual()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -650,9 +592,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    /**
-     * NOTHING
-     */
+
     public function testGetMappings()
     {
         $mappings = EUserModel::newQuery()->getMappings();

@@ -7,9 +7,7 @@ use Tests\TestCase\Integration\BaseIntegrationTestCase;
 
 class BulkInsertTest extends BaseIntegrationTestCase
 {
-    /**
-     * NOTHING
-     */
+
     public function test_can_insert_multi_user_with_one_method_call()
     {
         $items = [
