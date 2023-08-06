@@ -9,7 +9,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ClientException;
 use Illuminate\Http\Client\RequestException;
+use Symfony\Component\HttpFoundation\Response;
 use Mawebcoder\Elasticsearch\Trait\Aggregatable;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
@@ -99,6 +101,15 @@ abstract class BaseElasticsearchModel
             ->post('_delete_by_query', $this->search, $this->mustBeSync);
     }
 
+    public function isExistsIndex()
+    {
+        try {
+            $response = Elasticsearch::setModel(static::class)->head();
+            return $response->getStatusCode() == Response::HTTP_OK;
+        } catch (ClientException $throwable) {
+            return false;
+        }
+    }
 
     /**
      * @return $this
@@ -109,29 +120,33 @@ abstract class BaseElasticsearchModel
      */
     public function save(): static
     {
-        $path = array_key_exists('id', $this->attributes)
+        $hasCustomId = $this->hasCustomId();
+
+        $path = $hasCustomId
             ? sprintf("_doc/%s", $this->attributes['id'])
             : '_doc';
 
+        $data = Arr::except($this->attributes, 'id');
+
         $response = Elasticsearch::setModel(static::class)
-            ->post(path: $path, data: Arr::except($this->attributes, 'id'), mustBeSync: $this->mustBeSync);
+            ->post(path: $path, data: $data, mustBeSync: $this->mustBeSync);
 
         $object = new static();
 
         $attributes = $this->getAttributes();
-        $fields = $this->getFields();
-        $notValuedFields = array_values(array_diff($fields, array_keys($attributes)));
 
-        // ignore id
+        // get the mappings from model and current field to set null fields that doesn't have any value
+        $nullValueFields = $this->getNullValueFields($attributes);
+
         // Todo:needs more explanation
-        if (in_array('id', $notValuedFields)) {
-            unset($notValuedFields[array_search('id', $notValuedFields)]);
+        if (in_array('id', $nullValueFields)) {
+            unset($nullValueFields[array_search('id', $nullValueFields)]);
         }
 
         // sure if it doesn't have id and get if from elasticsearch
         // update the search query and also set the id that get from elasticsearch
-        if (!$isAttributesHasId = array_key_exists('id', $attributes)) {
-            $object->id = $isAttributesHasId ? $attributes['id'] : $this->parseId($response);
+        if (!$hasCustomId) {
+            $object->id = $this->getIdFromElasticsearchResponse($response);
             $this->updateQueryWithInsinuatedObject($object->id, $object);
         }
 
@@ -139,11 +154,28 @@ abstract class BaseElasticsearchModel
             $object->{$key} = $value;
         }
 
-        foreach ($notValuedFields as $notValuedField) {
+        foreach ($nullValueFields as $notValuedField) {
             $object->{$notValuedField} = null;
         }
 
         return $object;
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function saveMany(array $items)
+    {
+        $items = Arr::wrap($items);
+
+        // elasticsearch for doing bulk write need NDJSON data type instead of JSON
+        $bodyPayload = $this->generateNdJsonForBulkWrite($items);
+
+        Elasticsearch::setModel(static::class)
+            ->post('_bulk', $bodyPayload, $this->mustBeSync);
+
+        return true;
     }
 
     /**
@@ -204,7 +236,6 @@ abstract class BaseElasticsearchModel
             DB::beginTransaction();
 
             if ($this->mustDeleteJustSpecificRecord()) {
-
                 $this->refreshQueryBuilder();
 
                 $this->search['query']['bool']['should'][] = [
@@ -212,7 +243,6 @@ abstract class BaseElasticsearchModel
                         'values' => [$this->id]
                     ]
                 ];
-
             }
 
             Elasticsearch::setModel(static::class)
@@ -251,18 +281,20 @@ abstract class BaseElasticsearchModel
             return null;
         }
 
-        $rawId = $result[0]['_id'];
+        $result = $result[0];
+        $sourceResult = $result[self::SOURCE_KEY];
 
         $object = new static();
-
-        $object->{self::FIELD_ID} = is_numeric($rawId) ? intval($rawId) : $rawId;
-
         $object->search = $this->search;
 
-        $result = $result[0][self::SOURCE_KEY];
+        $object->{self::KEY_ID} = is_numeric($result['_id']) ? intval($result['_id']) : $result['_id'];
 
-        foreach ($result as $key => $value) {
+        foreach ($sourceResult as $key => $value) {
             $object->{$key} = $value;
+        }
+
+        foreach ($this->getNullValueFields($object->getAttributes()) as $nullKey) {
+            $object->{$nullKey} = null;
         }
 
         return $object;
@@ -377,7 +409,6 @@ abstract class BaseElasticsearchModel
 
         return $this->mapResultToCollection($response);
     }
-
 
     /**
      * @throws Throwable
@@ -1799,5 +1830,82 @@ abstract class BaseElasticsearchModel
                 'values' => [$id]
             ]
         ];
+    }
+
+    /**
+     * @param mixed $item
+     * @return array
+     */
+    private function getNormalizeItemWithIdIfExists(mixed $item): array
+    {
+        $normalizeItem = [];
+        $itemId = null;
+
+        foreach ($item as $key => $value) {
+            // set the elastic id
+            if ($key == 'id') {
+                $itemId = $value;
+                continue;
+            }
+
+            $normalizeItem[$key] = $value;
+        }
+
+        return [$normalizeItem, $itemId];
+    }
+
+    /**
+     * @param array $items
+     * @return string
+     * @throws \Exception
+     */
+    private function generateNdJsonForBulkWrite(array $items): string
+    {
+        $parameters = [];
+
+        $documentInfoTemplate = [
+            'index' => [
+                '_index' => Elasticsearch::setModel(static::class)->getIndexNameWithPrefix(),
+            ]
+        ];
+
+        foreach ($items as $item) {
+            [$normalizeItem, $id] = $this->getNormalizeItemWithIdIfExists($item);
+
+            $documentInfo = $documentInfoTemplate;
+
+            if (!is_null($id)) {
+                $documentInfo['index']['_id'] = $id;
+            }
+
+            $parameters[] = json_encode($documentInfo);
+            $parameters[] = json_encode($normalizeItem);
+        }
+
+        return implode("\n", $parameters) . "\n";
+    }
+
+    /**
+     * @return bool
+     */
+    private function hasCustomId(): bool
+    {
+        return array_key_exists('id', $this->attributes);
+    }
+
+    /**
+     * @param array $currentAttributes
+     * @return array
+     * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    private function getNullValueFields(array $currentAttributes): array
+    {
+        $fields = $this->getFields();
+
+        return array_values(
+            array_diff($fields, array_keys($currentAttributes))
+        );
     }
 }

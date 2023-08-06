@@ -2,16 +2,18 @@
 
 namespace Tests\Unit;
 
-use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
+
+use PHPUnit\Framework\TestCase;
+use Tests\DummyRequirements\Models\EUserModel;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
-use Mawebcoder\Elasticsearch\Models\Elasticsearch;
-use PHPUnit\Framework\TestCase;
 
 class ElasticQueryBuilderTest extends TestCase
 {
+
     public array $expected = [
         "query" => [
             "bool" => [
@@ -29,11 +31,11 @@ class ElasticQueryBuilderTest extends TestCase
         '_source' => []
     ];
 
-    protected Elasticsearch $elastic;
+    protected EUserModel $elastic;
 
     protected function setUp(): void
     {
-        $this->elastic = new Elasticsearch();
+        $this->elastic = new EUserModel();
     }
 
     public function test_elastic_where_without_operation(): void
@@ -806,7 +808,7 @@ class ElasticQueryBuilderTest extends TestCase
 
     public function test_elastic_take_method()
     {
-        $elastic = new Elasticsearch();
+        $elastic = new EUserModel();
 
         $size = 10;
 
@@ -820,7 +822,7 @@ class ElasticQueryBuilderTest extends TestCase
      */
     public function test_elastic_select_method()
     {
-        $elastic = new Elasticsearch();
+        $elastic = new EUserModel();
 
         $elastic->select('id', 'name', 'value')
             ->select('home', 'car');
@@ -843,7 +845,7 @@ class ElasticQueryBuilderTest extends TestCase
      */
     public function test_encounter_exception_if_select_input_is_no_scalar_type()
     {
-        $elastic = new Elasticsearch();
+        $elastic = new EUserModel();
 
         $this->expectException(SelectInputsCanNotBeArrayOrObjectException::class);
 
@@ -858,7 +860,7 @@ class ElasticQueryBuilderTest extends TestCase
      */
     public function test_order_by_method()
     {
-        $elastic = new Elasticsearch();
+        $elastic = new EUserModel();
 
         $elastic->orderBy('id', 'desc')
             ->orderBy('value');
@@ -882,7 +884,7 @@ class ElasticQueryBuilderTest extends TestCase
 
     public function test_sort_direction_exception()
     {
-        $elastic = new Elasticsearch();
+        $elastic = new EUserModel();
 
         $this->expectException(InvalidSortDirection::class);
 
@@ -896,7 +898,7 @@ class ElasticQueryBuilderTest extends TestCase
 
     public function testWhereNotLike()
     {
-        $elasticsearch = new Elasticsearch();
+        $elasticsearch = new EUserModel();
 
         $field = 'name';
 
@@ -918,7 +920,7 @@ class ElasticQueryBuilderTest extends TestCase
 
     public function testWhereLike()
     {
-        $elasticsearch = new Elasticsearch();
+        $elasticsearch = new EUserModel();
 
         $field = 'name';
 
@@ -941,7 +943,7 @@ class ElasticQueryBuilderTest extends TestCase
 
     public function testOrWhereNotLike()
     {
-        $elasticsearch = new Elasticsearch();
+        $elasticsearch = new EUserModel();
 
         $field = 'name';
 
@@ -964,7 +966,7 @@ class ElasticQueryBuilderTest extends TestCase
 
     public function testOrWhereLike()
     {
-        $elasticsearch = new Elasticsearch();
+        $elasticsearch = new EUserModel();
 
         $field = 'name';
 

@@ -2,31 +2,30 @@
 
 namespace Tests\Unit;
 
-use Mawebcoder\Elasticsearch\Models\Elasticsearch;
+
 use PHPUnit\Framework\TestCase;
+use Tests\DummyRequirements\Models\EUserModel;
 
 class AggregationsTest extends TestCase
 {
 
-    public Elasticsearch $elasticsearch;
+    public EUserModel $elasticsearch;
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        $this->elasticsearch = new Elasticsearch();
+        $this->elasticsearch = new EUserModel();
     }
 
     public function test_bucket_aggregation()
     {
-        $this->elasticsearch->bucket('name', 'any-name-number',1300);
+        $this->elasticsearch->bucket('name', 'any-name-number', 1300);
 
         $expected = [
             'any-name-number' =>
                 [
                     'terms' => [
                         'field' => 'name',
-                        'size'=>1300
+                        'size' => 1300
                     ]
                 ]
 

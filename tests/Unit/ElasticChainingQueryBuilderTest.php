@@ -2,10 +2,11 @@
 
 namespace Tests\Unit;
 
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
-use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
-use Mawebcoder\Elasticsearch\Models\Elasticsearch;
+
 use PHPUnit\Framework\TestCase;
+use Tests\DummyRequirements\Models\EUserModel;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
 
 class ElasticChainingQueryBuilderTest extends TestCase
 {
@@ -34,11 +35,11 @@ class ElasticChainingQueryBuilderTest extends TestCase
     public array $exceptions = ['foo', 'bar', 'xyz'];
     public array $values = ['foo', 'bar', 'xyz'];
 
-    protected Elasticsearch $elastic;
+    protected EUserModel $elastic;
 
     protected function setUp(): void
     {
-        $this->elastic = new Elasticsearch();
+        $this->elastic = new EUserModel();
     }
 
     public function test_elastic_chaining_where_or_where(): void

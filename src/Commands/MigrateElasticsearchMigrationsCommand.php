@@ -2,23 +2,22 @@
 
 namespace Mawebcoder\Elasticsearch\Commands;
 
+use Throwable;
+use ReflectionClass;
+use ReflectionException;
 use Illuminate\Console\Command;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
-use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
-use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
-use ReflectionClass;
-use ReflectionException;
-use Throwable;
+use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
+use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 
 class MigrateElasticsearchMigrationsCommand extends Command
 {
-    protected $signature = 'elastic:migrate {--reset} {--fresh}';
+    protected $signature = 'elastic:migrate {--reset} {{--just }} {--fresh} ';
     protected $description = 'migrate all loaded elasticsearch migrations';
 
     /**
@@ -49,8 +48,11 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
     private function getUnMigratedFiles(array $migrationsPath): array
     {
-        $migratedFiles = DB::table('elastic_search_migrations_logs')->select('migrations')
-            ->get()->pluck('migrations')->toArray();
+        $migratedFiles = DB::table('elastic_search_migrations_logs')
+            ->select('migrations')
+            ->get()
+            ->pluck('migrations')
+            ->toArray();
 
         $migrations = [];
 
@@ -141,8 +143,6 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
             $allMigrationsPath = $this->getUnMigratedFiles(ElasticApiService::$migrationsPath);
 
-            $allIndices = $elasticApiService->getAllIndexes();
-
             /**
              * remove indices from elasticsearch
              */
@@ -156,12 +156,16 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     continue;
                 }
 
-                $index = config('elasticsearch.index_prefix') ? config(
-                        'elasticsearch.index_prefix'
-                    ) . (new ReflectionClass($migrationObject->getModel()))->newInstance()->getIndex(
-                    ) : (new ReflectionClass($migrationObject->getModel()))->newInstance()->getIndex();
+                /* @var BaseElasticsearchModel $modelInstance */
+                $model = $migrationObject->getModel();
+                $modelInstance = new $model;
 
-                if (!in_array($index, $allIndices)) {
+                $index = config('elasticsearch.index_prefix')
+                    ? config('elasticsearch.index_prefix') . $modelInstance->getIndex()
+                    : $modelInstance->getIndex();
+
+                // prevent to run migrations that wants to apply change on the index that doesn't exist
+                if (!$modelInstance->isExistsIndex()) {
                     continue;
                 }
 
@@ -169,6 +173,11 @@ class MigrateElasticsearchMigrationsCommand extends Command
             }
 
             $this->info('all indices dropped');
+
+            // if user needs to just remove the indexes
+            if ($this->option('just')) {
+                return;
+            }
 
             foreach ($allMigrationsPath as $path) {
                 /**

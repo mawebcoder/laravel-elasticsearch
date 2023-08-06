@@ -266,7 +266,7 @@ Finally, migrate your migration:
 
 ### Store a recorde
 
-```
+``` php
 $eArticleModel=new EArticleModel();
 
 $eArticleModel->name='mohammad';
@@ -290,6 +290,30 @@ $eArticleModel->save();
 
 - Note: If you pass any field that doesn't exist in your mappings you will encounter handled exception that prevents from storing invalid data into DB.
 - Note: If you don't pass any field that exists in mapping,we set that as null by default
+
+### Store Several Records (Bulk Insert)
+
+``` php
+$users = [
+    [
+        id => 1,
+        name => 'Mohsen',
+        is_active => true,
+        text => 'your text',
+        age => 25
+    ],
+    [
+        id => 2,
+        name => 'Ali',
+        is_active => true,
+        text => 'your text',
+        age => 20
+    ]
+];
+
+EUserModel::newQuery()->saveMany($users);
+```
+
 ### Find record
 
 ```
