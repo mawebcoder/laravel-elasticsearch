@@ -17,7 +17,7 @@ use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 
 class MigrateElasticsearchMigrationsCommand extends Command
 {
-    protected $signature = 'elastic:migrate {--reset} {{--just }} {--fresh} ';
+    protected $signature = 'elastic:migrate {--reset} {--just} {--fresh} ';
     protected $description = 'migrate all loaded elasticsearch migrations';
 
     /**
