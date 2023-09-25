@@ -188,14 +188,15 @@ abstract class BaseElasticsearchModel
      */
     public function update(array $options): bool
     {
-        $this->checkMapping($options);
+        // Todo: disable check mapping because has bug on the object type
+        // $this->checkMapping($options);
 
         $this->search['script']['source'] = '';
 
         foreach ($options as $key => $value) {
-            $this->search['script']['source'] .= "ctx._source.$key=params." . $key . ';';
-
-            $this->search['script']['params'][$key] = $value;
+            $parameterName = str_replace('.', '_', $key);
+            $this->search['script']['source'] .= "ctx._source.$key=params." . $parameterName . ';';
+            $this->search['script']['params'][$parameterName] = $value;
         }
 
         $this->search['script']['source'] = trim($this->search['script']['source'], ';');
