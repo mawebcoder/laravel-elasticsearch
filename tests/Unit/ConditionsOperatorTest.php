@@ -48,6 +48,39 @@ class ConditionsOperatorTest extends TestCase
         $this->assertEquals($arr, $this->elasticsearch->search);
     }
 
+    /**
+     * @throws Throwable
+     */
+    public function test_where_id_can_be_replaced_with_elastic_id()
+    {
+        $this->elasticsearch->where('id', false);
+
+        $expected = [
+            "query" => [
+                "bool" => [
+                    "should" => [
+                        0 => [
+                            "bool" => [
+                                "must" => [
+                                    0 => [
+                                        "term" => [
+                                            "_id" => [
+                                                "value" => false
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "_source" => []
+        ];
+
+        $this->assertEquals($expected,$this->elasticsearch->search);
+    }
+
 
     /**
      * @throws Throwable

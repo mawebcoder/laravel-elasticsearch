@@ -421,6 +421,8 @@ abstract class BaseElasticsearchModel
     ): static|array {
         $numberOfArguments = count(func_get_args());
 
+        $field = $this->parseField($field);
+
         [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
@@ -622,7 +624,7 @@ abstract class BaseElasticsearchModel
         bool $inClosure = false
     ): static|array {
         $numberOfArguments = count(func_get_args());
-
+        $field = $this->parseField($field);
         list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
@@ -696,7 +698,7 @@ abstract class BaseElasticsearchModel
         bool $inClosure = false
     ): static|array {
         $numberOfArguments = count(func_get_args());
-
+        $field = $this->parseField($field);
         list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
@@ -772,6 +774,7 @@ abstract class BaseElasticsearchModel
 
     public function whereIn(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
         if ($inClosure) {
             return [
                 'terms' => [
@@ -805,6 +808,7 @@ abstract class BaseElasticsearchModel
 
     public function whereNotIn(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
         if ($inClosure) {
             return [
                 'bool' => [
@@ -847,6 +851,8 @@ abstract class BaseElasticsearchModel
      */
     public function whereBetween(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
+
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
@@ -904,6 +910,7 @@ abstract class BaseElasticsearchModel
      */
     public function whereNotBetween(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
@@ -967,6 +974,8 @@ abstract class BaseElasticsearchModel
         bool $inClosure = false
     ): static|array {
         $numberOfArguments = count(func_get_args());
+
+        $field=$this->parseField($field);
 
         list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
@@ -1165,6 +1174,7 @@ abstract class BaseElasticsearchModel
 
     public function orWhereIn(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
         if ($inClosure) {
             return [
                 'terms' => [
@@ -1196,6 +1206,7 @@ abstract class BaseElasticsearchModel
 
     public function orWhereNotIn(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
         if ($inClosure) {
             return [
                 'bool' => [
@@ -1237,6 +1248,8 @@ abstract class BaseElasticsearchModel
      */
     public function orWhereBetween(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
+
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
@@ -1286,6 +1299,7 @@ abstract class BaseElasticsearchModel
      */
     public function orWhereNotBetween(string $field, array $values, bool $inClosure = false): static|array
     {
+        $field = $this->parseField($field);
         if (count($values) != 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
@@ -1351,7 +1365,11 @@ abstract class BaseElasticsearchModel
         $fields = [];
 
         foreach ($this->search[self::SOURCE_KEY] as $field) {
-            $fields[] = $field;
+
+            $parsedField=$this->parseField($field);
+
+            $fields[] = $parsedField;
+
         }
 
         foreach (func_get_args() as $field) {
@@ -1566,6 +1584,7 @@ abstract class BaseElasticsearchModel
         int $prefixLength = 0,
         bool $inClosure = false
     ): static|array {
+        $field = $this->parseField($field);
         if ($inClosure) {
             return [
                 [
@@ -1612,6 +1631,7 @@ abstract class BaseElasticsearchModel
         int $prefixLength = 0,
         bool $isClosure = false
     ): static|array {
+        $field = $this->parseField($field);
         if ($isClosure) {
             return [
                 'fuzzy' => [
@@ -1907,5 +1927,14 @@ abstract class BaseElasticsearchModel
         return array_values(
             array_diff($fields, array_keys($currentAttributes))
         );
+    }
+
+    private function parseField(string $field): string
+    {
+        if ($field === self::KEY_ID) {
+            return '_id';
+        }
+
+        return $field;
     }
 }
