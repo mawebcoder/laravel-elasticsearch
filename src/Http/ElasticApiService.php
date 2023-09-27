@@ -73,6 +73,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $path = $this->buildPath($path, $mustBeSync);
         $path = trim($path, '/');
 
+
         if (empty($data)) {
             return $this->client->head($path);
         }
@@ -347,6 +348,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function buildPath(?string $path, bool $mustBeSync): string
     {
+
         if ($this->isTempIndex) {
             $path = $this->generateBaseIndexPath() . trim($path);
         } else {
@@ -356,7 +358,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $parts = parse_url($path);
 
         $mustBeSync && $path .= isset($parts['query']) ? '&refresh=true' : '?refresh=true';
-
         return $path;
     }
 }

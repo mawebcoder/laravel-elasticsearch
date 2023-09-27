@@ -72,7 +72,9 @@ class BaseIntegrationTestCase extends TestCase
         self::$isBootApplication = true;
 
         $classReferenceCurrentTest = (new ReflectionClass(static::class))->getName();
+
         $integrationTest = new self($classReferenceCurrentTest);
+
         $integrationTest->setUp();
     }
 
@@ -89,10 +91,11 @@ class BaseIntegrationTestCase extends TestCase
                 'migrate --path=/database/migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
             );
         }
-
         // load the test elastic migrations
         Elasticsearch::loadMigrationsFrom(static::getMigrationPath());
+
         Artisan::call('elastic:migrate --fresh');
+
     }
 
     public static function truncateTestModels()

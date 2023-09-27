@@ -1016,7 +1016,7 @@ class ElasticQueryBuilderTest extends TestCase
         $elasticsearch->orWhere($field, 'like', $value);
 
         $this->expected['query']['bool']['should'][]
-        = [
+            = [
             "match_phrase_prefix" => [
                 $field => [
                     'query' => $value

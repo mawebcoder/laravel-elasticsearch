@@ -975,7 +975,7 @@ abstract class BaseElasticsearchModel
     ): static|array {
         $numberOfArguments = count(func_get_args());
 
-        $field=$this->parseField($field);
+        $field = $this->parseField($field);
 
         list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
 
@@ -1360,16 +1360,15 @@ abstract class BaseElasticsearchModel
             throw  new AtLeastOneArgumentMustBeChooseInSelect();
         }
 
+
         $this->validateIncomeSelection(func_get_args());
 
         $fields = [];
 
         foreach ($this->search[self::SOURCE_KEY] as $field) {
-
-            $parsedField=$this->parseField($field);
+            $parsedField = $this->parseField($field);
 
             $fields[] = $parsedField;
-
         }
 
         foreach (func_get_args() as $field) {

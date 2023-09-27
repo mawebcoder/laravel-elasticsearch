@@ -36,7 +36,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testSetNullForUndefinedMappedData()
     {
         $data = [
@@ -61,7 +60,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             $result->attributes
         );
     }
-
 
 
     public function testCanUpdateData()
@@ -99,7 +97,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testCanDeleteDataByModelRecord()
     {
         $data = [
@@ -119,7 +116,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testSelect()
     {
         $this->registerSomeTestUserRecords();
@@ -133,7 +129,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals([EUserModel::KEY_NAME, BaseElasticsearchModel::KEY_ID],
             array_keys($firstResultAttributes));
     }
-
 
 
     public function testTake()
@@ -160,7 +155,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testWhereEqualCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -178,7 +172,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testWhereNotEqualCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -190,7 +183,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $this->assertEquals(2, $results->count());
     }
-
 
 
     public function testOrWhereCondition()
@@ -215,7 +207,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testNotBetweenCondition()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -230,7 +221,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $this->assertTrue($results->contains(fn($row) => intval($row->age) === $data[2]->{EUserModel::KEY_AGE}));
     }
-
 
 
     public function testOrBetweenCondition()
@@ -260,7 +250,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testOrderByAsc()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -281,7 +270,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $this->assertEquals($data[2]->{EUserModel::KEY_AGE}, $third->{EUserModel::KEY_AGE});
     }
-
 
 
     public function testOrderByDesc()
@@ -359,7 +347,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
     public function testOrWhereEqual()
     {
         $data = $this->registerSomeTestUserRecords();
@@ -375,7 +362,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $this->assertTrue($results->contains(fn($row) => $row->name === $data[1]->{EUserModel::KEY_NAME}));
     }
-
 
 
     public function testWhereGreaterThan()
@@ -604,6 +590,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     {
         $mappings = EUserModel::newQuery()->getMappings();
 
+
+
         $expected = [
             EUserModel::KEY_AGE => [
                 'type' => 'integer'
@@ -621,4 +609,5 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $this->assertEquals($expected, $mappings);
     }
+
 }
