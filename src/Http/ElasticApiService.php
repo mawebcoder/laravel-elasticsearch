@@ -285,6 +285,21 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function dropModelIndex(): ResponseInterface|null
     {
+        if (!$this->elasticModel) {
+            throw new ModelNotDefinedException();
+        }
+
+        /**
+         * @type BaseElasticsearchModel $model
+         */
+        $model = new ReflectionClass($this->elasticModel);
+
+        $index = $model->getIndexWithPrefix();
+
+        if (!$this->hasIndex($index)) {
+            return null;
+        }
+
         $fullPath = $this->generateBaseIndexPath();
 
         return $this->client->delete($fullPath);
@@ -292,6 +307,18 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
     /**
      * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function hasIndex(string $index): bool
+    {
+        $allIndices = $this->getAllIndexes();
+
+        return in_array($index, $allIndices, true);
+    }
+
+    /**
+     * @throws GuzzleException
+     * @throws JsonException
      */
     public function getAllIndexes(): array
     {
@@ -299,10 +326,12 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $response = $this->client->get($path);
 
-        $result = json_decode($response->getBody(), true);
+        $result = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
         if (isset($result['.tasks'])) {
             unset($result['..tasks']);
         }
+
         return array_keys($result);
     }
 
@@ -353,7 +382,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function buildPath(?string $path, bool $mustBeSync): string
     {
-
         if ($this->isTempIndex) {
             $path = $this->generateBaseIndexPath() . trim($path);
         } else {

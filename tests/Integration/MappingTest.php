@@ -99,7 +99,7 @@ class MappingTest extends BaseIntegrationTestCase
      * @throws ReflectionException
      * @throws GuzzleException
      */
-    public function testCheckMappingDoesNotAllowWrongOptionsToContinueForNestedOptionsInParentLevel():void
+    public function testCheckMappingDoesNotAllowWrongOptionsToContinueForNestedOptionsInParentLevel(): void
     {
         $elasticsearch = new EUserModel();
 
