@@ -172,10 +172,8 @@ abstract class BaseElasticsearchModel
         // elasticsearch for doing bulk write need NDJSON data type instead of JSON
         $bodyPayload = $this->generateNdJsonForBulkWrite($items);
 
-        Elasticsearch::setModel(static::class)
+        return Elasticsearch::setModel(static::class)
             ->post('_bulk', $bodyPayload, $this->mustBeSync);
-
-        return true;
     }
 
     /**
