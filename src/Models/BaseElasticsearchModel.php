@@ -188,8 +188,7 @@ abstract class BaseElasticsearchModel
      */
     public function update(array $options): bool
     {
-        // Todo: disable check mapping because has bug on the object type
-        // $this->checkMapping($options);
+        $this->checkMapping($options);
 
         $this->search['script']['source'] = '';
 
@@ -1374,6 +1373,10 @@ abstract class BaseElasticsearchModel
         }
 
         foreach (func_get_args() as $field) {
+            if ($field === self::KEY_ID) {
+                $field = '_id';
+            }
+
             $fields[] = $field;
         }
 
@@ -1474,15 +1477,59 @@ abstract class BaseElasticsearchModel
      */
     public function checkMapping(array $options): void
     {
-        $fields = $this->getFields();
+        $fields = $this->getMappings();
 
-        foreach ($options as $field => $option) {
-            if (!in_array($field, $fields)) {
+        foreach ($options as $field => $value) {
+            if ($this->isNestedField($field)) {
+                $nestedElementsFields = $this->getNestedFieldsAsArray($field);
+
+                if (!$this->checkFieldExistsInMapping($nestedElementsFields[0], $fields)) {
+
+                    throw new FieldNotDefinedInIndexException(
+                        message: "field with name " . $nestedElementsFields[0] . " not defined in model index"
+                    );
+                }
+
+                if (!is_array($fields[$nestedElementsFields[0]])) {
+                    throw new FieldNotDefinedInIndexException(
+                        message: "$nestedElementsFields[0] is not a object type"
+                    );
+                }
+
+                $objectKeysAsFlat = $this->arrayKeysRecursiveAsFlat($fields[$nestedElementsFields[0]]['properties']);
+
+                $objectKeysAsFlat = array_filter($objectKeysAsFlat, static fn($row) => $row !== 'type');
+
+                array_shift($nestedElementsFields);
+
+                foreach ($nestedElementsFields as $nestedElementsField) {
+                    if (!in_array($nestedElementsField, $objectKeysAsFlat, true)) {
+                        throw new FieldNotDefinedInIndexException(
+                            message: "field with name $nestedElementsField does not exist in index mapping"
+                        );
+                    }
+                }
+            } elseif (!array_key_exists($field, $fields)) {
                 throw new FieldNotDefinedInIndexException(
                     message: "field with name " . $field . " not defined in model index"
                 );
             }
         }
+    }
+
+    public function arrayKeysRecursiveAsFlat($array): array
+    {
+        $keys = [];
+        foreach ($array as $key => $value) {
+            $keys[] = $key;
+            if (is_array($value)) {
+                $keys = [
+                    ...$keys,
+                    ...$this->arrayKeysRecursiveAsFlat($value)
+                ];
+            }
+        }
+        return $keys;
     }
 
     /**
@@ -1930,12 +1977,36 @@ abstract class BaseElasticsearchModel
         );
     }
 
-    private function parseField(string $field): string
+    public function parseField(string $field): string
     {
         if ($field === self::KEY_ID) {
             return '_id';
         }
 
         return $field;
+    }
+
+    public function isNestedField(int|string $field): bool
+    {
+        return count($this->getNestedFieldsAsArray($field)) > 1;
+    }
+
+    /**
+     * @param int|string $field
+     * @return string[]
+     */
+    public function getNestedFieldsAsArray(int|string $field): array
+    {
+        return explode('.', $field);
+    }
+
+    /**
+     * @param $key
+     * @param array $fields
+     * @return bool
+     */
+    public function checkFieldExistsInMapping($key, array $fields): bool
+    {
+        return array_key_exists($key, $fields);
     }
 }

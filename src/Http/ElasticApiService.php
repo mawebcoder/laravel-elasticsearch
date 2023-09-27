@@ -64,6 +64,10 @@ class ElasticApiService implements ElasticHttpRequestInterface
         return $this->client->post($path, $options);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
     public function head(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
     {
         $path = $this->buildPath($path, $mustBeSync);

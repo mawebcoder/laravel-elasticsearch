@@ -169,6 +169,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     continue;
                 }
 
+
                 $migrationObject->down();
             }
 

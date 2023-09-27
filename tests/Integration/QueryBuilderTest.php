@@ -2,6 +2,9 @@
 
 namespace Tests\Integration;
 
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\RequestException;
+use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Tests\TestCase\Integration\BaseIntegrationTestCase;
@@ -592,8 +595,12 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-
-    public function testGetMappings()
+    /**
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testGetMappings(): void
     {
         $mappings = EUserModel::newQuery()->getMappings();
 

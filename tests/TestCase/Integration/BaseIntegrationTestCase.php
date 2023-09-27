@@ -86,9 +86,7 @@ class BaseIntegrationTestCase extends TestCase
         // sure, elastics-each logs migration migrate!
         if (!Schema::hasTable('elastic_search_migrations_logs')) {
             Artisan::call(
-                'migrate --path=' . database_path(
-                    'migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
-                )
+                'migrate --path=/database/migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
             );
         }
 

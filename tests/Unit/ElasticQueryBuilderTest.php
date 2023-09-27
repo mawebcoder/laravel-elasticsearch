@@ -828,7 +828,7 @@ class ElasticQueryBuilderTest extends TestCase
             ->select('home', 'car');
 
         $expectation = [
-            'id',
+            '_id',
             'name',
             'value',
             'home',
@@ -837,6 +837,47 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->assertEquals($expectation, $elastic->search['_source']);
     }
+
+
+    public function test_parse_field(): void
+    {
+        $elastic = new EUserModel();
+
+        $field = $elastic->parseField('id');
+
+        $this->assertEquals('_id', $field);
+    }
+
+    public function testIsNestedMethodReturnsTrueIfIsNestedString(): void
+    {
+        $elastic = new EUserModel();
+
+        $isNested = $elastic->isNestedField('mohammad.amiri');
+
+        $this->assertTrue($isNested);
+    }
+
+    public function testIsNestedMethodReturnsFalseIfIsNestedString(): void
+    {
+        $elastic = new EUserModel();
+
+        $isNested = $elastic->isNestedField('mohammad');
+
+        $this->assertFalse($isNested);
+    }
+
+    public function testGetNestedFieldsAsArrayMethod():void
+    {
+        $elastic = new EUserModel();
+
+        $result = $elastic->getNestedFieldsAsArray('mohammad.amiri');
+
+        $this->assertEquals([
+            'mohammad',
+            'amiri'
+        ], $result);
+    }
+
 
     /**
      * @return void
