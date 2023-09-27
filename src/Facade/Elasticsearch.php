@@ -18,6 +18,7 @@ use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
  * @method static array getAllIndexes()
  * @method static array getFields()
  * @method static array getMappings()
+ * @method static bool hasIndex(string $index)
  */
 class Elasticsearch extends Facade
 {

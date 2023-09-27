@@ -32,7 +32,6 @@ class MigrationTest extends TestCase
     protected function setUp(): void
     {
         $this->afterApplicationCreated(function () {
-
             Artisan::call(
                 'migrate --path="' . database_path(
                     'migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
@@ -184,5 +183,14 @@ class MigrationTest extends TestCase
         $this->assertSame($expectedMappings, $actualMappings);
 
         $this->dummyMigration->down();
+    }
+
+    public function testPrefixIndex(): void
+    {
+        $elasticsearch = new EUserModel();
+
+        $index = $elasticsearch->getIndexWithPrefix();
+
+        $this->assertEquals(config('elasticsearch.index_prefix') . $elasticsearch->getIndex(), $index);
     }
 }

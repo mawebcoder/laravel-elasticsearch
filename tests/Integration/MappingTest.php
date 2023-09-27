@@ -6,6 +6,7 @@ use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Tests\TestCase\Integration\BaseIntegrationTestCase;
@@ -111,6 +112,53 @@ class MappingTest extends BaseIntegrationTestCase
         $this->expectExceptionMessage('field with name informations not defined in model index');
 
         $elasticsearch->checkMapping($options);
+    }
+
+    public function testCheckRecursiveGetKeys(): void
+    {
+        $array = [
+            'information' => [
+                'names' => [
+                    [
+                        'age' => 10
+                    ],
+                    [
+                        'age' => 20
+                    ]
+                ],
+                'values' => [
+                    'key' => [
+                        'ali' => [
+                            'age' => 'value'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $elasticsearch = new EUserModel();
+
+        $result = $elasticsearch->arrayKeysRecursiveAsFlat($array);
+
+        $this->assertEquals([
+            "information",
+            "names",
+            0,
+            "age",
+            1,
+            "age",
+            "values",
+            "key",
+            "ali",
+            "age"
+        ], $result);
+    }
+
+    public function testCheckCanGetAllIndices(): void
+    {
+        $indices = Elasticsearch::getAllIndexes();
+
+        $this->assertIsArray($indices);
     }
 
 }

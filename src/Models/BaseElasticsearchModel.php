@@ -31,6 +31,7 @@ abstract class BaseElasticsearchModel
 
     private int $closureCounter = 0;
 
+
     private bool $mustBeSync = false;
 
     private string $conditionStatus;
@@ -65,6 +66,19 @@ abstract class BaseElasticsearchModel
     ];
 
     abstract public function getIndex(): string;
+
+    public function getIndexWithPrefix(): string
+    {
+        $index = '';
+
+        if (config('elasticsearch.index_prefix')) {
+            $index = config('elasticsearch.index_prefix');
+        }
+
+        $index .= $this->getIndex();
+
+        return $index;
+    }
 
 
     public function __set(string $name, $value): void
@@ -1481,7 +1495,6 @@ abstract class BaseElasticsearchModel
                 $nestedElementsFields = $this->getNestedFieldsAsArray($field);
 
                 if (!$this->checkFieldExistsInMapping($nestedElementsFields[0], $fields)) {
-
                     throw new FieldNotDefinedInIndexException(
                         message: "field with name " . $nestedElementsFields[0] . " not defined in model index"
                     );
@@ -1517,6 +1530,7 @@ abstract class BaseElasticsearchModel
     public function arrayKeysRecursiveAsFlat($array): array
     {
         $keys = [];
+
         foreach ($array as $key => $value) {
             $keys[] = $key;
             if (is_array($value)) {
@@ -1526,6 +1540,7 @@ abstract class BaseElasticsearchModel
                 ];
             }
         }
+
         return $keys;
     }
 

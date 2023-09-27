@@ -3,6 +3,9 @@
 namespace Mawebcoder\Elasticsearch\Http;
 
 
+use Couchbase\IndexNotFoundException;
+use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\ModelNotDefinedException;
 use ReflectionClass;
 use GuzzleHttp\Client;
 use ReflectionException;
@@ -275,10 +278,12 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
 
     /**
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws JsonException
+     * @throws ModelNotDefinedException
+     * @throws ReflectionException
      */
-    public function dropModelIndex(): ResponseInterface
+    public function dropModelIndex(): ResponseInterface|null
     {
         $fullPath = $this->generateBaseIndexPath();
 
