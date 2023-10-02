@@ -3,6 +3,11 @@
 namespace Mawebcoder\Elasticsearch\Models;
 
 use Closure;
+use Exception;
+use JetBrains\PhpStorm\NoReturn;
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Ramsey\Uuid\Exception\UnableToBuildUuidException;
 use Throwable;
 use ReflectionException;
 use Illuminate\Support\Arr;
@@ -31,6 +36,15 @@ abstract class BaseElasticsearchModel
 
     private int $closureCounter = 0;
 
+    public const OPERATOR_LIKE = 'like';
+    public const OPERATOR_NOT_LIKE = 'not like';
+    public const   OPERATOR_EQUAL = '=';
+    public const   OPERATOR_NOT_EQUAL = '!=';
+    public const   OPERATOR_NOT_EQUAL_SPACESHIP = '<>';
+    public const   OPERATOR_LT = '<';
+    public const   OPERATOR_GT = '>';
+    public const   OPERATOR_GTE = '>=';
+    public const   OPERATOR_LTE = '<=';
 
     private bool $mustBeSync = false;
 
@@ -41,13 +55,12 @@ abstract class BaseElasticsearchModel
     /**
      * @deprecated please use KEY_ID instead
      */
-    const FIELD_ID = 'id';
+    public const FIELD_ID = 'id';
 
-    const SOURCE_KEY = '_source';
+    public const SOURCE_KEY = '_source';
 
-    const KEY_ID = 'id';
+    public const KEY_ID = 'id';
     public const MUST_INDEX = 0;
-    public const MUST_NOT_INDEX = 1;
     public array $search = [
         "query" => [
             "bool" => [
@@ -86,13 +99,14 @@ abstract class BaseElasticsearchModel
         $this->attributes[$name] = $value;
     }
 
+    public function __isset(string $name): bool
+    {
+        return false;
+    }
+
     public function __get(string $name)
     {
-        if (!isset($this->attributes[$name])) {
-            return null;
-        }
-
-        return $this->attributes[$name];
+        return $this->attributes[$name] ?? null;
     }
 
 
@@ -102,6 +116,8 @@ abstract class BaseElasticsearchModel
      */
     public function truncate(): void
     {
+       $this->refreshSearch();
+
         $this->search = [
             'query' => [
                 'match_all' => [
@@ -152,16 +168,16 @@ abstract class BaseElasticsearchModel
         // get the mappings from model and current field to set null fields that doesn't have any value
         $nullValueFields = $this->getNullValueFields($attributes);
 
-        // Todo:needs more explanation
-        if (in_array('id', $nullValueFields)) {
-            unset($nullValueFields[array_search('id', $nullValueFields)]);
+
+        if (in_array('id', $nullValueFields, true)) {
+            unset($nullValueFields[array_search('id', $nullValueFields, true)]);
         }
 
         // sure if it doesn't have id and get if from elasticsearch
         // update the search query and also set the id that get from elasticsearch
         if (!$hasCustomId) {
-            $object->id = $this->getIdFromElasticsearchResponse($response);
-            $this->updateQueryWithInsinuatedObject($object->id, $object);
+            $object->{self::KEY_ID} = $this->getIdFromElasticsearchResponse($response);
+            $this->updateQueryWithInsinuatedObject($object->{self::KEY_ID}, $object);
         }
 
         foreach ($attributes as $key => $value) {
@@ -178,36 +194,43 @@ abstract class BaseElasticsearchModel
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws Exception
      */
-    public function saveMany(array $items)
+    public function saveMany(array $items): ResponseInterface
     {
         $items = Arr::wrap($items);
 
-        // elasticsearch for doing bulk write need NDJSON data type instead of JSON
         $bodyPayload = $this->generateNdJsonForBulkWrite($items);
 
         return Elasticsearch::setModel(static::class)
             ->post('_bulk', $bodyPayload, $this->mustBeSync);
     }
 
+
     /**
-     * @param array $options
-     * @return bool
-     * @throws FieldNotDefinedInIndexException
      * @throws GuzzleException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function update(array $options): bool
     {
-        $this->checkMapping($options);
-
         $this->search['script']['source'] = '';
+
 
         foreach ($options as $key => $value) {
             $parameterName = str_replace('.', '_', $key);
             $this->search['script']['source'] .= "ctx._source.$key=params." . $parameterName . ';';
             $this->search['script']['params'][$parameterName] = $value;
+        }
+
+        if ($this->isCalledFromObject()) {
+
+            $this->search['query']['bool']['should'] = [];
+
+            $this->search['query']['bool']['should'][] = [
+                'ids' => [
+                    'values' => [$this->{self::KEY_ID}]
+                ]
+            ];
         }
 
         $this->search['script']['source'] = trim($this->search['script']['source'], ';');
@@ -247,7 +270,7 @@ abstract class BaseElasticsearchModel
         try {
             DB::beginTransaction();
 
-            if ($this->mustDeleteJustSpecificRecord()) {
+            if ($this->isCalledFromObject()) {
                 $this->refreshQueryBuilder();
 
                 $this->search['query']['bool']['should'][] = [
@@ -267,16 +290,16 @@ abstract class BaseElasticsearchModel
         }
     }
 
-    private function mustDeleteJustSpecificRecord(): bool
+    private function isCalledFromObject(): bool
     {
-        return boolval(count($this->attributes));
+        return (bool)count($this->attributes);
     }
 
     /**
-     * @param $id
-     * @return $this|null
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws JsonException
      */
     public function find($id): ?static
     {
@@ -285,7 +308,7 @@ abstract class BaseElasticsearchModel
         $response = Elasticsearch::setModel(static::class)
             ->post('_search', $this->search);
 
-        $result = json_decode($response->getBody(), true);
+        $result = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
         $result = $result['hits']['hits'];
 
@@ -297,6 +320,7 @@ abstract class BaseElasticsearchModel
         $sourceResult = $result[self::SOURCE_KEY];
 
         $object = new static();
+
         $object->search = $this->search;
 
         $object->{self::KEY_ID} = is_numeric($result['_id']) ? intval($result['_id']) : $result['_id'];
@@ -396,21 +420,21 @@ abstract class BaseElasticsearchModel
 
 
     /**
-     * @return mixed
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws JsonException
      */
     public function requestForSearch(): mixed
     {
         $response = Elasticsearch::setModel(static::class)
             ->post('_doc/_search', $this->search);
 
-        return json_decode($response->getBody(), true);
+        return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
-     * @return Collection
      * @throws GuzzleException
+     * @throws JsonException
      * @throws ReflectionException
      */
     public function get(): Collection
@@ -438,85 +462,11 @@ abstract class BaseElasticsearchModel
         [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
-            return match ($operation) {
-                "<>", "!=" => [
-                    'bool' => [
-                        'must_not' => [
-                            [
-                                "term" => [
-                                    $field => [
-                                        'value' => $value
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                ">" => [
-                    'range' => [
-                        $field => [
-                            "gt" => $value
-                        ]
-                    ]
-                ],
-                ">=" => [
-                    'range' => [
-                        $field => [
-                            "gte" => $value
-                        ]
-                    ]
-                ],
-                "<" => [
-                    'range' => [
-                        $field => [
-                            "lt" => $value
-                        ]
-                    ]
-                ],
-                "<=" => [
-                    'range' => [
-                        $field => [
-                            "lte" => $value
-                        ]
-                    ]
-                ],
-                "like" => [
-                    "match_phrase_prefix" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ],
-                "not like" => [
-                    'bool' => [
-                        'must_not' => [
-                            [
-                                "match_phrase_prefix" => [
-                                    $field => [
-                                        'query' => $value
-                                    ],
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                default => [
-                    "term" => [
-                        $field => [
-                            'value' => $value
-                        ]
-                    ]
-                ],
-            };
+            return $this->getInClosureQueryForWhere($operation, $value, $field);
         }
 
         if ($field instanceof Closure) {
-            $this->closureCounter++;
-            $this->conditionStatus = 'where';
-
-            $field($this);
-
-            return $this;
+            return $this->increaseClosureCounter($field);
         }
 
         $backtrace = debug_backtrace();
@@ -535,137 +485,36 @@ abstract class BaseElasticsearchModel
             return $this;
         }
 
-
-        switch ($operation) {
-            case "<>":
-            case "!=":
-                $this->search['query']['bool']['should']
-                [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
-                    "term" => [
-                        $field => [
-                            'value' => $value
-                        ]
-                    ]
-                ];
-                break;
-
-            case ">":
-
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    'range' => [
-                        $field => [
-                            "gt" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case ">=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    'range' => [
-                        $field => [
-                            "gte" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case "<":
-
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    'range' => [
-                        $field => [
-                            "lt" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case "<=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    'range' => [
-                        $field => [
-                            "lte" => $value
-                        ]
-                    ]
-                ];
-                break;
-
-            case "like":
-
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    "match_phrase_prefix" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-
-                break;
-
-            case "not like":
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
-                    "match_phrase_prefix" => [
-                        $field => [
-                            'query' => $value
-                        ],
-                    ]
-                ];
-                break;
-            case '=':
-            default:
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    "term" => [
-                        $field => [
-                            'value' => $value
-                        ]
-                    ]
-                ];
-                break;
-        }
+        $this->getQueryForWhere($operation, $value, $field);
 
         return $this;
     }
 
     private function isCalledFromClosure(string $parentFunction): bool
     {
-        return $parentFunction == '{closure}';
+        return $parentFunction === '{closure}';
     }
 
     public function whereTerm(
-        string $field,
+        string|Closure $field,
         $operation = null,
         $value = null,
         bool $inClosure = false
     ): static|array {
         $numberOfArguments = count(func_get_args());
+
         $field = $this->parseField($field);
-        list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
+
+        [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
-            return match ($operation) {
-                "<>", "!=" => [
-                    'bool' => [
-                        'must_not' => [
-                            [
-                                "match" => [
-                                    $field => [
-                                        'query' => $value
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                default => [
-                    "match" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ],
-            };
+            return $this->getQueryBuilderForWhereTermInClosureState($operation, $value, $field);
         }
+
         $backtrace = debug_backtrace();
 
         $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -677,28 +526,7 @@ abstract class BaseElasticsearchModel
             return $this;
         }
 
-        switch ($operation) {
-            case "<>":
-            case "!=":
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
-                    "match" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-                break;
-            case '=':
-            default:
-                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
-                    "match" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-                break;
-        }
+        $this->getQueryBuilderForWhereTerm($operation, $field, $value);
 
         return $this;
     }
@@ -710,32 +538,13 @@ abstract class BaseElasticsearchModel
         bool $inClosure = false
     ): static|array {
         $numberOfArguments = count(func_get_args());
+
         $field = $this->parseField($field);
-        list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
+
+        [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
-            return match ($operation) {
-                "<>", "!=" => [
-                    'bool' => [
-                        'must_not' => [
-                            [
-                                "match" => [
-                                    $field => [
-                                        'query' => $value
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                default => [
-                    "match" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ],
-            };
+            return $this->getQueryBuilderForWhereTermInClosureState($operation, $value, $field);
         }
 
         if ($field instanceof Closure) {
@@ -746,57 +555,43 @@ abstract class BaseElasticsearchModel
 
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
                 'condition' => 'or',
-                'method' => 'orWhereTerm'
+                'method' => __FUNCTION__
             ];
             return $this;
         }
 
-        switch ($operation) {
-            case "<>":
-            case "!=":
-                $this->search['query']['bool']['should'][]['bool']['must_not'] = [
-                    "match" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-                break;
-            case '=':
-            default:
-                $this->search['query']['bool']['should'][] = [
-                    "match" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-                break;
-        }
+        $this->buildQueryForOrWhereTerm($operation, $field, $value);
 
         return $this;
     }
 
-    public function whereIn(string $field, array $values, bool $inClosure = false): static|array
+    public function whereIn(string|callable $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
+
+        /**
+         * @todo we need to review the closures again
+         */
         if ($inClosure) {
             return [
                 'terms' => [
                     $field => $values
-                ]
+                ],
             ];
         }
+
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -810,17 +605,30 @@ abstract class BaseElasticsearchModel
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
-                $field => $values
+                $field => array_filter($values, static fn($value) => !is_null($value))
             ]
         ];
+
+
+        if ($this->isThereNulValueInValues($values)) {
+            $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                'exists' => [
+                    'field' => $field
+                ]
+            ];
+        }
 
         return $this;
     }
 
 
-    public function whereNotIn(string $field, array $values, bool $inClosure = false): static|array
+    public function whereNotIn(string|callable $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
+
+        /**
+         * @todo we need to review the closures again
+         */
         if ($inClosure) {
             return [
                 'bool' => [
@@ -834,9 +642,11 @@ abstract class BaseElasticsearchModel
                 ]
             ];
         }
+
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -853,6 +663,14 @@ abstract class BaseElasticsearchModel
             ]
         ];
 
+        if ($this->isThereNulValueInValues($values)) {
+            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                'exists' => [
+                    'field' => $field
+                ]
+            ];
+        }
+
         return $this;
     }
 
@@ -861,11 +679,11 @@ abstract class BaseElasticsearchModel
      * @throws WrongArgumentNumberForWhereBetweenException
      * @throws WrongArgumentType
      */
-    public function whereBetween(string $field, array $values, bool $inClosure = false): static|array
+    public function whereBetween(string|Closure $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
 
-        if (count($values) != 2) {
+        if (count($values) !== 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
@@ -909,7 +727,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function dd(): void
+    #[NoReturn] public function dd(): void
     {
         $this->organizeClosuresCalls();
 
@@ -920,10 +738,11 @@ abstract class BaseElasticsearchModel
      * @throws WrongArgumentNumberForWhereBetweenException
      * @throws WrongArgumentType
      */
-    public function whereNotBetween(string $field, array $values, bool $inClosure = false): static|array
+    public function whereNotBetween(string|Closure $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
-        if (count($values) != 2) {
+
+        if (count($values) !== 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
@@ -989,80 +808,12 @@ abstract class BaseElasticsearchModel
 
         $field = $this->parseField($field);
 
-        list($value, $operation) = $this->getOperationValue($value, $operation, $numberOfArguments);
+        [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
         if ($inClosure) {
-            return match ($operation) {
-                "<>", "!=" => [
-                    'bool' => [
-                        'must_not' => [
-                            [
-                                "term" => [
-                                    $field => [
-                                        'value' => $value
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                ">" => [
-                    'range' => [
-                        $field => [
-                            "gt" => $value
-                        ]
-                    ]
-                ],
-                ">=" => [
-                    'range' => [
-                        $field => [
-                            "gte" => $value
-                        ]
-                    ]
-                ],
-                "<" => [
-                    'range' => [
-                        $field => [
-                            "lt" => $value
-                        ]
-                    ]
-                ],
-                "<=" => [
-                    'range' => [
-                        $field => [
-                            "lte" => $value
-                        ]
-                    ]
-                ],
-                "like" => [
-                    "match_phrase_prefix" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ],
-                "not like" => [
-                    'bool' => [
-                        'must_not' => [
-                            [
-                                "match_phrase_prefix" => [
-                                    $field => [
-                                        'query' => $value
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                default => [
-                    "term" => [
-                        $field => [
-                            'value' => $value
-                        ]
-                    ]
-                ],
-            };
+            return $this->buildOrWhereQueryInClosureState($operation, $value, $field);
         }
+
         if ($field instanceof Closure) {
             $this->closureCounter++;
             $this->conditionStatus = 'orWhere';
@@ -1071,11 +822,9 @@ abstract class BaseElasticsearchModel
             return $this;
         }
 
-
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
-
+        $parentFunction = $this->getParentFunction($backtrace);
 
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
@@ -1089,9 +838,10 @@ abstract class BaseElasticsearchModel
         }
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
-            $this->closureConditions['orWhere'][$this->closureCounter][] = [
+            $this->closureConditions[__FUNCTION__][$this->closureCounter][] = [
                 'field' => $field,
                 'value' => $value,
                 'operation' => $operation,
@@ -1102,8 +852,16 @@ abstract class BaseElasticsearchModel
         }
 
         switch ($operation) {
-            case "<>":
-            case "!=":
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
                 $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                     "term" => [
                         $field => [
@@ -1150,6 +908,14 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
             case "like":
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
                 $this->search['query']['bool']['should'][] = [
                     "match_phrase_prefix" => [
                         $field => [
@@ -1161,6 +927,15 @@ abstract class BaseElasticsearchModel
                 break;
 
             case "not like":
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+
                 $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                     "match_phrase_prefix" => [
                         $field => [
@@ -1172,6 +947,16 @@ abstract class BaseElasticsearchModel
 
             case '=':
             default:
+
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+
                 $this->search['query']['bool']['should'][] = [
                     "term" => [
                         $field => [
@@ -1184,9 +969,10 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function orWhereIn(string $field, array $values, bool $inClosure = false): static|array
+    public function orWhereIn(string|Closure $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
+
         if ($inClosure) {
             return [
                 'terms' => [
@@ -1196,7 +982,7 @@ abstract class BaseElasticsearchModel
         }
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -1207,18 +993,28 @@ abstract class BaseElasticsearchModel
             ];
             return $this;
         }
+
         $this->search['query']['bool']['should'][] = [
             'terms' => [
-                $field => $values
+                $field => array_filter($values, static fn($value) => !is_null($value))
             ]
         ];
+
+        if ($this->isThereNulValueInValues($values)) {
+            $this->search['query']['bool']['should'][] = [
+                'exists' => [
+                    'field' => $field
+                ]
+            ];
+        }
 
         return $this;
     }
 
-    public function orWhereNotIn(string $field, array $values, bool $inClosure = false): static|array
+    public function orWhereNotIn(string|Closure $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
+
         if ($inClosure) {
             return [
                 'bool' => [
@@ -1232,9 +1028,10 @@ abstract class BaseElasticsearchModel
                 ]
             ];
         }
+
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -1258,11 +1055,11 @@ abstract class BaseElasticsearchModel
      * @throws WrongArgumentNumberForWhereBetweenException
      * @throws WrongArgumentType
      */
-    public function orWhereBetween(string $field, array $values, bool $inClosure = false): static|array
+    public function orWhereBetween(string|Closure $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
 
-        if (count($values) != 2) {
+        if (count($values) !== 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
@@ -1282,7 +1079,8 @@ abstract class BaseElasticsearchModel
         }
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -1293,6 +1091,7 @@ abstract class BaseElasticsearchModel
             ];
             return $this;
         }
+
         $this->search['query']['bool']['should'][] = [
             'range' => [
                 $field => [
@@ -1309,10 +1108,11 @@ abstract class BaseElasticsearchModel
      * @throws WrongArgumentNumberForWhereBetweenException
      * @throws WrongArgumentType
      */
-    public function orWhereNotBetween(string $field, array $values, bool $inClosure = false): static|array
+    public function orWhereNotBetween(string|Closure $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
-        if (count($values) != 2) {
+
+        if (count($values) !== 2) {
             throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
 
@@ -1338,7 +1138,8 @@ abstract class BaseElasticsearchModel
         }
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -1588,6 +1389,7 @@ abstract class BaseElasticsearchModel
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws JsonException
      */
     public function paginate(int $perPage = 15): Collection
     {
@@ -1615,11 +1417,11 @@ abstract class BaseElasticsearchModel
         }
 
         if ($lastPage !== $currentPage && $currentPage !== $firstPage) {
-            $nextLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage + 1]);
+            $nextLink = request()?->fullUrl() . "?" . http_build_query(['page' => $currentPage + 1]);
         }
 
         if ($currentPage !== $firstPage) {
-            $previousLink = request()->fullUrl() . "?" . http_build_query(['page' => $currentPage - 1]);
+            $previousLink = request()?->fullUrl() . "?" . http_build_query(['page' => $currentPage - 1]);
         }
 
         $result = $this
@@ -1638,13 +1440,14 @@ abstract class BaseElasticsearchModel
     }
 
     public function whereFuzzy(
-        string $field,
+        string|Closure $field,
         string $value,
         string|int $fuzziness = 3,
         int $prefixLength = 0,
         bool $inClosure = false
     ): static|array {
         $field = $this->parseField($field);
+
         if ($inClosure) {
             return [
                 [
@@ -1660,7 +1463,8 @@ abstract class BaseElasticsearchModel
         }
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
+
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
                 'field' => $field,
@@ -1685,13 +1489,14 @@ abstract class BaseElasticsearchModel
     }
 
     public function orWhereFuzzy(
-        string $field,
+        string|Closure $field,
         string $value,
         string|int $fuzziness = 3,
         int $prefixLength = 0,
         bool $isClosure = false
     ): static|array {
         $field = $this->parseField($field);
+
         if ($isClosure) {
             return [
                 'fuzzy' => [
@@ -1733,6 +1538,7 @@ abstract class BaseElasticsearchModel
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws JsonException
      */
     public function findMany(array $ids): Collection
     {
@@ -1756,7 +1562,7 @@ abstract class BaseElasticsearchModel
         $isOr = false;
 
         foreach ($conditions as $condition) {
-            if ($condition['condition'] == 'or') {
+            if ($condition['condition'] === 'or') {
                 $isOr = true;
             }
         }
@@ -1779,11 +1585,11 @@ abstract class BaseElasticsearchModel
             return;
         }
 
-
         foreach ($this->closureConditions['orWhere'] as $conditions) {
             $lastKey = array_search(
                 Arr::last($this->search['query']['bool']['should']),
-                $this->search['query']['bool']['should']
+                $this->search['query']['bool']['should'],
+                true
             );
 
             $currentIndex = $this->getLastActiveKey($lastKey);
@@ -1843,12 +1649,16 @@ abstract class BaseElasticsearchModel
             return;
         }
 
-
         if (isset($this->closureConditions['where'])) {
             foreach ($this->closureConditions['where'] as $conditions) {
                 $lastKey = array_search(
-                    Arr::last($this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']),
-                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must']
+                    Arr::last(
+                        $this->search['query']['bool']['should']
+                        [self::MUST_INDEX]['bool']['must']
+                    ),
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must'],
+                    true
                 );
 
                 $currentIndex = $this->getLastActiveKey($lastKey);
@@ -1859,13 +1669,15 @@ abstract class BaseElasticsearchModel
                     foreach ($conditions as $condition) {
                         $method = $condition['method'];
                         if (is_null($condition['operation'])) {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['should'][] = $this->{$method}(
+                            $this->search['query']['bool']['should']
+                            [self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['should'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['value'],
                                 inClosure: true
                             );
                         } else {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['should'][] = $this->{$method}(
+                            $this->search['query']['bool']['should']
+                            [self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['should'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['operation'],
                                 $condition['value'],
@@ -1875,18 +1687,21 @@ abstract class BaseElasticsearchModel
                     }
                 } else {
                     /**
-                     * if there is "and" condition between conditional methods that has been called inside closure function
+                     * if there is "and" condition between conditional methods
+                     * that has been called inside closure function
                      */
                     foreach ($conditions as $condition) {
                         $method = $condition['method'];
                         if (is_null($condition['operation'])) {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['must'][] = $this->{$method}(
+                            $this->search['query']['bool']['should']
+                            [self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['must'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['value'],
                                 inClosure: true
                             );
                         } else {
-                            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['must'][] = $this->{$method}(
+                            $this->search['query']['bool']['should']
+                            [self::MUST_INDEX]['bool']['must'][$currentIndex]['bool']['must'][] = $this->{$method}(
                                 $condition['field'],
                                 $condition['operation'],
                                 $condition['value'],
@@ -1922,8 +1737,7 @@ abstract class BaseElasticsearchModel
         $itemId = null;
 
         foreach ($item as $key => $value) {
-            // set the elastic id
-            if ($key == 'id') {
+            if ($key === self::KEY_ID) {
                 $itemId = $value;
                 continue;
             }
@@ -1937,7 +1751,7 @@ abstract class BaseElasticsearchModel
     /**
      * @param array $items
      * @return string
-     * @throws \Exception
+     * @throws Exception
      */
     private function generateNdJsonForBulkWrite(array $items): string
     {
@@ -1958,8 +1772,9 @@ abstract class BaseElasticsearchModel
                 $documentInfo['index']['_id'] = $id;
             }
 
-            $parameters[] = json_encode($documentInfo);
-            $parameters[] = json_encode($normalizeItem);
+            $parameters[] = json_encode($documentInfo, JSON_THROW_ON_ERROR);
+
+            $parameters[] = json_encode($normalizeItem, JSON_THROW_ON_ERROR);
         }
 
         return implode("\n", $parameters) . "\n";
@@ -1989,7 +1804,7 @@ abstract class BaseElasticsearchModel
         );
     }
 
-    public function parseField(string $field): string
+    public function parseField(string $field): string|Closure
     {
         if ($field === self::KEY_ID) {
             return '_id';
@@ -2020,5 +1835,649 @@ abstract class BaseElasticsearchModel
     public function checkFieldExistsInMapping($key, array $fields): bool
     {
         return array_key_exists($key, $fields);
+    }
+
+    private function getInClosureQueryForWhere(mixed $operation, mixed $value, string $field): array
+    {
+        switch ($operation) {
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    "exists" => [
+                                        "field" => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+                $query = [
+                    'bool' => [
+                        'must_not' => [
+                            [
+                                "term" => [
+                                    $field => [
+                                        'value' => $value
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                break;
+            case self::OPERATOR_GT:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "gt" => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case self::OPERATOR_GTE:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "gte" => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case  self::OPERATOR_LT:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "lt" => $value
+                        ]
+                    ]
+                ];
+
+                break;
+
+            case self::OPERATOR_LTE:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "lte" => $value
+                        ]
+                    ]
+                ];
+
+                break;
+
+            case self::OPERATOR_LIKE:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    "exists" => [
+                                        "field" => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+
+                    break;
+                }
+                $query = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+
+                break;
+            case self::OPERATOR_NOT_LIKE:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    "exists" => [
+                                        "field" => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    'bool' => [
+                        'must_not' => [
+                            [
+                                "match_phrase_prefix" => [
+                                    $field => [
+                                        'query' => $value
+                                    ],
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                break;
+
+            default:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    "exists" => [
+                                        "field" => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+        }
+        return $query;
+    }
+
+
+    private function increaseClosureCounter(Closure $field): BaseElasticsearchModel
+    {
+        $this->closureCounter++;
+        $this->conditionStatus = 'where';
+
+        $field($this);
+
+        return $this;
+    }
+
+    public function getQueryForWhere(mixed $operation, mixed $value, Closure|string $field): void
+    {
+        switch ($operation) {
+            case self::OPERATOR_NOT_EQUAL:
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                        "exists" => [
+                            'field' => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should']
+                [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_GT:
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "gt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_GTE:
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "gte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_LT:
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "lt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_LTE:
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    'range' => [
+                        $field => [
+                            "lte" => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case self::OPERATOR_LIKE:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                        "exists" => [
+                            'field' => $field
+                        ]
+                    ];
+
+                    break;
+                }
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+
+                break;
+
+            case self::OPERATOR_NOT_LIKE:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                        "exists" => [
+                            "field" => $field,
+                        ]
+                    ];
+
+                    break;
+                }
+                $this->search['query']['bool']['should']
+                [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ],
+                    ]
+                ];
+
+
+                break;
+            case '=':
+            default:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must_not'][] = [
+                        "exists" => [
+                            'field' => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should']
+                [self::MUST_INDEX]['bool']['must'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+        }
+    }
+
+
+    public function getQueryBuilderForWhereTermInClosureState(
+        mixed $operation,
+        mixed $value,
+        string|Closure $field
+    ): array {
+        switch ($operation) {
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    "exists" => [
+                                        'field' => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    'bool' => [
+                        'must_not' => [
+                            [
+                                "match" => [
+                                    $field => [
+                                        'query' => $value
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                break;
+
+            default:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    "exists" => [
+                                        "field" => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+                $query = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+        }
+        return $query;
+    }
+
+    /**
+     * @param mixed $operation
+     * @param string|Closure $field
+     * @param mixed $value
+     * @return void
+     */
+    public function getQueryBuilderForWhereTerm(mixed $operation, string|Closure $field, mixed $value): void
+    {
+        switch ($operation) {
+            case "<>":
+            case "!=":
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+
+                    break;
+                }
+
+                $this->search['query']['bool']['should']
+                [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+
+                break;
+            case '=':
+            default:
+
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must_not'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
+    }
+
+    /**
+     * @param array $backtrace
+     * @return mixed|string
+     */
+    public function getParentFunction(array $backtrace): mixed
+    {
+        return isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+    }
+
+    /**
+     * @param mixed $operation
+     * @param Closure|string $field
+     * @param mixed $value
+     * @return void
+     */
+    private function buildQueryForOrWhereTerm(mixed $operation, Closure|string $field, mixed $value): void
+    {
+        switch ($operation) {
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must'] = [
+                        "exists" => [
+                            'field' => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should'][]['bool']['must_not'] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+            case '=':
+            default:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must_not'] = [
+                        "exists" => [
+                            'field' => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should'][] = [
+                    "match" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
+    }
+
+    private function isThereNulValueInValues(array $values): bool
+    {
+        return !empty(array_filter($values, static fn($value) => is_null($value)));
+    }
+
+    /**
+     * @param mixed $operation
+     * @param mixed $value
+     * @param Closure|string $field
+     * @return array[]|\array[][]
+     */
+    public function buildOrWhereQueryInClosureState(mixed $operation, mixed $value, Closure|string $field): array
+    {
+        switch ($operation) {
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    "exists" => [
+                                        'field' => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    'bool' => [
+                        'must_not' => [
+                            [
+                                "term" => [
+                                    $field => [
+                                        'value' => $value
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_GT:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "gt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_GTE:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "gte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_LT:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "lt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case self::OPERATOR_LTE:
+                $query = [
+                    'range' => [
+                        $field => [
+                            "lte" => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case self::OPERATOR_LIKE:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    "exists" => [
+                                        'field' => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case self::OPERATOR_NOT_LIKE:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    "exists" => [
+                                        'field' => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    'bool' => [
+                        'must_not' => [
+                            [
+                                "match_phrase_prefix" => [
+                                    $field => [
+                                        'query' => $value
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+                break;
+
+            default:
+                if (is_null($value)) {
+                    $query = [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    "exists" => [
+                                        'field' => $field
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+
+                $query = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+        }
+
+        return $query;
     }
 }

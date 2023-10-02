@@ -5,7 +5,9 @@ namespace Tests\Integration;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
+use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\FieldNotDefinedInIndexException;
+use Mawebcoder\Elasticsearch\Exceptions\ModelNotDefinedException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
@@ -135,6 +137,7 @@ class MappingTest extends BaseIntegrationTestCase
                 ]
             ]
         ];
+
 
         $elasticsearch = new EUserModel();
 

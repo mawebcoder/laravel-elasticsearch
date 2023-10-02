@@ -3,7 +3,10 @@
 namespace Tests\Unit;
 
 
+use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
@@ -866,7 +869,7 @@ class ElasticQueryBuilderTest extends TestCase
         $this->assertFalse($isNested);
     }
 
-    public function testGetNestedFieldsAsArrayMethod():void
+    public function testGetNestedFieldsAsArrayMethod(): void
     {
         $elastic = new EUserModel();
 
@@ -1026,4 +1029,129 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->assertEquals($this->expected, $elasticsearch->search);
     }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function testGetInClosureQueryForWhereInEqualCondition(): void
+    {
+        $value = null;
+        $operation = "==";
+        $field = 'age';
+
+        $reflectionElasticModel = new ReflectionClass(EUserModel::class);
+
+        $object = $reflectionElasticModel->newInstance();
+
+        $reflectionMethod = $reflectionElasticModel->getMethod('getInClosureQueryForWhere');
+
+        $query = $reflectionMethod->invoke($object, $operation, $value, $field);
+
+        $expected =
+            [
+                'exists' => [
+                    'field' => 'age'
+                ]
+            ];
+
+        $this->assertEquals($expected, $query);
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function testGetInClosureQueryForWhereInNotEqualCondition(): void
+    {
+        $value = null;
+        $operation = "<>";
+        $field = 'age';
+
+        $reflectionElasticModel = new ReflectionClass(EUserModel::class);
+
+        $object = $reflectionElasticModel->newInstance();
+
+        $reflectionMethod = $reflectionElasticModel->getMethod('getInClosureQueryForWhere');
+
+        $query = $reflectionMethod->invoke($object, $operation, $value, $field);
+
+        $expected = [
+            'bool' => [
+                'must_not' => [
+                    [
+                        'exists' => [
+                            'field' => 'age'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $query);
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function testGetInClosureQueryForWhereInLikeCondition(): void
+    {
+        $value = null;
+        $operation = "like";
+        $field = 'age';
+
+        $reflectionElasticModel = new ReflectionClass(EUserModel::class);
+
+        $object = $reflectionElasticModel->newInstance();
+
+        $reflectionMethod = $reflectionElasticModel->getMethod('getInClosureQueryForWhere');
+
+        $query = $reflectionMethod->invoke($object, $operation, $value, $field);
+
+        $expected =
+            [
+                'exists' => [
+                    'field' => 'age'
+                ]
+            ];
+
+        $this->assertEquals($expected, $query);
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function testGetInClosureQueryForWhereInNotLikeCondition():void
+    {
+
+        $value = null;
+        $operation = "not like";
+        $field = 'age';
+
+        $reflectionElasticModel = new ReflectionClass(EUserModel::class);
+
+        $object = $reflectionElasticModel->newInstance();
+
+        $object->orWhereTerm('ali','=',null);
+
+        $reflectionMethod = $reflectionElasticModel->getMethod('getInClosureQueryForWhere');
+
+        $query = $reflectionMethod->invoke($object, $operation, $value, $field);
+
+        $expected = [
+            'bool' => [
+                'must_not' => [
+                    [
+                        'exists' => [
+                            'field' => 'age'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $query);
+    }
+
+
+
+
 }

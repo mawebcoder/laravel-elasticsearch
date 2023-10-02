@@ -590,8 +590,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     {
         $mappings = EUserModel::newQuery()->getMappings();
 
-
-
         $expected = [
             EUserModel::KEY_AGE => [
                 'type' => 'integer'

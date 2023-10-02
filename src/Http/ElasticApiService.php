@@ -289,10 +289,10 @@ class ElasticApiService implements ElasticHttpRequestInterface
             throw new ModelNotDefinedException();
         }
 
-        /**
-         * @type BaseElasticsearchModel $model
-         */
+
         $model = new ReflectionClass($this->elasticModel);
+
+        $model = $model->newInstance();
 
         $index = $model->getIndexWithPrefix();
 
