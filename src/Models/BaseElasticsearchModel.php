@@ -207,17 +207,11 @@ abstract class BaseElasticsearchModel
     /**
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
      */
     public function update(array $options): bool
     {
-        $this->search['script']['source'] = '';
-
-        foreach ($options as $key => $value) {
-            $parameterName = str_replace('.', '_', $key);
-            $this->search['script']['source'] .= "ctx._source.$key=params." . $parameterName . ';';
-            $this->search['script']['params'][$parameterName] = $value;
-        }
-
         if ($this->isCalledFromObject()) {
             $this->refreshSearch()
                 ->search['query']['bool']['must'][] = [
@@ -226,8 +220,9 @@ abstract class BaseElasticsearchModel
                 ]
             ];
         }
+        $script=trim($this->buildScript($options),';');
 
-        $this->search['script']['source'] = trim($this->search['script']['source'], ';');
+        $this->search['script']['source']=$script;
 
         Elasticsearch::setModel(static::class)
             ->post('_update_by_query', $this->search, $this->mustBeSync);
@@ -235,6 +230,28 @@ abstract class BaseElasticsearchModel
         $this->refreshQueryBuilder();
 
         return true;
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function buildScript($data, $path = 'ctx._source'):string
+    {
+        $script = '';
+
+        foreach ($data as $key => $value) {
+            $currentPath = $path . '.' . $key;
+
+            if (is_array($value)) {
+                $nestedScript = $this->buildScript($value, $currentPath);
+                $script .= $nestedScript . ';';
+            } else {
+                $value = is_string($value) ? '"' . addslashes($value) . '"' : json_encode($value, JSON_THROW_ON_ERROR);
+                $script .= "$currentPath = $value;";
+            }
+        }
+
+        return $script;
     }
 
     public function mustBeSync(): static
@@ -1133,7 +1150,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    private function refreshSearch(): static
+    public function refreshSearch(): static
     {
         $this->search = [];
 
@@ -1149,7 +1166,7 @@ abstract class BaseElasticsearchModel
      * @param array $ids
      * @return bool
      * @throws GuzzleException
-     * @throws ReflectionException
+     * @throws IndexNamePatternIsNotValidException|ReflectionException
      */
     public function destroy(array $ids): bool
     {

@@ -50,7 +50,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
      */
     public function post(?string $path = null, string|array $data = [], bool $mustBeSync = false): ResponseInterface
     {
+
         $path = $this->getUrl($path, $mustBeSync);
+
 
         if (empty($data)) {
             return $this->client->post($path);
@@ -64,6 +66,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
         ];
 
         $options[is_array($data) ? RequestOptions::JSON : RequestOptions::BODY] = $data;
+
 
         return $this->client->post($path, $options);
     }

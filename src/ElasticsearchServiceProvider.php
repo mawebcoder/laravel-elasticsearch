@@ -17,7 +17,6 @@ class ElasticsearchServiceProvider extends ServiceProvider
     public function register()
     {
 
-
         $this->commands([
             MigrateElasticsearchMigrationsCommand::class,
             MigrationRollbackElasticsearchCommand::class,
@@ -28,6 +27,9 @@ class ElasticsearchServiceProvider extends ServiceProvider
 
         $this->app->bind(ElasticHttpRequestInterface::class, ElasticApiService::class);
     }
+
+
+
 
     public function boot()
     {

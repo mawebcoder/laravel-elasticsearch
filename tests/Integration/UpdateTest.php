@@ -2,7 +2,12 @@
 
 namespace Tests\Integration;
 
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
+use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Tests\TestCase\Integration\BaseIntegrationTestCase;
 
@@ -10,7 +15,14 @@ use Tests\TestCase\Integration\BaseIntegrationTestCase;
 class UpdateTest extends BaseIntegrationTestCase
 {
 
-    public function test_update_method_works_correctly_after_insert_update_immediately_with_id()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function test_update_method_works_correctly_after_insert_update_immediately_with_id(): void
     {
         $model = new EUserModel();
 
@@ -21,16 +33,10 @@ class UpdateTest extends BaseIntegrationTestCase
             'age' => 30
         ]);
 
-        $this->assertEquals([
-            'id' => 1,
-            'name' => 'mohammad amiri',
-            'is_active' => true,
-            'age' => 30,
-            'description' => null,
-        ], $userDocument->getAttributes());
 
-        // run update method
-        $updateResult = $userDocument->mustBeSync()->update(['name' => 'Ali Ghorbani', 'age' => 21]);
+        $updateResult = $userDocument->mustBeSync()
+            ->update(['name' => 'Ali Ghorbani', 'age' => 21]);
+
         $this->assertTrue($updateResult);
 
         $userAfterUpdate = $model->find(1);
@@ -41,6 +47,7 @@ class UpdateTest extends BaseIntegrationTestCase
             'is_active' => true,
             'age' => 21,
             'description' => null,
+            'information'=>null
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());

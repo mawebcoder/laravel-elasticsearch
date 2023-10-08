@@ -2,11 +2,20 @@
 
 namespace Tests\TestCase\Integration\Traits;
 
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 
 trait HasSyncOperation
 {
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws \ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     */
     public function insertElasticDocument(BaseElasticsearchModel $model, array $data): BaseElasticsearchModel
     {
         foreach ($data as $key => $value) {

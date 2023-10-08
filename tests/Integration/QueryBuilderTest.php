@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
+use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use ReflectionClass;
 use ReflectionException;
@@ -1058,7 +1059,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $elasticsearchModel->search['query']);
     }
 
-    public function test_or_where_in_null_query():void
+    public function test_or_where_in_null_query(): void
     {
         $elasticsearchModel = new EUserModel();
 
@@ -1094,10 +1095,10 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             ]
         ];
 
-        $this->assertEquals($expected,$elasticsearchModel->search['query']);
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
     }
 
-    public function test_or_where_not_in_null_query():void
+    public function test_or_where_not_in_null_query(): void
     {
         $elasticsearchModel = new EUserModel();
 
@@ -1105,57 +1106,97 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $elasticsearchModel->orWhereNotIn('id', $values);
 
-        $expected=[
-            'bool'=>[
-                'should'=>[
+        $expected = [
+            'bool' => [
+                'should' => [
                     [
-                        'bool'=>[
-                            'must'=>[]
+                        'bool' => [
+                            'must' => []
                         ]
                     ],
                     [
-                        'bool'=>[
-                            'must_not'=>[
+                        'bool' => [
+                            'must_not' => [
                                 [
-                                    'terms'=>[
-                                        '_id'=>array_filter($values,static fn($value)=>!is_null($value))
+                                    'terms' => [
+                                        '_id' => array_filter($values, static fn($value) => !is_null($value))
                                     ]
                                 ]
                             ]
                         ]
                     ],
                     [
-                        'exists'=>[
-                            'field'=>'_id'
+                        'exists' => [
+                            'field' => '_id'
                         ]
                     ]
                 ]
             ]
         ];
 
-        $this->assertEquals($expected,$elasticsearchModel->search['query']);
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
     }
 
     /**
      * @throws ReflectionException
      */
-    public function test_invalid_indices_name_validation():void
+    public function test_invalid_indices_name_validation(): void
     {
-        $index='Mohammad';
+        $index = 'Mohammad';
 
-        $reflection=new ReflectionClass(EUserModel::class);
+        $reflection = new ReflectionClass(EUserModel::class);
 
-        $object=$reflection->newInstance();
+        $object = $reflection->newInstance();
 
-        $method=$reflection->getMethod('validateIndex');
+        $method = $reflection->getMethod('validateIndex');
 
         $this->withoutExceptionHandling();
 
         $this->expectException(IndexNamePatternIsNotValidException::class);
 
-        $this->expectExceptionMessage($index.' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/');
+        $this->expectExceptionMessage(
+            $index . ' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/'
+        );
 
-        $method->invoke($object,$index);
+        $method->invoke($object, $index);
     }
+
+
+    /**
+     * @throws JsonException
+     */
+    public function test_build_script_method_on_nested_array(): void
+    {
+        $elasticModel = new EUserModel();
+
+        $result = $elasticModel->buildScript([
+            'information.data' => [
+                'name' => ['age' => 'ali', 'family' => 'amiri'],
+                'family' => ['color' => ['status' => 'red']]
+            ]
+        ]);
+
+        $expected = 'ctx._source.information.data.name.age = ali;ctx._source.information.data.name.family = amiri;ctx._source.information.data.family.color.status = red;';
+
+        $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function test_build_script_method_on_string():void
+    {
+        $elasticModel = new EUserModel();
+
+        $result = $elasticModel->buildScript([
+            'information.data' => 'jafar'
+        ]);
+
+        $expected = 'ctx._source.information.data = jafar;';
+
+        $this->assertEquals($expected, $result);
+    }
+
+
 
 }
