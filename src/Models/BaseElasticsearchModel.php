@@ -226,9 +226,8 @@ abstract class BaseElasticsearchModel
         }
 
         if ($this->isCalledFromObject()) {
-            $this->search['query']['bool']['should'] = [];
-
-            $this->search['query']['bool']['should'][] = [
+            $this->refreshSearch()
+                ->search['query']['bool']['must'][] = [
                 'ids' => [
                     'values' => [$this->{self::KEY_ID}]
                 ]
@@ -1620,8 +1619,6 @@ abstract class BaseElasticsearchModel
                 'values' => [$id]
             ]
         ];
-
-
     }
 
     /**
