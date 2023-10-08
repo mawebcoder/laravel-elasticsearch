@@ -140,14 +140,6 @@ abstract class BaseElasticsearchModel
 
 
     /**
-     * @throws IndexNamePatternIsNotValidException
-     */
-    public function isExistsIndex(): bool
-    {
-       return Elasticsearch::hasIndex($this->getIndexWithPrefix());
-    }
-
-    /**
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
