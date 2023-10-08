@@ -575,7 +575,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    private function excludeNullValuesFromArray(array $values):array
+    private function excludeNullValuesFromArray(array $values): array
     {
         return array_filter($values, static fn($value) => !is_null($value));
     }
@@ -610,7 +610,7 @@ abstract class BaseElasticsearchModel
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
-                $field =>$this->excludeNullValuesFromArray($values)
+                $field => $this->excludeNullValuesFromArray($values)
             ]
         ];
 
@@ -1620,6 +1620,8 @@ abstract class BaseElasticsearchModel
                 'values' => [$id]
             ]
         ];
+
+
     }
 
     /**

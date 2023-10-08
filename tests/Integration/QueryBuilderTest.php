@@ -899,7 +899,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $elasticsearchModel->search['query']);
     }
 
-    public function test_where_not_in_is_null_query():void
+    public function test_where_not_in_is_null_query(): void
     {
         $elasticsearchModel = new EUserModel();
 
@@ -926,8 +926,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
                                     ]
                                 ],
                                 [
-                                    'exists'=>[
-                                        'field'=>'_id'
+                                    'exists' => [
+                                        'field' => '_id'
                                     ]
                                 ]
                             ]
