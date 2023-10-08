@@ -575,13 +575,16 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    private function excludeNullValuesFromArray(array $values):array
+    {
+        return array_filter($values, static fn($value) => !is_null($value));
+    }
+
     public function whereIn(string|callable $field, array $values, bool $inClosure = false): static|array
     {
         $field = $this->parseField($field);
 
-        /**
-         * @todo we need to review the closures again
-         */
+
         if ($inClosure) {
             return [
                 'terms' => [
@@ -607,7 +610,7 @@ abstract class BaseElasticsearchModel
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'terms' => [
-                $field => array_filter($values, static fn($value) => !is_null($value))
+                $field =>$this->excludeNullValuesFromArray($values)
             ]
         ];
 
@@ -628,9 +631,6 @@ abstract class BaseElasticsearchModel
     {
         $field = $this->parseField($field);
 
-        /**
-         * @todo we need to review the closures again
-         */
         if ($inClosure) {
             return [
                 'bool' => [
@@ -661,12 +661,12 @@ abstract class BaseElasticsearchModel
         }
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
             'terms' => [
-                $field => $values
+                $field => array_filter($values, static fn($value) => !is_null($value))
             ]
         ];
 
         if ($this->isThereNulValueInValues($values)) {
-            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+            $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
                 'exists' => [
                     'field' => $field
                 ]
@@ -853,121 +853,8 @@ abstract class BaseElasticsearchModel
             return $this;
         }
 
-        switch ($operation) {
-            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
-            case self::OPERATOR_NOT_EQUAL:
-                if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
-                        "exists" => [
-                            "field" => $field
-                        ]
-                    ];
-                    break;
-                }
-                $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
-                    "term" => [
-                        $field => [
-                            'value' => $value
-                        ]
-                    ]
-                ];
-                break;
+        $this->getOrWhereQueryBuilder($operation, $value, $field);
 
-            case ">":
-                $this->search['query']['bool']['should'][] = [
-                    'range' => [
-                        $field => [
-                            "gt" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case ">=":
-                $this->search['query']['bool']['should'][] = [
-                    'range' => [
-                        $field => [
-                            "gte" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case "<":
-                $this->search['query']['bool']['should'][] = [
-                    'range' => [
-                        $field => [
-                            "lt" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case "<=":
-                $this->search['query']['bool']['should'][] = [
-                    'range' => [
-                        $field => [
-                            "lte" => $value
-                        ]
-                    ]
-                ];
-                break;
-            case "like":
-                if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
-                        "exists" => [
-                            "field" => $field
-                        ]
-                    ];
-                    break;
-                }
-                $this->search['query']['bool']['should'][] = [
-                    "match_phrase_prefix" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-
-                break;
-
-            case "not like":
-                if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
-                        "exists" => [
-                            "field" => $field
-                        ]
-                    ];
-                    break;
-                }
-
-                $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
-                    "match_phrase_prefix" => [
-                        $field => [
-                            'query' => $value
-                        ]
-                    ]
-                ];
-                break;
-
-            case '=':
-            default:
-
-                if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
-                        "exists" => [
-                            "field" => $field
-                        ]
-                    ];
-                    break;
-                }
-
-                $this->search['query']['bool']['should'][] = [
-                    "term" => [
-                        $field => [
-                            'value' => $value
-                        ]
-                    ]
-                ];
-                break;
-        }
         return $this;
     }
 
@@ -1187,7 +1074,7 @@ abstract class BaseElasticsearchModel
         }
 
         foreach (func_get_args() as $field) {
-           $field=$this->parseField($field);
+            $field = $this->parseField($field);
 
             $fields[] = $field;
         }
@@ -1219,7 +1106,7 @@ abstract class BaseElasticsearchModel
      */
     public function orderBy(string $field, string $direction = 'asc'): static
     {
-        $field=$this->parseField($field);
+        $field = $this->parseField($field);
 
         if ($direction && !in_array($direction, ['asc', 'desc'])) {
             throw new InvalidSortDirection(message: 'sort direction must be either asc or desc.');
@@ -2017,7 +1904,7 @@ abstract class BaseElasticsearchModel
             case self::OPERATOR_NOT_EQUAL_SPACESHIP:
                 if (is_null($value)) {
                     $this->search['query']['bool']['should']
-                    [self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                    [self::MUST_INDEX]['bool']['must'][] = [
                         "exists" => [
                             'field' => $field
                         ]
@@ -2095,7 +1982,7 @@ abstract class BaseElasticsearchModel
             case self::OPERATOR_NOT_LIKE:
                 if (is_null($value)) {
                     $this->search['query']['bool']['should']
-                    [self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                    [self::MUST_INDEX]['bool']['must'][] = [
                         "exists" => [
                             "field" => $field,
                         ]
@@ -2118,9 +2005,15 @@ abstract class BaseElasticsearchModel
             default:
                 if (is_null($value)) {
                     $this->search['query']['bool']['should']
-                    [self::MUST_INDEX]['bool']['must_not'][] = [
-                        "exists" => [
-                            'field' => $field
+                    [self::MUST_INDEX]['bool']['must'][] = [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    "exists" => [
+                                        'field' => $field
+                                    ]
+                                ]
+                            ]
                         ]
                     ];
                     break;
@@ -2212,11 +2105,11 @@ abstract class BaseElasticsearchModel
     public function getQueryBuilderForWhereTerm(mixed $operation, string|Closure $field, mixed $value): void
     {
         switch ($operation) {
-            case "<>":
-            case "!=":
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
                 if (is_null($value)) {
                     $this->search['query']['bool']['should']
-                    [self::MUST_INDEX]['bool']['must'][]['bool']['must'][] = [
+                    [self::MUST_INDEX]['bool']['must'][] = [
                         "exists" => [
                             "field" => $field
                         ]
@@ -2235,11 +2128,12 @@ abstract class BaseElasticsearchModel
                 ];
 
                 break;
-            case '=':
+            case self::OPERATOR_EQUAL:
             default:
 
                 if (is_null($value)) {
-                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must_not'][] = [
+                    $this->search['query']['bool']['should']
+                    [self::MUST_INDEX]['bool']['must'][]['bool']['must_not'][] = [
                         "exists" => [
                             "field" => $field
                         ]
@@ -2279,7 +2173,7 @@ abstract class BaseElasticsearchModel
             case self::OPERATOR_NOT_EQUAL_SPACESHIP:
             case self::OPERATOR_NOT_EQUAL:
                 if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must'] = [
+                    $this->search['query']['bool']['should'][] = [
                         "exists" => [
                             'field' => $field
                         ]
@@ -2295,10 +2189,10 @@ abstract class BaseElasticsearchModel
                     ]
                 ];
                 break;
-            case '=':
+            case self::OPERATOR_EQUAL:
             default:
                 if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must_not'] = [
+                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                         "exists" => [
                             'field' => $field
                         ]
@@ -2481,5 +2375,130 @@ abstract class BaseElasticsearchModel
         }
 
         return $query;
+    }
+
+    /**
+     * @param mixed $operation
+     * @param mixed $value
+     * @param Closure|string $field
+     * @return void
+     */
+    public function getOrWhereQueryBuilder(mixed $operation, mixed $value, Closure|string $field): void
+    {
+        switch ($operation) {
+            case self::OPERATOR_NOT_EQUAL_SPACESHIP:
+            case self::OPERATOR_NOT_EQUAL:
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+                $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case ">":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "gt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case ">=":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "gte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "<":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "lt" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "<=":
+                $this->search['query']['bool']['should'][] = [
+                    'range' => [
+                        $field => [
+                            "lte" => $value
+                        ]
+                    ]
+                ];
+                break;
+            case "like":
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+                $this->search['query']['bool']['should'][] = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+
+                break;
+
+            case "not like":
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                    "match_phrase_prefix" => [
+                        $field => [
+                            'query' => $value
+                        ]
+                    ]
+                ];
+                break;
+
+            case '=':
+            default:
+
+                if (is_null($value)) {
+                    $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
+                        "exists" => [
+                            "field" => $field
+                        ]
+                    ];
+                    break;
+                }
+
+                $this->search['query']['bool']['should'][] = [
+                    "term" => [
+                        $field => [
+                            'value' => $value
+                        ]
+                    ]
+                ];
+                break;
+        }
     }
 }

@@ -8,6 +8,7 @@ use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Tests\TestCase\Integration\BaseIntegrationTestCase;
+use Throwable;
 
 /**
  * @depends MigrationTest
@@ -607,5 +608,337 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $this->assertEquals($expected, $mappings);
     }
+
+    /**
+     * @throws Throwable
+     */
+    public function test_where_clause_while_value_is_null(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->where('id', null);
+
+        $this->assertEquals([
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'bool' => [
+                                        'must_not' => [
+                                            [
+                                                'exists' => [
+                                                    'field' => '_id'
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+
+        ], $elasticsearchModel->search['query']);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function test_where_clause_while_value_is_not_null(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL_SPACESHIP, null);
+
+        $this->assertEquals([
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'exists' => [
+                                        'field' => '_id'
+                                    ]
+                                ]
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+
+        ], $elasticsearchModel->search['query']);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function test_where_clause_while_value_is_like_null(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_LIKE, null);
+
+        $this->assertEquals([
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'bool' => [
+                                        'must_not' => [
+                                            [
+                                                'exists' => [
+                                                    'field' => '_id'
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+
+        ], $elasticsearchModel->search['query']);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function test_where_clause_while_value_is_not_like_null(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_NOT_LIKE, null);
+
+        $this->assertEquals([
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'exists' => [
+                                        'field' => '_id'
+                                    ]
+                                ]
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+
+        ], $elasticsearchModel->search['query']);
+    }
+
+
+    public function test_where_term_is_null_query(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->whereTerm('id', null);
+
+        $expected = [
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'bool' => [
+                                        'must_not' => [
+                                            [
+                                                'exists' => [
+                                                    'field' => '_id'
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
+    }
+
+    public function test_where_term_is_not_null_query(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->whereTerm('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL, null);
+
+        $expected = [
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'exists' => [
+                                        'field' => '_id'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
+    }
+
+    public function test_or_where_term_is_not_null_query(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->orWhereTerm('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL, null);
+
+        $expected = [
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => []
+                        ]
+                    ],
+                    [
+                        'exists' => [
+                            'field' => '_id'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
+    }
+
+    public function test_or_where_term_is_null_query(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->orWhereTerm('id', null);
+
+        $expected = [
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => []
+                        ]
+                    ],
+                    [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    'exists' => [
+                                        'field' => '_id'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
+    }
+
+    public function test_where_in_is_null_query(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $values = [1, 2, 3, null];
+
+        $elasticsearchModel->whereIn('id', [1, 2, 3, null]);
+
+        $expected = [
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'terms' => [
+                                        '_id' => array_filter($values, static fn($value) => !is_null($value))
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'bool' => [
+                            'must_not' => [
+                                [
+                                    'exists' => [
+                                        'field' => '_id'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
+    }
+
+    public function test_where_not_in_is_null_query():void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $values = [1, 2, 3, null];
+
+        $elasticsearchModel->whereNotIn('id', [1, 2, 3, null]);
+
+        $expected = [
+            'bool' => [
+                'should' => [
+                    [
+                        'bool' => [
+                            'must' => [
+                                [
+                                    'bool' => [
+                                        'must_not' => [
+                                            [
+                                                'terms' => [
+                                                    '_id' => array_filter($values, static fn($value) => !is_null($value)
+                                                    )
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ],
+                                [
+                                    'exists'=>[
+                                        'field'=>'_id'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search['query']);
+    }
+
 
 }
