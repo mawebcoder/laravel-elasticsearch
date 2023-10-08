@@ -6,6 +6,7 @@ use Closure;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
 use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Psr\Http\Message\ResponseInterface;
 use Ramsey\Uuid\Exception\UnableToBuildUuidException;
 use Throwable;
@@ -80,6 +81,9 @@ abstract class BaseElasticsearchModel
 
     abstract public function getIndex(): string;
 
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     */
     public function getIndexWithPrefix(): string
     {
         $index = '';
@@ -89,6 +93,8 @@ abstract class BaseElasticsearchModel
         }
 
         $index .= $this->getIndex();
+
+        $this->validateIndex($index);
 
         return $index;
     }
@@ -2504,5 +2510,17 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
         }
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     */
+    private function validateIndex(string $index):void
+    {
+        if(preg_match('/^[a-z][a-z0-9_-]{0,255}$/',$index)){
+            return;
+        }
+
+        throw new IndexNamePatternIsNotValidException($index.' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/');
     }
 }

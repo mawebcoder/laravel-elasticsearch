@@ -4,6 +4,8 @@ namespace Tests\Integration;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use ReflectionClass;
 use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
@@ -1132,6 +1134,28 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         ];
 
         $this->assertEquals($expected,$elasticsearchModel->search['query']);
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function test_invalid_indices_name_validation():void
+    {
+        $index='Mohammad';
+
+        $reflection=new ReflectionClass(EUserModel::class);
+
+        $object=$reflection->newInstance();
+
+        $method=$reflection->getMethod('validateIndex');
+
+        $this->withoutExceptionHandling();
+
+        $this->expectException(IndexNamePatternIsNotValidException::class);
+
+        $this->expectExceptionMessage($index.' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/');
+
+        $method->invoke($object,$index);
     }
 
 }
