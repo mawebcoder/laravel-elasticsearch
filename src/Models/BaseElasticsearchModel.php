@@ -885,12 +885,12 @@ abstract class BaseElasticsearchModel
 
         $this->search['query']['bool']['should'][] = [
             'terms' => [
-                $field => array_filter($values, static fn($value) => !is_null($value))
+                $field => $this->excludeNullValuesFromArray($values)
             ]
         ];
 
         if ($this->isThereNulValueInValues($values)) {
-            $this->search['query']['bool']['should'][] = [
+            $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                 'exists' => [
                     'field' => $field
                 ]
@@ -933,10 +933,17 @@ abstract class BaseElasticsearchModel
         }
         $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
             'terms' => [
-                $field => $values
+                $field => $this->excludeNullValuesFromArray($values)
             ]
         ];
 
+        if ($this->isThereNulValueInValues($values)) {
+            $this->search['query']['bool']['should'][] = [
+                'exists' => [
+                    'field' => $field
+                ]
+            ];
+        }
         return $this;
     }
 
@@ -1079,7 +1086,7 @@ abstract class BaseElasticsearchModel
             $fields[] = $field;
         }
 
-        $fields = array_unique($fields);
+        $fields = array_filter(array_unique($fields), static fn($value) => $value);
 
         $this->search[self::SOURCE_KEY] = $fields;
 
@@ -1134,7 +1141,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function refreshSearch(): static
+    private function refreshSearch(): static
     {
         $this->search = [];
 
@@ -1157,7 +1164,7 @@ abstract class BaseElasticsearchModel
         $this->refreshSearch()
             ->search['query']['bool']['must'][] = [
             'ids' => [
-                'values' => $ids
+                'values' => $this->excludeNullValuesFromArray($ids)
             ]
         ];
 
@@ -1431,10 +1438,9 @@ abstract class BaseElasticsearchModel
      */
     public function findMany(array $ids): Collection
     {
-        $this->refreshSearch();
-
-        $this->search['query']["ids"] = [
-            'values' => $ids
+        $this->refreshSearch()
+            ->search['query']["ids"] = [
+            'values' => $this->excludeNullValuesFromArray($ids)
         ];
 
         return $this->get();
@@ -1693,7 +1699,7 @@ abstract class BaseElasticsearchModel
         );
     }
 
-    public function parseField(string $field): string|Closure
+    public function parseField(?string $field): string|Closure|null
     {
         if ($field === self::KEY_ID) {
             return '_id';
@@ -2389,7 +2395,7 @@ abstract class BaseElasticsearchModel
             case self::OPERATOR_NOT_EQUAL_SPACESHIP:
             case self::OPERATOR_NOT_EQUAL:
                 if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
+                    $this->search['query']['bool']['should'][] = [
                         "exists" => [
                             "field" => $field
                         ]
@@ -2405,7 +2411,7 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
 
-            case ">":
+            case self::OPERATOR_GT:
                 $this->search['query']['bool']['should'][] = [
                     'range' => [
                         $field => [
@@ -2414,7 +2420,7 @@ abstract class BaseElasticsearchModel
                     ]
                 ];
                 break;
-            case ">=":
+            case self::OPERATOR_GTE:
                 $this->search['query']['bool']['should'][] = [
                     'range' => [
                         $field => [
@@ -2423,7 +2429,7 @@ abstract class BaseElasticsearchModel
                     ]
                 ];
                 break;
-            case "<":
+            case self::OPERATOR_LT:
                 $this->search['query']['bool']['should'][] = [
                     'range' => [
                         $field => [
@@ -2432,7 +2438,7 @@ abstract class BaseElasticsearchModel
                     ]
                 ];
                 break;
-            case "<=":
+            case self::OPERATOR_LTE:
                 $this->search['query']['bool']['should'][] = [
                     'range' => [
                         $field => [
@@ -2441,7 +2447,7 @@ abstract class BaseElasticsearchModel
                     ]
                 ];
                 break;
-            case "like":
+            case self::OPERATOR_LIKE:
                 if (is_null($value)) {
                     $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                         "exists" => [
@@ -2460,9 +2466,9 @@ abstract class BaseElasticsearchModel
 
                 break;
 
-            case "not like":
+            case self::OPERATOR_NOT_LIKE:
                 if (is_null($value)) {
-                    $this->search['query']['bool']['should'][]['bool']['must'][] = [
+                    $this->search['query']['bool']['should'][] = [
                         "exists" => [
                             "field" => $field
                         ]
@@ -2479,9 +2485,8 @@ abstract class BaseElasticsearchModel
                 ];
                 break;
 
-            case '=':
+            case self::OPERATOR_EQUAL:
             default:
-
                 if (is_null($value)) {
                     $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
                         "exists" => [
