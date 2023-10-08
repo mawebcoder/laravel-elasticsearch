@@ -119,6 +119,7 @@ abstract class BaseElasticsearchModel
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function truncate(): void
     {
@@ -137,24 +138,18 @@ abstract class BaseElasticsearchModel
             ->post('_delete_by_query', $this->search, $this->mustBeSync);
     }
 
+
     /**
-     * @throws GuzzleException
-     * @throws ReflectionException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function isExistsIndex(): bool
     {
-        try {
-            $response = Elasticsearch::setModel(static::class)->head();
-            return $response->getStatusCode() === Response::HTTP_OK;
-        } catch (ClientException $throwable) {
-            return false;
-        }
+       return Elasticsearch::hasIndex($this->getIndexWithPrefix());
     }
 
     /**
-     * @return $this
-     * @throws FieldNotDefinedInIndexException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
      * @throws RequestException
      */

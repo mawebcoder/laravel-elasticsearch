@@ -2,6 +2,7 @@
 
 namespace Mawebcoder\Elasticsearch\Commands;
 
+use Mawebcoder\Elasticsearch\ElasticSchema;
 use Throwable;
 use ReflectionClass;
 use ReflectionException;
@@ -166,8 +167,7 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     ? config('elasticsearch.index_prefix') . $modelInstance->getIndex()
                     : $modelInstance->getIndex();
 
-                // prevent to run migrations that wants to apply change on the index that doesn't exist
-                if (!$modelInstance->isExistsIndex()) {
+                if (ElasticSchema::isExistsIndex($modelInstance::class)){
                     continue;
                 }
 

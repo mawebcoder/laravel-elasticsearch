@@ -3,6 +3,9 @@
 namespace Mawebcoder\Elasticsearch\Migration;
 
 use GuzzleHttp\Client;
+use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -199,6 +202,10 @@ abstract class BaseElasticMigration
         ];
     }
 
+    /**
+     * @throws FieldNameException
+     * @throws TypeFormatIsNotValidException
+     */
     public function nested(string $field, array $properties): void
     {
         $types = [];
@@ -395,11 +402,10 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @param ElasticApiService $elasticApiService
-     * @return void
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function up(): void
     {
@@ -432,12 +438,11 @@ abstract class BaseElasticMigration
     }
 
     /**
-     * @param ElasticApiService $elasticApiService
-     * @param Client $client
-     * @return void
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
      * @throws RequestException
+     * @throws JsonException
      */
     public function down(): void
     {
@@ -445,7 +450,9 @@ abstract class BaseElasticMigration
             ElasticSchema::deleteIndex($this->getModel());
             return;
         }
-
+        /**
+         * must be implemented while Alter interface implemented in child class
+         */
         $this->alterDown($this);
 
         if ($this->isSchemaOrDroppingFieldsEmpty() === false) {
@@ -462,11 +469,10 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @param ElasticApiService $elasticApiService
-     * @return void
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
      * @throws RequestException
-     * @throws GuzzleException
      */
     public function alterIndex(): void
     {
@@ -533,18 +539,22 @@ abstract class BaseElasticMigration
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws JsonException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function isTaskCompleted(string $taskId): bool
     {
         $response = $this->elasticApiService->setModel(null)
             ->get('_tasks/' . $taskId);
 
-        return boolval(json_decode($response->getBody(), true)['completed']);
+        return (bool) json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR)['completed'];
     }
 
     /**
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
      */
     public function removeCurrentIndex(): void
     {
@@ -555,8 +565,9 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @return void
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
      * @throws ReflectionException
      */
     public function removeTempIndex(): void
@@ -569,8 +580,9 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
      */
     public function reIndexFromTempToCurrent(
         array $currentMappings,
@@ -615,8 +627,9 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
      */
     public function registerIndexWithoutMapping(): void
     {
@@ -626,10 +639,8 @@ abstract class BaseElasticMigration
 
 
     /**
-     * @param ElasticApiService $elasticApiService
-     * @param Client $client
-     * @return mixed
      * @throws GuzzleException
+     * @throws JsonException
      */
     public function reIndexToTempIndex(): mixed
     {
@@ -655,22 +666,19 @@ abstract class BaseElasticMigration
             'json' => $reIndexData
         ]);
 
-        return json_decode($response->getBody(), true);
+        return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
     }
 
     public function getModelIndex(): string
     {
         $model = $this->getModel();
 
-        /**
-         * @type BaseElasticsearchModel $modelObject
-         */
-        $modelObject = new $model();
-
-        return $modelObject->getIndex();
+        return (new $model())->getIndex();
     }
 
     /**
+     * @return array
+     * @throws GuzzleException
      * @throws ReflectionException
      * @throws RequestException
      */
@@ -678,20 +686,14 @@ abstract class BaseElasticMigration
     {
         $model = $this->getModel();
 
-        /**
-         * @type BaseElasticsearchModel $modelInstance
-         */
-        $modelInstance = new $model();
-
-        return $modelInstance->getMappings();
+        return (new $model())->getMappings();
     }
 
 
     /**
-     * @param Client $client
-     * @return void
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function createTempIndex(): void
     {
@@ -703,20 +705,17 @@ abstract class BaseElasticMigration
     }
 
     /**
-     * @return void
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
      * @throws ReflectionException
      */
     private function createIndexAndSchema(): void
     {
         ElasticSchema::deleteIndexIfExists($this->getModel());
 
-
         $this->elasticApiService->setModel($this->getModel())
             ->put(data: $this->schema);
-
-
-
 
         /** Remove pagination limit from elasticsearch
          * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html
@@ -732,6 +731,7 @@ abstract class BaseElasticMigration
      * and we decide to create temp index (reindex progress) and move all data into it then genreate new one
      * @throws RequestException
      * @throws ReflectionException
+     * @throws GuzzleException
      */
     private function shouldReIndex(): bool
     {
@@ -739,8 +739,10 @@ abstract class BaseElasticMigration
     }
 
     /**
-     * @throws RequestException
+     * @return array
+     * @throws GuzzleException
      * @throws ReflectionException
+     * @throws RequestException
      */
     public function getUpdatingFields(): array
     {
@@ -825,7 +827,7 @@ abstract class BaseElasticMigration
      */
     public function shouldAddFieldData($type): bool
     {
-        return is_array($type) && ($type['type'] ?? false) == self::TYPE_TEXT;
+        return is_array($type) && ($type['type'] ?? false) === self::TYPE_TEXT;
     }
 
     /**
