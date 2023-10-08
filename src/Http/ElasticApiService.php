@@ -3,8 +3,8 @@
 namespace Mawebcoder\Elasticsearch\Http;
 
 
-use Couchbase\IndexNotFoundException;
 use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\ModelNotDefinedException;
 use ReflectionClass;
 use GuzzleHttp\Client;
@@ -16,11 +16,13 @@ use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
+use RuntimeException;
 
 class ElasticApiService implements ElasticHttpRequestInterface
 {
     public string $index;
 
+    public const URI_SEPARATOR = '/';
     public Client $client;
     public bool $isTempIndex = false;
 
@@ -44,10 +46,11 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function post(?string $path = null, string|array $data = [], bool $mustBeSync = false): ResponseInterface
     {
-        $path = $this->buildPath($path, $mustBeSync);
+        $path = $this->getUrl($path, $mustBeSync);
 
         if (empty($data)) {
             return $this->client->post($path);
@@ -56,12 +59,10 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $this->refreshTempIndex();
 
         $options = [
-            RequestOptions::AUTH => [config('elasticsearch.username'), config('elasticsearch.password')],
+            RequestOptions::AUTH => $this->getCredentials(),
             RequestOptions::HEADERS => ['Accept' => 'application/json', 'Content-Type' => 'application/json'],
         ];
 
-        // sure is user need to pass the whole request body (like NDJSON format used for bulk insert)
-        // or use the JSON Format!
         $options[is_array($data) ? RequestOptions::JSON : RequestOptions::BODY] = $data;
 
         return $this->client->post($path, $options);
@@ -70,23 +71,23 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function head(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
     {
-        $path = $this->buildPath($path, $mustBeSync);
-        $path = trim($path, '/');
-
+        $path = $this->getUrl($path, $mustBeSync);
 
         if (empty($data)) {
             return $this->client->head($path);
         }
 
         $this->refreshTempIndex();
+
         return $this->client->head(
             $path,
             [
                 RequestOptions::JSON => $data,
-                'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+                RequestOptions::AUTH => $this->getCredentials()
             ]
         );
     }
@@ -96,19 +97,16 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @return ResponseInterface
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function get(?string $path = null): ResponseInterface
     {
-        if ($this->isTempIndex) {
-            $path = $this->generateBaseIndexPath() . trim($path);
-        } else {
-            $path = $this->generateBaseIndexPath() . '/' . trim($path);
-        }
+        $path = $this->getUrl($path, false);
 
         $this->refreshTempIndex();
 
         return $this->client->get($path, [
-            'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+            RequestOptions::AUTH => $this->getCredentials()
         ]);
     }
 
@@ -116,30 +114,16 @@ class ElasticApiService implements ElasticHttpRequestInterface
     /**
      * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function put(?string $path = null, array $data = [], bool $mustBeSync = false): ResponseInterface
     {
-        // append the prefix feature that package provide
-        if ($this->isTempIndex) {
-            $path = trim($this->generateBaseIndexPath() . trim($path, '/'), '/');
-        } else {
-            $path = trim($this->generateBaseIndexPath() . '/' . trim($path, '/'), '/');
-        }
-
-        $parts = parse_url($path);
-
-        if ($mustBeSync) {
-            if (isset($parts['query'])) {
-                $path .= '&refresh=true';
-            } else {
-                $path .= '?refresh=true';
-            }
-        }
+        $path = $this->getUrl($path, $mustBeSync);
 
         if (!empty($data)) {
             return $this->client->put($path, [
-                'json' => $data,
-                'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+                RequestOptions::JSON => $data,
+                RequestOptions::AUTH => $this->getCredentials()
             ]);
         }
 
@@ -150,68 +134,33 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
 
     /**
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
      */
     public function delete(?string $path = null, array $data = [], bool $mustBeSync = false): bool
     {
-        if ($this->isTempIndex) {
-            $path = trim($this->generateBaseIndexPath() . trim($path), '/');
-        } else {
-            $path = trim($this->generateBaseIndexPath() . '/' . trim($path), '/');
-        }
-
-        $parts = parse_url($path);
-
-        if ($mustBeSync) {
-            /**
-             * if already some query params exists in path
-             */
-            if (isset($parts['query'])) {
-                $path .= '&refresh=true';
-            } else {
-                $path .= '?refresh=true';
-            }
-        }
+        $path = $this->getUrl($path, $mustBeSync);
 
         $this->refreshTempIndex();
 
         $response = $this->client->delete($path, [
-            'auth' => [config('elasticsearch.username'), config('elasticsearch.password')]
+            RequestOptions::AUTH => $this->getCredentials()
         ]);
 
-        return json_decode($response->getBody(), true)['acknowledged'] ?? false;
+        return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR)['acknowledged'] ?? false;
     }
+
 
     public function refreshTempIndex(): void
     {
         $this->isTempIndex = false;
     }
 
-
-    public function getIndexNameWithPrefix(): string
-    {
-        /**
-         * @type BaseElasticsearchModel $elasticModelObject
-         */
-
-        if (!isset($this->elasticModel)) {
-            throw new \Exception("You must set the model then call this method!");
-        }
-
-        $elasticModelObject = (new ReflectionClass($this->elasticModel))->newInstance();
-
-        $indexName = $elasticModelObject->getIndex();
-
-        if ($prefix = config('elasticsearch.index_prefix')) {
-            return $prefix . $indexName;
-        }
-
-        return $indexName;
-    }
-
     /**
      * @throws ReflectionException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function generateBaseIndexPath(): string
     {
@@ -226,16 +175,18 @@ class ElasticApiService implements ElasticHttpRequestInterface
             config('elasticsearch.host') . ":" . config("elasticsearch.port")
         );
 
-        if ($this->isTempIndex || $this->elasticModel) {
-            $path .= '/';
+        if (isset($elasticModelObject)) {
+            $index = $elasticModelObject->getIndexWithPrefix();
 
-            if (config('elasticsearch.index_prefix')) {
-                $path .= config('elasticsearch.index_prefix');
-            }
+            $path .= self::URI_SEPARATOR;
+
+            $path .= $index;
+
+            return $path;
         }
 
-        if (isset($elasticModelObject)) {
-            $path .= $elasticModelObject->getIndex();
+        if ($this->isTempIndex) {
+            return $this->getTempIndexUrl($path);
         }
 
         return $path;
@@ -279,6 +230,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
     /**
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      * @throws JsonException
      * @throws ModelNotDefinedException
      * @throws ReflectionException
@@ -288,7 +240,6 @@ class ElasticApiService implements ElasticHttpRequestInterface
         if (!$this->elasticModel) {
             throw new ModelNotDefinedException();
         }
-
 
         $model = new ReflectionClass($this->elasticModel);
 
@@ -300,7 +251,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
             return null;
         }
 
-        $fullPath = $this->generateBaseIndexPath();
+        $fullPath = $this->getUrl('', true);
 
         return $this->client->delete($fullPath);
     }
@@ -337,17 +288,17 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
 
     /**
-     * @throws ReflectionException
-     * @throws RequestException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException|JsonException
      */
     public function getFields(): array
     {
         $response = $this->get('_mapping');
 
-        $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
-        $index = config('elasticsearch.index_prefix') . $index;
-        $jsonResponse = json_decode($response->getBody(), true);
+        $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndexWithPrefix();
+
+        $jsonResponse = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
         if (array_key_exists('properties', $jsonResponse[$index]['mappings'])) {
             return array_keys($jsonResponse[$index]['mappings']['properties']);
@@ -357,19 +308,18 @@ class ElasticApiService implements ElasticHttpRequestInterface
     }
 
     /**
-     * @throws ReflectionException
-     * @throws RequestException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws JsonException
      */
     public function getMappings(): array
     {
         $response = $this->get('_mapping');
 
-        $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndex();
+        $index = (new ReflectionClass($this->elasticModel))->newInstance()->getIndexWithPrefix();
 
-        $index = config('elasticsearch.index_prefix') . $index;
-
-        $jsonResponse = json_decode($response->getBody(), true);
+        $jsonResponse = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
         return $jsonResponse[$index]['mappings']['properties'];
     }
@@ -378,19 +328,51 @@ class ElasticApiService implements ElasticHttpRequestInterface
      * @param string|null $path
      * @param bool $mustBeSync
      * @return string
+     * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
      */
-    public function buildPath(?string $path, bool $mustBeSync): string
+    public function getUrl(?string $path, bool $mustBeSync): string
     {
         if ($this->isTempIndex) {
-            $path = $this->generateBaseIndexPath() . trim($path);
+            $path = trim($this->generateBaseIndexPath() . trim($path, self::URI_SEPARATOR), self::URI_SEPARATOR);
         } else {
-            $path = $this->generateBaseIndexPath() . '/' . trim($path);
+            $path = trim(
+                $this->generateBaseIndexPath() . self::URI_SEPARATOR . trim($path, self::URI_SEPARATOR),
+                self::URI_SEPARATOR
+            );
         }
 
         $parts = parse_url($path);
 
-        $mustBeSync && $path .= isset($parts['query']) ? '&refresh=true' : '?refresh=true';
+        if ($mustBeSync) {
+            if (isset($parts['query'])) {
+                $path .= '&refresh=true';
+            } else {
+                $path .= '?refresh=true';
+            }
+        }
+        return $path;
+    }
+
+    /**
+     * @return array
+     */
+    public function getCredentials(): array
+    {
+        return [config('elasticsearch.username'), config('elasticsearch.password')];
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     */
+    public function getTempIndexUrl(string $path): string
+    {
+        $path .= self::URI_SEPARATOR;
+
+        if (config('elasticsearch.index_prefix')) {
+            $path .= config('elasticsearch.index_prefix');
+        }
         return $path;
     }
 }

@@ -1659,7 +1659,7 @@ abstract class BaseElasticsearchModel
 
         $documentInfoTemplate = [
             'index' => [
-                '_index' => Elasticsearch::setModel(static::class)->getIndexNameWithPrefix(),
+                '_index' => (new static())->getIndexWithPrefix(),
             ]
         ];
 
