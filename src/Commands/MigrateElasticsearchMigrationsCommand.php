@@ -143,6 +143,8 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
             $allMigrationsPath = $this->getUnMigratedFiles(ElasticApiService::$migrationsPath);
 
+
+
             /**
              * remove indices from elasticsearch
              */
@@ -171,6 +173,8 @@ class MigrateElasticsearchMigrationsCommand extends Command
 
 
                 $migrationObject->down();
+
+
             }
 
             $this->info('all indices dropped');
@@ -180,7 +184,9 @@ class MigrateElasticsearchMigrationsCommand extends Command
                 return;
             }
 
+
             foreach ($allMigrationsPath as $path) {
+
                 /**
                  * @type BaseElasticMigration $result
                  */

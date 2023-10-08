@@ -16,6 +16,8 @@ class ElasticsearchServiceProvider extends ServiceProvider
 
     public function register()
     {
+
+
         $this->commands([
             MigrateElasticsearchMigrationsCommand::class,
             MigrationRollbackElasticsearchCommand::class,

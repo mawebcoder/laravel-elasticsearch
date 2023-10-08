@@ -116,7 +116,7 @@ abstract class BaseElasticsearchModel
      */
     public function truncate(): void
     {
-       $this->refreshSearch();
+        $this->refreshSearch();
 
         $this->search = [
             'query' => [
@@ -131,11 +131,15 @@ abstract class BaseElasticsearchModel
             ->post('_delete_by_query', $this->search, $this->mustBeSync);
     }
 
-    public function isExistsIndex()
+    /**
+     * @throws GuzzleException
+     * @throws ReflectionException
+     */
+    public function isExistsIndex(): bool
     {
         try {
             $response = Elasticsearch::setModel(static::class)->head();
-            return $response->getStatusCode() == Response::HTTP_OK;
+            return $response->getStatusCode() === Response::HTTP_OK;
         } catch (ClientException $throwable) {
             return false;
         }
@@ -215,7 +219,6 @@ abstract class BaseElasticsearchModel
     {
         $this->search['script']['source'] = '';
 
-
         foreach ($options as $key => $value) {
             $parameterName = str_replace('.', '_', $key);
             $this->search['script']['source'] .= "ctx._source.$key=params." . $parameterName . ';';
@@ -223,7 +226,6 @@ abstract class BaseElasticsearchModel
         }
 
         if ($this->isCalledFromObject()) {
-
             $this->search['query']['bool']['should'] = [];
 
             $this->search['query']['bool']['should'][] = [
@@ -1185,9 +1187,7 @@ abstract class BaseElasticsearchModel
         }
 
         foreach (func_get_args() as $field) {
-            if ($field === self::KEY_ID) {
-                $field = '_id';
-            }
+           $field=$this->parseField($field);
 
             $fields[] = $field;
         }
@@ -1219,6 +1219,8 @@ abstract class BaseElasticsearchModel
      */
     public function orderBy(string $field, string $direction = 'asc'): static
     {
+        $field=$this->parseField($field);
+
         if ($direction && !in_array($direction, ['asc', 'desc'])) {
             throw new InvalidSortDirection(message: 'sort direction must be either asc or desc.');
         }

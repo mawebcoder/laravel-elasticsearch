@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Tests\CreatesApplication;
 use Illuminate\Support\Facades\Artisan;
@@ -13,11 +15,12 @@ use Illuminate\Http\Client\RequestException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
+use Tests\TestCase\Integration\BaseIntegrationTestCase;
 use Tests\TestCase\Integration\Traits\HasFakeMigration;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 
-class MigrationTest extends TestCase
+class MigrationTest extends BaseIntegrationTestCase
 {
     use CreatesApplication;
     use HasFakeMigration;
@@ -28,46 +31,6 @@ class MigrationTest extends TestCase
     public BaseElasticMigration $dummyMigration;
 
     public BaseElasticMigration $dummyMigrationAlterState;
-
-    protected function setUp(): void
-    {
-        $this->afterApplicationCreated(function () {
-            Artisan::call(
-                'migrate --path="' . database_path(
-                    'migrations/2023_03_26_create_elastic_search_migrations_logs_table.php'
-                ) . '"'
-            );
-
-            ElasticSchema::deleteIndexIfExists(EUserModel::class);
-
-            // setup test migrations as property
-            $this->dummyMigration = require $this->getMigrationPathByModel(EUserModel::class);
-
-            $this->dummyMigrationAlterState = new class extends BaseElasticMigration implements
-                AlterElasticIndexMigrationInterface {
-
-                public function getModel(): string
-                {
-                    return EUserModel::class;
-                }
-
-                public function schema(BaseElasticMigration $mapper)
-                {
-                    $mapper->string('city');
-                }
-
-                public function alterDown(BaseElasticMigration $mapper): void
-                {
-                    $mapper->dropField('city');
-                }
-            };
-
-            // setup elastic api service
-            $this->elasticApiService = new ElasticApiService();
-        });
-
-        parent::setUp();
-    }
 
 
     /**
@@ -193,4 +156,35 @@ class MigrationTest extends TestCase
 
         $this->assertEquals(config('elasticsearch.index_prefix') . $elasticsearch->getIndex(), $index);
     }
+
+    public function test_has_index_method(): void
+    {
+        sleep(1);
+
+        $result = Elasticsearch::hasIndex(EUserModel::INDEX_NAME);
+
+        $this->assertTrue($result);
+    }
+
+    /**
+     * @throws InvalidSortDirection
+     */
+    public function test_id_on_order_by(): void
+    {
+        $elasticModel = new EUserModel();
+
+        $elasticModel->orderBy('id', 'desc');
+
+        $this->assertEquals(
+            [
+                [
+                    '_id' => [
+                        'order' => 'desc'
+                    ]
+                ]
+            ]
+            , $elasticModel->search['sort']
+        );
+    }
+
 }

@@ -405,7 +405,9 @@ abstract class BaseElasticMigration
     {
         $this->schema($this);
 
+
         if ($this->isCreationState()) {
+
             $this->createIndexAndSchema();
             return;
         }
@@ -709,8 +711,12 @@ abstract class BaseElasticMigration
     {
         ElasticSchema::deleteIndexIfExists($this->getModel());
 
+
         $this->elasticApiService->setModel($this->getModel())
             ->put(data: $this->schema);
+
+
+
 
         /** Remove pagination limit from elasticsearch
          * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html
