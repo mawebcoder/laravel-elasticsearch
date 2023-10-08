@@ -2519,12 +2519,14 @@ abstract class BaseElasticsearchModel
     /**
      * @throws IndexNamePatternIsNotValidException
      */
-    private function validateIndex(string $index):void
+    private function validateIndex(string $index): void
     {
-        if(preg_match('/^[a-z][a-z0-9_-]{0,255}$/',$index)){
+        if (preg_match('/^[a-z][a-z0-9_-]{0,255}$/', $index)) {
             return;
         }
 
-        throw new IndexNamePatternIsNotValidException($index.' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/');
+        throw new IndexNamePatternIsNotValidException(
+            $index . ' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/'
+        );
     }
 }
