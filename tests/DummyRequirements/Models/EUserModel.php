@@ -6,7 +6,7 @@ use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
 
 class EUserModel extends BaseElasticsearchModel
 {
-    const INDEX_NAME = 'user_test';
+   public const INDEX_NAME = 'user_test';
 
     public const KEY_NAME = 'name';
     public const KEY_IS_ACTIVE = 'is_active';

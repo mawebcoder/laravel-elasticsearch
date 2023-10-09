@@ -5,6 +5,7 @@ namespace Tests\Integration;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use ReflectionClass;
@@ -21,7 +22,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 {
 
 
-    public function testFindMethod()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testFindMethod(): void
     {
         $data = [
             BaseElasticsearchModel::KEY_ID => 2,
@@ -41,7 +49,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testSetNullForUndefinedMappedData()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testSetNullForUndefinedMappedData(): void
     {
         $data = [
             BaseElasticsearchModel::KEY_ID => 1,
@@ -67,7 +82,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testCanUpdateData()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testCanUpdateData(): void
     {
         $data = [
             BaseElasticsearchModel::KEY_ID => 1,
@@ -1282,10 +1304,90 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             ];
         }
 
-        $this->assertEquals($expected,$ages);
+        $this->assertEquals($expected, $ages);
+    }
 
-        $elasticsearchModel->truncate();
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws DirectoryNotFoundException
+     * @throws JsonException
+     */
+    public function test_group_by_method_without_sort_field(): void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
 
+        $elasticsearchModel->groupBy('age');
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' =>
+                                [
+                                    'must' => []
+                                ]
+                        ]
+                    ]
+                ]
+            ],
+            '_source' => [],
+            'collapse' => [
+                'field' => 'age',
+                'inner_hits' => [
+                    'name' => 'groupBy_age'
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search);
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws DirectoryNotFoundException
+     * @throws JsonException
+     */
+    public function test_group_by_method_with_sort_field(): void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->groupBy('age', 'age', 'desc');
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' =>
+                                [
+                                    'must' => []
+                                ]
+                        ]
+                    ]
+                ]
+            ],
+            '_source' => [],
+            'collapse' => [
+                'field' => 'age',
+                'inner_hits' => [
+                    'name' => 'groupBy_age',
+                    'sort' => [
+                        [
+                            'age' => [
+                                'order' => 'desc'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search);
     }
 
 

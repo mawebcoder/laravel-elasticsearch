@@ -2582,10 +2582,11 @@ abstract class BaseElasticsearchModel
 
         $this->search['collapse'] = [
             ...$this->search['collapse'],
-            ...$innerHits
+           ...$innerHits
         ];
 
-        return  $this->get();
+
+        return $this->get();
     }
 
     /**
@@ -2594,7 +2595,7 @@ abstract class BaseElasticsearchModel
      * @param string $direction
      * @return array[]|\array[][]
      */
-    public function generateInnerHits(string $field, ?string $sortField = null, string $direction='asc'): array
+    public function generateInnerHits(string $field, ?string $sortField = null, string $direction = 'asc'): array
     {
         $innerHits = [
             'inner_hits' => [
@@ -2602,18 +2603,19 @@ abstract class BaseElasticsearchModel
             ]
         ];
 
-        return !$sortField ? $innerHits :
+
+        if (!$sortField) {
+            return $innerHits;
+        }
+
+        $innerHits['inner_hits']['sort'] = [
             [
-                ...$innerHits,
-                ...[
-                    'sort' => [
-                        [
-                            $sortField => [
-                                'order' => $direction
-                            ]
-                        ]
-                    ]
+                $sortField => [
+                    'order' => $direction
                 ]
-            ];
+            ]
+        ];
+
+        return $innerHits;
     }
 }
