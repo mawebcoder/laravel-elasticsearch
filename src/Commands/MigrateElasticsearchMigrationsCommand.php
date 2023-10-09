@@ -167,14 +167,11 @@ class MigrateElasticsearchMigrationsCommand extends Command
                     ? config('elasticsearch.index_prefix') . $modelInstance->getIndex()
                     : $modelInstance->getIndex();
 
-                if (ElasticSchema::isExistsIndex($modelInstance::class)){
+                if (!ElasticSchema::isExistsIndex($modelInstance::class)){
                     continue;
                 }
 
-
                 $migrationObject->down();
-
-
             }
 
             $this->info('all indices dropped');

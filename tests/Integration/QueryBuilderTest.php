@@ -6,6 +6,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use ReflectionClass;
 use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
@@ -1184,7 +1185,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     /**
      * @throws JsonException
      */
-    public function test_build_script_method_on_string():void
+    public function test_build_script_method_on_string(): void
     {
         $elasticModel = new EUserModel();
 
@@ -1197,6 +1198,95 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $result);
     }
 
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function test_unique_function_in_model(): void
+    {
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->unique('name');
+
+        $expected = [
+            'field' => 'name'
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search['collapse']);
+    }
+
+    /** @return void
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws InvalidSortDirection
+     */
+    public function test_unique_query(): void
+    {
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 3;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $result = EUserModel::newQuery()
+            ->orderBy('age')
+            ->unique(EUserModel::KEY_AGE);
+
+        $expected = [
+            [
+                'age' => 22,
+            ],
+            [
+                'age' => 45
+            ]
+        ];
+
+        $ages = [];
+
+        foreach ($result as $value) {
+
+            $ages[] = [
+                'age' => $value->age
+            ];
+        }
+
+        $this->assertEquals($expected,$ages);
+
+        $elasticsearchModel->truncate();
+
+    }
 
 
 }

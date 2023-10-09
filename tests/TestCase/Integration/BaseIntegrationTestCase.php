@@ -83,6 +83,7 @@ class BaseIntegrationTestCase extends TestCase
      */
     public static function bootTestMigrations(): void
     {
+
         self::printVerboseBootTestMigrationsDebugDetails();
 
         // sure, elastics-each logs migration migrate!

@@ -6,6 +6,7 @@ use Closure;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
 use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Psr\Http\Message\ResponseInterface;
 use Ramsey\Uuid\Exception\UnableToBuildUuidException;
@@ -36,6 +37,7 @@ abstract class BaseElasticsearchModel
     public array $attributes = [];
 
     private int $closureCounter = 0;
+
 
     public const OPERATOR_LIKE = 'like';
     public const OPERATOR_NOT_LIKE = 'not like';
@@ -220,9 +222,9 @@ abstract class BaseElasticsearchModel
                 ]
             ];
         }
-        $script=trim($this->buildScript($options),';');
+        $script = trim($this->buildScript($options), ';');
 
-        $this->search['script']['source']=$script;
+        $this->search['script']['source'] = $script;
 
         Elasticsearch::setModel(static::class)
             ->post('_update_by_query', $this->search, $this->mustBeSync);
@@ -235,7 +237,7 @@ abstract class BaseElasticsearchModel
     /**
      * @throws JsonException
      */
-    public function buildScript($data, $path = 'ctx._source'):string
+    public function buildScript($data, $path = 'ctx._source'): string
     {
         $script = '';
 
@@ -334,7 +336,7 @@ abstract class BaseElasticsearchModel
 
         $object->search = $this->search;
 
-        $object->{self::KEY_ID} = is_numeric($result['_id']) ? intval($result['_id']) : $result['_id'];
+        $object->{self::KEY_ID} = is_numeric($result['_id']) ? (int)$result['_id'] : $result['_id'];
 
         foreach ($sourceResult as $key => $value) {
             $object->{$key} = $value;
@@ -357,6 +359,7 @@ abstract class BaseElasticsearchModel
      * @return $this|null
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws JsonException|IndexNamePatternIsNotValidException
      */
     public function first(): null|static
     {
@@ -433,7 +436,7 @@ abstract class BaseElasticsearchModel
     /**
      * @throws GuzzleException
      * @throws ReflectionException
-     * @throws JsonException
+     * @throws JsonException|IndexNamePatternIsNotValidException
      */
     public function requestForSearch(): mixed
     {
@@ -446,7 +449,7 @@ abstract class BaseElasticsearchModel
     /**
      * @throws GuzzleException
      * @throws JsonException
-     * @throws ReflectionException
+     * @throws ReflectionException|IndexNamePatternIsNotValidException
      */
     public function get(): Collection
     {
@@ -465,7 +468,8 @@ abstract class BaseElasticsearchModel
         $operation = null,
         $value = null,
         bool $inClosure = false
-    ): static|array {
+    ): static|array
+    {
         $numberOfArguments = count(func_get_args());
 
         $field = $this->parseField($field);
@@ -482,7 +486,7 @@ abstract class BaseElasticsearchModel
 
         $backtrace = debug_backtrace();
 
-        $parentFunction = isset($backtrace[1]) ? $backtrace[1]['function'] : '';
+        $parentFunction = $this->getParentFunction($backtrace);
 
         if ($this->isCalledFromClosure($parentFunction)) {
             $this->closureConditions[$this->conditionStatus][$this->closureCounter][] = [
@@ -508,10 +512,11 @@ abstract class BaseElasticsearchModel
 
     public function whereTerm(
         string|Closure $field,
-        $operation = null,
-        $value = null,
-        bool $inClosure = false
-    ): static|array {
+                       $operation = null,
+                       $value = null,
+        bool           $inClosure = false
+    ): static|array
+    {
         $numberOfArguments = count(func_get_args());
 
         $field = $this->parseField($field);
@@ -547,7 +552,8 @@ abstract class BaseElasticsearchModel
         $operation = null,
         $value = null,
         bool $inClosure = false
-    ): static|array {
+    ): static|array
+    {
         $numberOfArguments = count(func_get_args());
 
         $field = $this->parseField($field);
@@ -814,7 +820,8 @@ abstract class BaseElasticsearchModel
         $operation = null,
         $value = null,
         bool $inClosure = false
-    ): static|array {
+    ): static|array
+    {
         $numberOfArguments = count(func_get_args());
 
         $field = $this->parseField($field);
@@ -1346,11 +1353,12 @@ abstract class BaseElasticsearchModel
 
     public function whereFuzzy(
         string|Closure $field,
-        string $value,
-        string|int $fuzziness = 3,
-        int $prefixLength = 0,
-        bool $inClosure = false
-    ): static|array {
+        string         $value,
+        string|int     $fuzziness = 3,
+        int            $prefixLength = 0,
+        bool           $inClosure = false
+    ): static|array
+    {
         $field = $this->parseField($field);
 
         if ($inClosure) {
@@ -1395,11 +1403,12 @@ abstract class BaseElasticsearchModel
 
     public function orWhereFuzzy(
         string|Closure $field,
-        string $value,
-        string|int $fuzziness = 3,
-        int $prefixLength = 0,
-        bool $isClosure = false
-    ): static|array {
+        string         $value,
+        string|int     $fuzziness = 3,
+        int            $prefixLength = 0,
+        bool           $isClosure = false
+    ): static|array
+    {
         $field = $this->parseField($field);
 
         if ($isClosure) {
@@ -2047,10 +2056,11 @@ abstract class BaseElasticsearchModel
 
 
     public function getQueryBuilderForWhereTermInClosureState(
-        mixed $operation,
-        mixed $value,
+        mixed          $operation,
+        mixed          $value,
         string|Closure $field
-    ): array {
+    ): array
+    {
         switch ($operation) {
             case self::OPERATOR_NOT_EQUAL_SPACESHIP:
             case self::OPERATOR_NOT_EQUAL:
@@ -2528,5 +2538,82 @@ abstract class BaseElasticsearchModel
         throw new IndexNamePatternIsNotValidException(
             $index . ' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/'
         );
+    }
+
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function unique(string $field): Collection
+    {
+        $this->search['collapse'] = [
+            'field' => $field
+        ];
+
+        return $this->get();
+    }
+
+    /**
+     * @param string $field
+     * @param string|null $sortField
+     * @param string $direction
+     * @return Collection
+     * @throws DirectoryNotFoundException
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    public function groupBy(string $field, ?string $sortField = null, string $direction = 'asc'): Collection
+    {
+
+        if (!in_array($direction, ['asc', 'desc'])) {
+            throw new DirectoryNotFoundException();
+        }
+
+        $this->search['collapse'] = [
+            'field' => $field,
+        ];
+
+        $innerHits = $this->generateInnerHits($field, $sortField, $direction);
+
+        $this->search['collapse'] = [
+            ...$this->search['collapse'],
+            ...$innerHits
+        ];
+
+        return  $this->get();
+    }
+
+    /**
+     * @param string $field
+     * @param string|null $sortField
+     * @param string $direction
+     * @return array[]|\array[][]
+     */
+    public function generateInnerHits(string $field, ?string $sortField = null, string $direction='asc'): array
+    {
+        $innerHits = [
+            'inner_hits' => [
+                'name' => 'groupBy_' . $field
+            ]
+        ];
+
+        return !$sortField ? $innerHits :
+            [
+                ...$innerHits,
+                ...[
+                    'sort' => [
+                        [
+                            $sortField => [
+                                'order' => $direction
+                            ]
+                        ]
+                    ]
+                ]
+            ];
     }
 }
