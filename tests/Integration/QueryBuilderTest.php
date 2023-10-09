@@ -1390,5 +1390,79 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $elasticsearchModel->search);
     }
 
+    /**
+     * @throws RequestException
+     * @throws DirectoryNotFoundException
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    public function test_group_by_method_with_sort_field_fetch_data(): void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 4;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 3;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $result = EUserModel::newQuery()
+            ->groupBy('age');
+
+        $expected = [
+            22 => 2,
+            45 => 2
+        ];
+
+        $count = [];
+
+        $result->each(function (array $value, $key) use (&$count) {
+            array_walk($value, function () use (&$count, $key) {
+                if (!isset($count[$key])) {
+                    $count[$key] = 1;
+                } else {
+                    $count[$key]++;
+                }
+            });
+        });
+
+        $this->assertEquals($expected, $count);
+
+    }
+
 
 }

@@ -34,6 +34,10 @@ abstract class BaseElasticsearchModel
     use Aggregatable;
     use HasElasticsearchResponseParser;
 
+    public const FIELD_GROUP_BY_INDEX = 0;
+    public const FIELD_GROUP_BY_VALUE_INDEX = 0;
+
+    public const GROUP_BY_PREFIX = 'groupBy_';
     public array $attributes = [];
 
     private int $closureCounter = 0;
@@ -401,10 +405,15 @@ abstract class BaseElasticsearchModel
 
         $collection = collect();
 
-        foreach ($results as $result) {
+        if ($this->isCalledFromGroupBy()) {
+
+            return $this->FetchGroupByData($results);
+        }
+
+        foreach ($results as $record) {
             $data = [
-                ...$result[self::SOURCE_KEY],
-                ...['id' => $result['_id']]
+                ...$record[self::SOURCE_KEY],
+                ...['id' => $record['_id']]
             ];
 
             $collection->add($this->mapResultToModelObject($data));
@@ -2582,7 +2591,7 @@ abstract class BaseElasticsearchModel
 
         $this->search['collapse'] = [
             ...$this->search['collapse'],
-           ...$innerHits
+            ...$innerHits
         ];
 
 
@@ -2599,7 +2608,7 @@ abstract class BaseElasticsearchModel
     {
         $innerHits = [
             'inner_hits' => [
-                'name' => 'groupBy_' . $field
+                'name' => self::GROUP_BY_PREFIX . $field
             ]
         ];
 
@@ -2617,5 +2626,44 @@ abstract class BaseElasticsearchModel
         ];
 
         return $innerHits;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCalledFromGroupBy(): bool
+    {
+        return isset($this->search['collapse']['inner_hits']);
+    }
+
+    /**
+     * @param mixed $results
+     * @return Collection
+     */
+    public function FetchGroupByData(mixed $results): Collection
+    {
+        $groupByResult = [];
+
+        foreach ($results as $record) {
+
+            $fieldName = array_keys($record['fields'])[self::FIELD_GROUP_BY_INDEX];
+
+            $fieldValue = $record['fields'][$fieldName][self::FIELD_GROUP_BY_VALUE_INDEX];
+
+            $hits = $record['inner_hits'][self::GROUP_BY_PREFIX . $fieldName]['hits']['hits'];
+
+            $groupByCollection = collect();
+
+            foreach ($hits as $hit) {
+                $data = [
+                    ...$hit[self::SOURCE_KEY],
+                    ...['id' => $hit['_id']]
+                ];
+
+                $groupByResult[$fieldValue][] = $groupByCollection->add($this->mapResultToModelObject($data));
+            }
+        }
+
+        return collect($groupByResult);
     }
 }
