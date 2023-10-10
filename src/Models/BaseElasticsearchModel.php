@@ -1458,10 +1458,39 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    public function whereNull(string $field): self
+    {
+        $this->getQueryForWhere(self::OPERATOR_EQUAL, null, $field);
+
+        return $this;
+    }
+
+    public function whereNotNull(string $field): static
+    {
+        $this->getQueryForWhere(self::OPERATOR_NOT_EQUAL, null, $field);
+        return $this;
+    }
+
+    public function orWhereNull(string $field):static
+    {
+        $this->getOrWhereQueryBuilder(self::OPERATOR_EQUAL, null, $field);
+
+        return $this;
+
+    }
+
+    public function orWhereNotNull(string $field):static
+    {
+        $this->getOrWhereQueryBuilder(self::OPERATOR_NOT_EQUAL, null, $field);
+
+        return $this;
+    }
+
     /**
      * @throws ReflectionException
      * @throws GuzzleException
      * @throws JsonException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function findMany(array $ids): Collection
     {

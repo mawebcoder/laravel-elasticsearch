@@ -229,10 +229,6 @@ class ElasticChainingQueryBuilderTest extends TestCase
                 ]
             ]
         ];
-
-
-
-
         $this->assertEquals($this->expected, $this->elastic->search);
     }
 
@@ -352,5 +348,133 @@ class ElasticChainingQueryBuilderTest extends TestCase
         ];
 
         $this->assertEquals($this->expected, $this->elastic->search);
+    }
+
+    public function test_where_null_method(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->whereNull('name');
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' => [
+                                'must' => [
+                                    [
+                                        'bool' => [
+                                            'must_not' => [
+                                                [
+                                                    'exists' => [
+                                                        'field' => 'name'
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+
+                        ]
+                    ]
+                ]
+            ],
+            '_source' => []
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search);
+    }
+
+    public function test_where_not_null_method(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->whereNotNull('name');
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' => [
+                                'must' => [
+                                    [
+                                        'exists' => [
+                                            'field' => 'name'
+                                        ]
+                                    ]
+                                ]
+                            ]
+
+                        ]
+                    ]
+                ]
+            ],
+            '_source' => []
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search);
+    }
+
+    public function test_or_where_null_method(): void
+    {
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->orWhereNull('name');
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' => [
+                                'must_not' => [
+                                    [
+                                        'exists' => [
+                                            'field' => 'name'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            '_source' => []
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search);
+    }
+
+    public function test_or_where_not_null_method(): void
+    {
+
+        $elasticsearchModel = new EUserModel();
+
+        $elasticsearchModel->orWhereNotNull('name');
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' => [
+                                'must' => []
+                            ]
+                        ],
+                        [
+                            'exists' => [
+                                'field' => 'name'
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            '_source' => []
+        ];
+
+        $this->assertEquals($expected, $elasticsearchModel->search);
     }
 }
