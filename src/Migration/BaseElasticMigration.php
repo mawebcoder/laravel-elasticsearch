@@ -5,6 +5,8 @@ namespace Mawebcoder\Elasticsearch\Migration;
 use GuzzleHttp\Client;
 use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use Mawebcoder\Elasticsearch\Exceptions\IndicesAlreadyExistsException;
+use Mawebcoder\Elasticsearch\Exceptions\IndicesNotFoundException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Illuminate\Support\Arr;
@@ -26,6 +28,7 @@ abstract class BaseElasticMigration
 {
     public array $schema = [];
 
+    protected bool $isDynamicMapping = false;
     public const MAPPINGS = '_mappings';
 
     public array $dropMappingFields = [];
@@ -406,6 +409,7 @@ abstract class BaseElasticMigration
      * @throws RequestException
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException|IndicesAlreadyExistsException
      */
     public function up(): void
     {
@@ -413,7 +417,6 @@ abstract class BaseElasticMigration
 
 
         if ($this->isCreationState()) {
-
             $this->createIndexAndSchema();
             return;
         }
@@ -443,9 +446,14 @@ abstract class BaseElasticMigration
      * @throws ReflectionException
      * @throws RequestException
      * @throws JsonException
+     * @throws IndicesNotFoundException
      */
     public function down(): void
     {
+        if (!Elasticsearch::hasIndex($this->getModelIndex())) {
+            throw new IndicesNotFoundException();
+        }
+
         if ($this->isCreationState()) {
             ElasticSchema::deleteIndex($this->getModel());
             return;
@@ -453,6 +461,7 @@ abstract class BaseElasticMigration
         /**
          * must be implemented while Alter interface implemented in child class
          */
+
         $this->alterDown($this);
 
         if ($this->isSchemaOrDroppingFieldsEmpty() === false) {
@@ -547,7 +556,7 @@ abstract class BaseElasticMigration
         $response = $this->elasticApiService->setModel(null)
             ->get('_tasks/' . $taskId);
 
-        return (bool) json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR)['completed'];
+        return (bool)json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR)['completed'];
     }
 
     /**
@@ -587,7 +596,8 @@ abstract class BaseElasticMigration
     public function reIndexFromTempToCurrent(
         array $currentMappings,
         array $newMappings
-    ): void {
+    ): void
+    {
         $finalMappings = $currentMappings;
 
         foreach ($newMappings as $key => $newMapping) {
@@ -709,9 +719,18 @@ abstract class BaseElasticMigration
      * @throws IndexNamePatternIsNotValidException
      * @throws JsonException
      * @throws ReflectionException
+     * @throws IndicesAlreadyExistsException
      */
     private function createIndexAndSchema(): void
     {
+        if (Elasticsearch::hasIndex($this->getModelIndex())) {
+            throw new IndicesAlreadyExistsException();
+        }
+
+        if (!$this->isDynamicMapping) {
+            $this->shutdownDynamicMapping();
+        }
+
         ElasticSchema::deleteIndexIfExists($this->getModel());
 
         $this->elasticApiService->setModel($this->getModel())
@@ -722,6 +741,11 @@ abstract class BaseElasticMigration
          */
         $this->elasticApiService->setModel($this->getModel())
             ->put(path: "_settings", data: ['index' => ['max_result_window' => 2147483647]]);
+    }
+
+    private function shutdownDynamicMapping(): void
+    {
+        $this->schema['mappings']['dynamic'] = false;
     }
 
     abstract public function schema(BaseElasticMigration $mapper);

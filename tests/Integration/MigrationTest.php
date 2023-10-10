@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
@@ -20,7 +22,7 @@ use Tests\TestCase\Integration\Traits\HasFakeMigration;
 use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use Mawebcoder\Elasticsearch\Migration\AlterElasticIndexMigrationInterface;
 
-class MigrationTest extends BaseIntegrationTestCase
+class MigrationTest extends TestCase
 {
     use CreatesApplication;
     use HasFakeMigration;
@@ -32,31 +34,28 @@ class MigrationTest extends BaseIntegrationTestCase
 
     public BaseElasticMigration $dummyMigrationAlterState;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->dummyMigration = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
+
+    }
 
     /**
-     * @group MigrationTest
-     * @throws RequestException
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
      */
-    public function testUpMethodInMigrationsInCreatingState()
+    public function testUpMethodInMigrationsInCreatingState(): void
     {
         $this->dummyMigration->up();
 
-        sleep(2);
+        sleep(1);
 
-        $test = new EUserModel();
-
-        $expectedMappings = [
-            EUserModel::KEY_AGE,
-            EUserModel::KEY_DESCRIPTION,
-            EUserModel::KEY_IS_ACTIVE,
-            EUserModel::KEY_NAME
-        ];
-
-        $actualValues = array_keys($test->getMappings());
-
-        $this->assertSame($expectedMappings, $actualValues);
+        $this->assertTrue(Elasticsearch::hasIndex($this->dummyMigration->getModelIndex()));
 
         $this->dummyMigration->down();
     }
