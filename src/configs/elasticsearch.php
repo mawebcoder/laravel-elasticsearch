@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'index_prefix' => env('APP_NAME', 'elasticsearch'),
+    'index_prefix' => env('APP_NAME'),
     'host' => 'http://localhost',
     'port' => 9200,
     'reindex_migration_driver' => "sync", //sync or queue,

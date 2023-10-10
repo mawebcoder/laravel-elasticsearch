@@ -1296,10 +1296,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @return array
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
      * @throws ReflectionException
-     * @throws RequestException
      */
     public function getMappings(): array
     {
@@ -1308,9 +1308,10 @@ abstract class BaseElasticsearchModel
     }
 
     /**
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      * @throws JsonException
+     * @throws ReflectionException
      */
     public function paginate(int $perPage = 15): Collection
     {
