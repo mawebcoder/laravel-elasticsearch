@@ -55,7 +55,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
 
         if (empty($data)) {
-            return $this->client->post($path);
+            return $this->client->post($path, [
+                RequestOptions::AUTH => $this->getCredentials()
+            ]);
         }
 
         $this->refreshTempIndex();
@@ -81,7 +83,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
         $path = $this->getUrl($path, $mustBeSync);
 
         if (empty($data)) {
-            return $this->client->head($path);
+            return $this->client->head($path, [
+                RequestOptions::AUTH => $this->getCredentials()
+            ]);
         }
 
         $this->refreshTempIndex();
@@ -132,7 +136,9 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $this->refreshTempIndex();
 
-        return $this->client->put($path);
+        return $this->client->put($path, [
+            RequestOptions::AUTH => $this->getCredentials()
+        ]);
     }
 
 
