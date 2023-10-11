@@ -18,7 +18,7 @@ class ConditionsOperatorTest extends TestCase
     /**
      * @throws Throwable
      */
-    public function test_operator_in_where_while_two_arg_given()
+    public function test_operator_in_where_while_two_arg_given():void
     {
         $this->elasticsearch->where('name', false);
 
@@ -51,7 +51,7 @@ class ConditionsOperatorTest extends TestCase
     /**
      * @throws Throwable
      */
-    public function test_where_id_can_be_replaced_with_elastic_id()
+    public function test_where_id_can_be_replaced_with_elastic_id():void
     {
         $this->elasticsearch->where('id', false);
 
@@ -85,7 +85,7 @@ class ConditionsOperatorTest extends TestCase
     /**
      * @throws Throwable
      */
-    public function test_operator_in_where_while_three_arg_given()
+    public function test_operator_in_where_while_three_arg_given():void
     {
         $this->elasticsearch->where('name', '<>', false);
 
@@ -121,7 +121,7 @@ class ConditionsOperatorTest extends TestCase
         $this->assertEquals($arr, $this->elasticsearch->search);
     }
 
-    public function test_operator_in_orWhere_while_two_argument()
+    public function test_operator_in_orWhere_while_two_argument():void
     {
         $this->elasticsearch->orWhere('name', false);
 
@@ -150,7 +150,7 @@ class ConditionsOperatorTest extends TestCase
         $this->assertEquals($arr, $this->elasticsearch->search);
     }
 
-    public function test_operator_in_orWhere_while_three_argument()
+    public function test_operator_in_orWhere_while_three_argument():void
     {
         $this->elasticsearch->orWhere('name', 'like', false);
 
@@ -179,7 +179,7 @@ class ConditionsOperatorTest extends TestCase
         $this->assertSame($arr, $this->elasticsearch->search);
     }
 
-    public function test_operator_in_whereTerm_with_two_argument()
+    public function test_operator_in_whereTerm_with_two_argument():void
     {
         $this->elasticsearch->whereTerm('name', false);
 
@@ -209,7 +209,7 @@ class ConditionsOperatorTest extends TestCase
         $this->assertSame($arr, $this->elasticsearch->search);
     }
 
-    public function test_operator_in_whereTerm_with_three_argument()
+    public function test_operator_in_whereTerm_with_three_argument():void
     {
         $this->elasticsearch->whereTerm('name', '<>', false);
 
@@ -277,7 +277,7 @@ class ConditionsOperatorTest extends TestCase
         $this->assertSame($arr, $this->elasticsearch->search);
     }
 
-    public function test_operator_in_orWhereTerm_with_three_argument()
+    public function test_operator_in_orWhereTerm_with_three_argument():void
     {
         $this->elasticsearch->orWhereTerm('name', '<>', false);
 

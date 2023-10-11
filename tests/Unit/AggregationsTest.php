@@ -16,7 +16,7 @@ class AggregationsTest extends TestCase
         $this->elasticsearch = new EUserModel();
     }
 
-    public function test_bucket_aggregation()
+    public function test_bucket_aggregation(): void
     {
         $this->elasticsearch->bucket('name', 'any-name-number', 1300);
 

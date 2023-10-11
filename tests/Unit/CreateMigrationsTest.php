@@ -36,7 +36,7 @@ class CreateMigrationsTest extends TestCase
     }
 
 
-    public function testIntegerFieldType()
+    public function testIntegerFieldType():void
     {
         $this->dummy->integer('age');
 
@@ -53,7 +53,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testBooleanType()
+    public function testBooleanType():void
     {
         $this->dummy->boolean('is_active');
 
@@ -70,7 +70,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testSmallIntegerType()
+    public function testSmallIntegerType():void
     {
         $this->dummy->smallInteger('age');
 
@@ -87,7 +87,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testBigIntType()
+    public function testBigIntType():void
     {
         $this->dummy->bigInteger('age');
 
@@ -104,7 +104,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testDoubleType()
+    public function testDoubleType():void
     {
         $this->dummy->double('currency_value');
 
@@ -123,7 +123,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testFloatType()
+    public function testFloatType():void
     {
         $this->dummy->float('value');
 
@@ -140,7 +140,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testTinyIntType()
+    public function testTinyIntType():void
     {
         $this->dummy->tinyInt('value');
 
@@ -158,7 +158,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testStringType()
+    public function testStringType():void
     {
         $this->dummy->string('name');
 
@@ -179,7 +179,7 @@ class CreateMigrationsTest extends TestCase
     /**
      * @throws InvalidAnalyzerType
      */
-    public function testTextType()
+    public function testTextType():void
     {
         $this->dummy->text('body');
 
@@ -198,7 +198,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testDateTimeType()
+    public function testDateTimeType():void
     {
         $this->dummy->datetime('created_at');
 
@@ -220,7 +220,7 @@ class CreateMigrationsTest extends TestCase
     /**
      * @throws FieldNameException
      */
-    public function test_object_type()
+    public function test_object_type():void
     {
         $this->dummy->object('categories', [
             'name' => BaseElasticMigration::TYPE_OBJECT,
@@ -256,7 +256,7 @@ class CreateMigrationsTest extends TestCase
     /**
      * @throws InvalidAnalyzerType
      */
-    public function testFieldData()
+    public function testFieldData():void
     {
         $this->dummy->text('text', true);
 
@@ -275,7 +275,7 @@ class CreateMigrationsTest extends TestCase
         $this->assertSame($expected, $this->dummy->schema);
     }
 
-    public function testFieldDataOnObjects()
+    public function testFieldDataOnObjects():void
     {
         $this->dummy->object('categories', [
             'name' => [

@@ -430,6 +430,11 @@ class ElasticChainingQueryBuilderTest extends TestCase
                     'should' => [
                         [
                             'bool' => [
+                                'must' => []
+                            ]
+                        ],
+                        [
+                            'bool' => [
                                 'must_not' => [
                                     [
                                         'exists' => [
