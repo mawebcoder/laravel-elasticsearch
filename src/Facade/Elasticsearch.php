@@ -6,6 +6,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Facade;
 use Mawebcoder\Elasticsearch\Http\ElasticApiService;
 use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * @method static Response post(?string $path = null, array $data = [])
@@ -19,6 +20,7 @@ use Mawebcoder\Elasticsearch\Http\ElasticHttpRequestInterface;
  * @method static array getFields()
  * @method static array getMappings()
  * @method static bool hasIndex(string $index)
+ * @method static null|ResponseInterface dropIndexByName(string $index)
  */
 class Elasticsearch extends Facade
 {

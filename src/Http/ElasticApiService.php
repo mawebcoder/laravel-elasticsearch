@@ -265,6 +265,28 @@ class ElasticApiService implements ElasticHttpRequestInterface
         return $this->client->delete($fullPath);
     }
 
+
+    /**
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function dropIndexByName(string $index): ?ResponseInterface
+    {
+        if (!$this->hasIndex($index)) {
+            return null;
+        }
+
+        $path = trim(
+                config('elasticsearch.host') . ":" . config("elasticsearch.port")
+            ) . '/' . $index;
+
+        $options = [
+            RequestOptions::AUTH => $this->getCredentials()
+        ];
+
+        return $this->client->delete($path, $options);
+    }
+
     /**
      * @throws GuzzleException
      * @throws JsonException

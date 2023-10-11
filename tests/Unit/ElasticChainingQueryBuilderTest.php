@@ -3,6 +3,8 @@
 namespace Tests\Unit;
 
 
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use PHPUnit\Framework\TestCase;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
@@ -451,6 +453,39 @@ class ElasticChainingQueryBuilderTest extends TestCase
         ];
 
         $this->assertEquals($expected, $elasticsearchModel->search);
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     */
+    public function testPrefixIndex(): void
+    {
+        $elasticsearch = new EUserModel();
+
+        $index = $elasticsearch->getIndexWithPrefix();
+
+        $this->assertEquals(config('elasticsearch.index_prefix') . $elasticsearch->getIndex(), $index);
+    }
+
+    /**
+     * @throws InvalidSortDirection
+     */
+    public function test_id_on_order_by(): void
+    {
+        $elasticModel = new EUserModel();
+
+        $elasticModel->orderBy('id', 'desc');
+
+        $this->assertEquals(
+            [
+                [
+                    '_id' => [
+                        'order' => 'desc'
+                    ]
+                ]
+            ]
+            , $elasticModel->search['sort']
+        );
     }
 
     public function test_or_where_not_null_method(): void

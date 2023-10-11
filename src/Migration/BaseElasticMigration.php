@@ -410,6 +410,7 @@ abstract class BaseElasticMigration
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws JsonException|IndicesAlreadyExistsException
+     * @throws IndicesNotFoundException
      */
     public function up(): void
     {
@@ -419,6 +420,10 @@ abstract class BaseElasticMigration
         if ($this->isCreationState()) {
             $this->createIndexAndSchema();
             return;
+        }
+
+        if (!Elasticsearch::hasIndex($this->getModelIndex())) {
+            throw new IndicesNotFoundException();
         }
 
         // sure user add the new mapping method in migration or drop a fields

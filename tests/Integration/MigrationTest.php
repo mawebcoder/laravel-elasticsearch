@@ -4,8 +4,11 @@ namespace Tests\Integration;
 
 use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use Mawebcoder\Elasticsearch\Exceptions\IndicesAlreadyExistsException;
+use Mawebcoder\Elasticsearch\Exceptions\IndicesNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
+use ReflectionClass;
 use ReflectionException;
 use Tests\CreatesApplication;
 use Illuminate\Support\Facades\Artisan;
@@ -38,22 +41,34 @@ class MigrationTest extends TestCase
     {
         parent::setUp();
 
+        $this->dropAllIndices();
+
         $this->dummyMigration = require __DIR__ . '/../DummyRequirements/Migrations/2023_04_16_074007_create_tests_table.php';
+
+        $this->dummyMigrationAlterState = require __DIR__ . '/../DummyRequirements/AlterMigration/2023_09_11_090100_alter_tests_table.php';
 
     }
 
+    protected function tearDown(): void
+    {
+        $this->dropAllIndices();
+
+        parent::tearDown();
+    }
+
     /**
+     * @return void
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws JsonException
      * @throws ReflectionException
      * @throws RequestException
+     * @throws IndicesAlreadyExistsException
+     * @throws IndicesNotFoundException
      */
     public function testUpMethodInMigrationsInCreatingState(): void
     {
         $this->dummyMigration->up();
-
-        sleep(1);
 
         $this->assertTrue(Elasticsearch::hasIndex($this->dummyMigration->getModelIndex()));
 
@@ -62,12 +77,15 @@ class MigrationTest extends TestCase
 
 
     /**
-     * @group MigrationTest
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws IndicesAlreadyExistsException
+     * @throws IndicesNotFoundException
+     * @throws JsonException
      * @throws ReflectionException
      * @throws RequestException
-     * @throws GuzzleException
      */
-    public function testDownMethodInMigrationInCreatingState()
+    public function testDownMethodInMigrationInCreatingState(): void
     {
         $this->dummyMigration->up();
 
@@ -80,27 +98,29 @@ class MigrationTest extends TestCase
     }
 
     /**
-     * @group MigrationTest
-     * @throws RequestException
-     * @throws ReflectionException
+     * @return void
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws IndicesAlreadyExistsException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException|IndicesNotFoundException
      */
-    public function testAlterStateMigrationForAddField()
+    public function testAlterStateMigrationForAddField(): void
     {
         $this->dummyMigration->up();
 
         $this->dummyMigrationAlterState->up();
-
-        sleep(3);
 
         $test = new EUserModel();
 
         $actualMappings = array_keys($test->getMappings());
 
         $expectedMappings = [
-            EUserModel::KEY_NAME,
             EUserModel::KEY_AGE,
+            EUserModel::KEY_NAME,
             EUserModel::KEY_IS_ACTIVE,
+            EUserModel::KEY_INFORMATION,
             EUserModel::KEY_DESCRIPTION,
             'city'
         ];
@@ -108,29 +128,29 @@ class MigrationTest extends TestCase
         // sorting expectations (base elastic mapping sort result)
         sort($expectedMappings);
 
-        $this->assertSame($expectedMappings, $actualMappings);
-
-        $this->dummyMigration->down();
+        $this->assertEqualsCanonicalizing($expectedMappings, $actualMappings);
     }
 
     /**
-     * @group MigrationTest
-     * @throws RequestException
-     * @throws ReflectionException
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws IndicesAlreadyExistsException
+     * @throws IndicesNotFoundException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
      */
-    public function testMigrationDropField()
+    public function testMigrationDropField(): void
     {
         $this->dummyMigration->up();
 
         $this->dummyMigrationAlterState->up();
 
-        sleep(3);
-
         $expectedMappings = [
-            EUserModel::KEY_NAME,
             EUserModel::KEY_AGE,
+            EUserModel::KEY_NAME,
             EUserModel::KEY_IS_ACTIVE,
+            EUserModel::KEY_INFORMATION,
             EUserModel::KEY_DESCRIPTION,
         ];
 
@@ -142,48 +162,92 @@ class MigrationTest extends TestCase
 
         $actualMappings = array_keys($test->getMappings());
 
-        $this->assertSame($expectedMappings, $actualMappings);
-
-        $this->dummyMigration->down();
+        $this->assertEqualsCanonicalizing($expectedMappings, $actualMappings);
     }
 
-    public function testPrefixIndex(): void
-    {
-        $elasticsearch = new EUserModel();
 
-        $index = $elasticsearch->getIndexWithPrefix();
-
-        $this->assertEquals(config('elasticsearch.index_prefix') . $elasticsearch->getIndex(), $index);
-    }
-
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws IndicesAlreadyExistsException
+     * @throws JsonException
+     */
     public function test_has_index_method(): void
     {
-        sleep(1);
+
+        $this->dummyMigration->up();
 
         $result = Elasticsearch::hasIndex(EUserModel::INDEX_NAME);
 
         $this->assertTrue($result);
     }
 
-    /**
-     * @throws InvalidSortDirection
-     */
-    public function test_id_on_order_by(): void
+    private function dropAllIndices(): void
     {
-        $elasticModel = new EUserModel();
+        $indices = Elasticsearch::getAllIndexes();
 
-        $elasticModel->orderBy('id', 'desc');
+        foreach ($indices as $index) {
+            Elasticsearch::dropIndexByName($index);
+        }
+    }
 
-        $this->assertEquals(
-            [
-                [
-                    '_id' => [
-                        'order' => 'desc'
-                    ]
-                ]
-            ]
-            , $elasticModel->search['sort']
-        );
+    public function test_throw_exception_while_creating_indices_if_indices_already_exists(): void
+    {
+        $this->assertThrows(function () {
+            $this->dummyMigration->up();
+            $this->dummyMigration->up();
+        }, IndicesAlreadyExistsException::class);
+
+    }
+
+    public function test_throw_exception_while_creating_indices_if_indices_are_not_already_exists(): void
+    {
+        $this->assertThrows(function () {
+            $this->dummyMigrationAlterState->up();
+        }, IndicesNotFoundException::class);
+    }
+
+    /**
+     * @throws IndicesNotFoundException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws IndicesAlreadyExistsException
+     * @throws GuzzleException
+     */
+    public function test_dynamic_mapping_is_shutdown_by_default(): void
+    {
+        $this->dummyMigration->up();
+
+        $this->assertTrue(isset($this->dummyMigration->schema['mappings']['dynamic']));
+
+        $this->assertFalse($this->dummyMigration->schema['mappings']['dynamic']);
+    }
+
+    /**
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws IndicesAlreadyExistsException
+     * @throws IndicesNotFoundException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
+     */
+    public function test_can_turn_on_dynamic_mapping(): void
+    {
+        $reflection = new ReflectionClass($this->dummyMigration);
+
+        $object = $reflection->newInstance();
+
+        $reflection->getProperty('isDynamicMapping')
+            ->setValue($object, true);
+
+        $object->up();
+
+        $this->assertFalse(isset($object->schema['mappings']['dynamic']));
     }
 
 }
