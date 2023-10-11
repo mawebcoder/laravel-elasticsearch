@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 
-use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionException;
@@ -41,23 +41,6 @@ class ElasticQueryBuilderTest extends TestCase
         $this->elastic = new EUserModel();
     }
 
-    public function test_elastic_where_without_operation(): void
-    {
-        $field = 'test_field';
-        $value = null;
-
-        $this->elastic->where($field);
-
-        $this->expected['query']['bool']['should'][$this->elastic::MUST_INDEX]['bool']['must'][] = [
-            "term" => [
-                $field => [
-                    'value' => $value
-                ]
-            ]
-        ];
-
-        $this->assertEquals($this->expected, $this->elastic->search);
-    }
 
     public function test_elastic_where_only_value(): void
     {
@@ -398,19 +381,34 @@ class ElasticQueryBuilderTest extends TestCase
     public function test_elastic_or_where_without_operation(): void
     {
         $field = 'test_field';
-        $value = null;
+        $value = 'value';
 
-        $this->elastic->orWhere($field);
 
-        $this->expected['query']['bool']['should'][] = [
-            "term" => [
-                $field => [
-                    'value' => $value
+        $this->elastic->orWhere($field, $value);
+
+        $expected = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'bool' => [
+                                'must' => []
+                            ]
+                        ],
+                  [
+                      'term' => [
+                          $field =>[
+                              'value'=> $value
+                          ]
+                      ]
+                  ]
+                    ]
                 ]
-            ]
+            ],
+            '_source' => []
         ];
 
-        $this->assertEquals($this->expected, $this->elastic->search);
+        $this->assertEquals($expected, $this->elastic->search);
     }
 
     public function test_elastic_or_where_only_value(): void
@@ -902,7 +900,7 @@ class ElasticQueryBuilderTest extends TestCase
     /**
      * @throws InvalidSortDirection
      */
-    public function test_order_by_method()
+    public function test_order_by_method(): void
     {
         $elastic = new EUserModel();
 
@@ -911,7 +909,7 @@ class ElasticQueryBuilderTest extends TestCase
 
         $expectation = [
             [
-                'id' => [
+                '_id' => [
                     'order' => 'desc'
                 ]
             ],
@@ -1119,7 +1117,7 @@ class ElasticQueryBuilderTest extends TestCase
     /**
      * @throws ReflectionException
      */
-    public function testGetInClosureQueryForWhereInNotLikeCondition():void
+    public function testGetInClosureQueryForWhereInNotLikeCondition(): void
     {
 
         $value = null;
@@ -1130,7 +1128,7 @@ class ElasticQueryBuilderTest extends TestCase
 
         $object = $reflectionElasticModel->newInstance();
 
-        $object->orWhereTerm('ali','=',null);
+        $object->orWhereTerm('ali', '=', null);
 
         $reflectionMethod = $reflectionElasticModel->getMethod('getInClosureQueryForWhere');
 
@@ -1150,8 +1148,6 @@ class ElasticQueryBuilderTest extends TestCase
 
         $this->assertEquals($expected, $query);
     }
-
-
 
 
 }

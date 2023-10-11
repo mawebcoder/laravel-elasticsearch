@@ -1461,7 +1461,31 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         });
 
         $this->assertEquals($expected, $count);
+    }
 
+    public function test_where_null_result()
+    {
+        
+    }
+
+    public function test_where_not_null_result()
+    {
+        
+    }
+
+    public function test_select_id_result()
+    {
+        
+    }
+
+    public function test_or_where_not_null_result()
+    {
+        
+    }
+
+    public function test_or_where_null_result()
+    {
+        
     }
 
 
