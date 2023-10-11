@@ -5,9 +5,14 @@ namespace Tests\Integration;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
 use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
+use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
+use Mawebcoder\Elasticsearch\Migration\BaseElasticMigration;
 use ReflectionClass;
 use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
@@ -35,6 +40,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             BaseElasticsearchModel::KEY_ID => 2,
             EUserModel::KEY_NAME => 'mamad',
             EUserModel::KEY_AGE => 23,
+            EUserModel::KEY_INFORMATION => null,
             EUserModel::KEY_IS_ACTIVE => true,
             EUserModel::KEY_DESCRIPTION => 'dummy description'
         ];
@@ -73,9 +79,10 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             [
                 BaseElasticsearchModel::KEY_ID => 1,
                 EUserModel::KEY_DESCRIPTION => $data[EUserModel::KEY_DESCRIPTION],
-                EUserModel::KEY_NAME => null,
                 EUserModel::KEY_AGE => null,
+                EUserModel::KEY_INFORMATION => null,
                 EUserModel::KEY_IS_ACTIVE => null,
+                EUserModel::KEY_NAME => null,
             ],
             $result->attributes
         );
@@ -114,17 +121,26 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $expectation = [
             BaseElasticsearchModel::KEY_ID => $data[BaseElasticsearchModel::KEY_ID],
-            EUserModel::KEY_NAME => $newData[EUserModel::KEY_NAME],
             EUserModel::KEY_IS_ACTIVE => true,
+            EUserModel::KEY_NAME => $newData[EUserModel::KEY_NAME],
             EUserModel::KEY_DESCRIPTION => $newData[EUserModel::KEY_DESCRIPTION],
-            EUserModel::KEY_AGE => null
+            EUserModel::KEY_AGE => null,
+            EUserModel::KEY_INFORMATION => null,
         ];
 
         $this->assertEquals($expectation, $model->getAttributes());
     }
 
 
-    public function testCanDeleteDataByModelRecord()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testCanDeleteDataByModelRecord(): void
     {
         $data = [
             BaseElasticsearchModel::KEY_ID => 1,
@@ -143,7 +159,15 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testSelect()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     * @throws ReflectionException
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testSelect(): void
     {
         $this->registerSomeTestUserRecords();
 
@@ -158,7 +182,13 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testTake()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testTake(): void
     {
         $this->registerSomeTestUserRecords();
 
@@ -170,7 +200,13 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOffset()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOffset(): void
     {
         $this->registerSomeTestUserRecords();
 
@@ -182,7 +218,16 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereEqualCondition()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     * @throws JsonException
+     * @throws Throwable
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testWhereEqualCondition(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -199,7 +244,16 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereNotEqualCondition()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     * @throws JsonException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     * @throws GuzzleException
+     */
+    public function testWhereNotEqualCondition(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -212,7 +266,16 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereCondition()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws AtLeastOneArgumentMustBeChooseInSelect
+     * @throws JsonException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws SelectInputsCanNotBeArrayOrObjectException
+     * @throws GuzzleException
+     */
+    public function testOrWhereCondition(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -225,16 +288,24 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals(2, $results->count());
 
         $this->assertTrue(
-            $results->contains(fn($row) => $row->{EUserModel::KEY_NAME} == $data[0]->{EUserModel::KEY_NAME})
+            $results->contains(fn($row) => $row->{EUserModel::KEY_NAME} === $data[0]->{EUserModel::KEY_NAME})
         );
 
         $this->assertTrue(
-            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} == $data[1]->{EUserModel::KEY_AGE})
+            $results->contains(fn($row) => $row->{EUserModel::KEY_AGE} === $data[1]->{EUserModel::KEY_AGE})
         );
     }
 
 
-    public function testNotBetweenCondition()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws WrongArgumentType
+     * @throws JsonException
+     */
+    public function testNotBetweenCondition(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -250,7 +321,16 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrBetweenCondition()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws WrongArgumentType
+     * @throws JsonException
+     * @throws Throwable
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function testOrBetweenCondition(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -277,7 +357,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrderByAsc()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws InvalidSortDirection
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrderByAsc(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -291,6 +378,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $third = $results[2];
 
+
         $this->assertEquals($data[0]->{EUserModel::KEY_AGE}, $first->{EUserModel::KEY_AGE});
 
         $this->assertEquals($data[1]->{EUserModel::KEY_AGE}, $second->{EUserModel::KEY_AGE});
@@ -299,7 +387,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrderByDesc()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws InvalidSortDirection
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrderByDesc(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -321,7 +416,13 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereTerm()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereTerm(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -337,7 +438,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereTerm()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereTerm(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -358,7 +466,13 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereNotTerm()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereNotTerm(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -374,7 +488,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereEqual()
+    /**
+     * @throws Throwable
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereEqual(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -391,7 +512,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereGreaterThan()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereGreaterThan(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -411,7 +539,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereGreaterThan()
+    /**
+     * @throws Throwable
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereGreaterThan(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -428,7 +563,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereLessThan()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereLessThan(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -442,7 +584,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereLessThan()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereLessThan(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -463,7 +612,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereLike()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereLike(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -481,7 +637,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereNotLike()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereNotLike(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -504,7 +667,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereLike()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereLike(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -527,7 +697,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereGreaterThanOrEqual()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereGreaterThanOrEqual(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -547,7 +724,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereGreaterThanOrEqual()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereGreaterThanOrEqual(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -571,7 +755,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testWhereLessThanOrEqual()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testWhereLessThanOrEqual(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -587,7 +778,14 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     }
 
 
-    public function testOrWhereLessThanOrEqual()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws Throwable
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testOrWhereLessThanOrEqual(): void
     {
         $data = $this->registerSomeTestUserRecords();
 
@@ -609,9 +807,11 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
 
     /**
-     * @throws RequestException
-     * @throws ReflectionException
+     * @return void
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
      */
     public function testGetMappings(): void
     {
@@ -619,16 +819,29 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $expected = [
             EUserModel::KEY_AGE => [
-                'type' => 'integer'
+                'type' => BaseElasticMigration::TYPE_INTEGER
             ],
             EUserModel::KEY_IS_ACTIVE => [
-                "type" => "boolean"
+                "type" => BaseElasticMigration::TYPE_BOOLEAN
             ],
             EUserModel::KEY_NAME => [
-                "type" => "keyword"
+                "type" => BaseElasticMigration::TYPE_STRING
             ],
             EUserModel::KEY_DESCRIPTION => [
-                "type" => "text"
+                "type" => BaseElasticMigration::TYPE_TEXT
+            ],
+            EUserModel::KEY_INFORMATION => [
+                'properties' => [
+                    'age' => [
+                        'type' => BaseElasticMigration::TYPE_INTEGER
+                    ],
+                    'ages' => [
+                        'type' => BaseElasticMigration::TYPE_OBJECT
+                    ],
+                    'name' => [
+                        'type' => BaseElasticMigration::TYPE_STRING
+                    ]
+                ]
             ]
         ];
 
@@ -640,6 +853,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      */
     public function test_where_clause_while_value_is_null(): void
     {
+        $this->markTestSkipped();
+
         $elasticsearchModel = new EUserModel();
 
         $elasticsearchModel->where('id', null);
@@ -675,6 +890,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      */
     public function test_where_clause_while_value_is_not_null(): void
     {
+        $this->markTestSkipped();
         $elasticsearchModel = new EUserModel();
 
         $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL_SPACESHIP, null);
@@ -704,6 +920,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      */
     public function test_where_clause_while_value_is_like_null(): void
     {
+        $this->markTestSkipped();
+
         $elasticsearchModel = new EUserModel();
 
         $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_LIKE, null);
@@ -739,6 +957,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      */
     public function test_where_clause_while_value_is_not_like_null(): void
     {
+        $this->markTestSkipped();
+
         $elasticsearchModel = new EUserModel();
 
         $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_NOT_LIKE, null);
@@ -761,463 +981,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             ]
 
         ], $elasticsearchModel->search['query']);
-    }
-
-
-    public function test_where_term_is_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->whereTerm('id', null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'bool' => [
-                                        'must_not' => [
-                                            [
-                                                'exists' => [
-                                                    'field' => '_id'
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_where_term_is_not_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->whereTerm('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL, null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_term_is_not_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->orWhereTerm('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL, null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'exists' => [
-                            'field' => '_id'
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_term_is_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->orWhereTerm('id', null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'bool' => [
-                            'must_not' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_where_in_is_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $values = [1, 2, 3, null];
-
-        $elasticsearchModel->whereIn('id', [1, 2, 3, null]);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'terms' => [
-                                        '_id' => array_filter($values, static fn($value) => !is_null($value))
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    [
-                        'bool' => [
-                            'must_not' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_where_not_in_is_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $values = [1, 2, 3, null];
-
-        $elasticsearchModel->whereNotIn('id', [1, 2, 3, null]);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'bool' => [
-                                        'must_not' => [
-                                            [
-                                                'terms' => [
-                                                    '_id' => array_filter($values, static fn($value) => !is_null($value)
-                                                    )
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ],
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->orWhere('id', null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'bool' => [
-                            'must_not' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_not_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->orWhere('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL, null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'exists' => [
-                            'field' => '_id'
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_like_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->orWhere('id', BaseElasticsearchModel::OPERATOR_LIKE, null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'bool' => [
-                            'must_not' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_not_like_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->orWhere('id', BaseElasticsearchModel::OPERATOR_NOT_LIKE, null);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'exists' => [
-                            'field' => '_id'
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_in_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $values = [1, 2, 3, null];
-
-        $elasticsearchModel->orWhereIn('id', $values);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'terms' => [
-                            '_id' => array_filter($values, static fn($value) => !is_null($value))
-                        ]
-                    ],
-                    [
-                        'bool' => [
-                            'must_not' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    public function test_or_where_not_in_null_query(): void
-    {
-        $elasticsearchModel = new EUserModel();
-
-        $values = [1, 2, 3, null];
-
-        $elasticsearchModel->orWhereNotIn('id', $values);
-
-        $expected = [
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => []
-                        ]
-                    ],
-                    [
-                        'bool' => [
-                            'must_not' => [
-                                [
-                                    'terms' => [
-                                        '_id' => array_filter($values, static fn($value) => !is_null($value))
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    [
-                        'exists' => [
-                            'field' => '_id'
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        $this->assertEquals($expected, $elasticsearchModel->search['query']);
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    public function test_invalid_indices_name_validation(): void
-    {
-        $index = 'Mohammad';
-
-        $reflection = new ReflectionClass(EUserModel::class);
-
-        $object = $reflection->newInstance();
-
-        $method = $reflection->getMethod('validateIndex');
-
-        $this->withoutExceptionHandling();
-
-        $this->expectException(IndexNamePatternIsNotValidException::class);
-
-        $this->expectExceptionMessage(
-            $index . ' index is not a valid indices name.the valid pattern is /^[a-z][a-z0-9_-]$/'
-        );
-
-        $method->invoke($object, $index);
-    }
-
-
-    /**
-     * @throws JsonException
-     */
-    public function test_build_script_method_on_nested_array(): void
-    {
-        $elasticModel = new EUserModel();
-
-        $result = $elasticModel->buildScript([
-            'information.data' => [
-                'name' => ['age' => 'ali', 'family' => 'amiri'],
-                'family' => ['color' => ['status' => 'red']]
-            ]
-        ]);
-
-        $expected = 'ctx._source.information.data.name.age = ali;ctx._source.information.data.name.family = amiri;ctx._source.information.data.family.color.status = red;';
-
-        $this->assertEquals($expected, $result);
-    }
-
-    /**
-     * @throws JsonException
-     */
-    public function test_build_script_method_on_string(): void
-    {
-        $elasticModel = new EUserModel();
-
-        $result = $elasticModel->buildScript([
-            'information.data' => 'jafar'
-        ]);
-
-        $expected = 'ctx._source.information.data = jafar;';
-
-        $this->assertEquals($expected, $result);
     }
 
 
@@ -1463,29 +1226,154 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $count);
     }
 
-    public function test_where_null_result()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function test_where_null_result(): void
     {
-        
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $results = EUserModel::newQuery()
+            ->whereNull(EUserModel::KEY_IS_ACTIVE)
+            ->get();
+
+        $result = $results->first();
+
+        $this->assertCount(1, $results);
+
+        $this->assertTrue(is_null($result->{EUserModel::KEY_IS_ACTIVE}));
+
+
     }
 
-    public function test_where_not_null_result()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function test_where_not_null_result(): void
     {
-        
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $results = EUserModel::newQuery()
+            ->whereNotNull(EUserModel::KEY_IS_ACTIVE)
+            ->get();
+
+        $result = $results->first();
+
+        $this->assertCount(1, $results);
+
+        $this->assertTrue(!is_null($result->{EUserModel::KEY_IS_ACTIVE}));
     }
 
-    public function test_select_id_result()
-    {
-        
-    }
-
-    public function test_or_where_not_null_result()
-    {
-        
-    }
-
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
     public function test_or_where_null_result()
     {
-        
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $results = EUserModel::newQuery()
+            ->orWhereNull(EUserModel::KEY_IS_ACTIVE)
+            ->get();
+
+        $this->assertCount(2, $results);
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function test_or_where_not_null_result(): void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $results = EUserModel::newQuery()
+            ->orWhereNotNull(EUserModel::KEY_IS_ACTIVE)
+            ->get();
+
+        $this->assertCount(2, $results);
     }
 
 

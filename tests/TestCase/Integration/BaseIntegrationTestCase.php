@@ -101,8 +101,11 @@ class BaseIntegrationTestCase extends TestCase
 
     public static function truncateModels(): void
     {
+        $indices = Elasticsearch::getAllIndexes();
 
-        Artisan::call('elastic:migrate --fresh');
+        foreach ($indices as $index) {
+            Elasticsearch::dropIndexByName($index);
+        }
     }
 
 }

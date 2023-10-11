@@ -219,6 +219,7 @@ abstract class BaseElasticsearchModel
     public function update(array $options): bool
     {
         if ($this->isCalledFromObject()) {
+
             $this->refreshSearch()
                 ->search['query']['bool']['must'][] = [
                 'ids' => [
@@ -430,12 +431,29 @@ abstract class BaseElasticsearchModel
     }
 
 
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
     public function mapResultToModelObject($result): static
     {
         $object = new static();
 
         foreach ($result as $key => $value) {
             $object->{$key} = $value;
+        }
+
+
+        $mappings = $this->getMappings();
+
+        foreach ($mappings as $key => $value) {
+
+            if (!is_null($object->{$key})) {
+                continue;
+            }
+            $object->{$key} = null;
         }
 
         return $object;
@@ -1472,7 +1490,7 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function orWhereNull(string $field):static
+    public function orWhereNull(string $field): static
     {
         $this->getOrWhereQueryBuilder(self::OPERATOR_EQUAL, null, $field);
 
@@ -1480,7 +1498,7 @@ abstract class BaseElasticsearchModel
 
     }
 
-    public function orWhereNotNull(string $field):static
+    public function orWhereNotNull(string $field): static
     {
         $this->getOrWhereQueryBuilder(self::OPERATOR_NOT_EQUAL, null, $field);
 

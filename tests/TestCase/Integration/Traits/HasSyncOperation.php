@@ -4,15 +4,18 @@ namespace Tests\TestCase\Integration\Traits;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
+use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
+use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Mawebcoder\Elasticsearch\Models\BaseElasticsearchModel;
+use Throwable;
 
 trait HasSyncOperation
 {
     /**
      * @throws IndexNamePatternIsNotValidException
-     * @throws \ReflectionException
+     * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
      */
@@ -65,11 +68,22 @@ trait HasSyncOperation
     }
 
 
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
     public function update(BaseElasticsearchModel $elasticsearch, array $data): bool
     {
         return $elasticsearch->mustBeSync()->update($data);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
     public function deleteModel(BaseElasticsearchModel $elasticsearch): void
     {
         $elasticsearch->mustBeSync()->delete();
