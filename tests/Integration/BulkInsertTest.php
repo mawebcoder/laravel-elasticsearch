@@ -3,6 +3,8 @@
 namespace Tests\Integration;
 
 use GuzzleHttp\Exception\GuzzleException;
+use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use ReflectionException;
 use Tests\DummyRequirements\Models\EUserModel;
 use Tests\TestCase\Integration\BaseIntegrationTestCase;
@@ -11,10 +13,13 @@ class BulkInsertTest extends BaseIntegrationTestCase
 {
 
     /**
-     * @throws ReflectionException
+     * @return void
      * @throws GuzzleException
+     * @throws ReflectionException
+     * @throws JsonException
+     * @throws IndexNamePatternIsNotValidException
      */
-    public function test_can_insert_multi_user_with_one_method_call()
+    public function test_can_insert_multi_user_with_one_method_call():void
     {
         $items = [
             [
@@ -33,12 +38,14 @@ class BulkInsertTest extends BaseIntegrationTestCase
             ]
         ];
 
-        $result = EUserModel::newQuery()
+        EUserModel::newQuery()
             ->mustBeSync()
             ->saveMany($items);
 
-        $this->assertTrue($result);
+        $result = EUserModel::newQuery()
+            ->whereIn('id', [10, 20])
+            ->get();
 
-        $this->assertEquals(count($items), EUserModel::newQuery()->count());
+        $this->assertEquals(count($items), $result->count());
     }
 }

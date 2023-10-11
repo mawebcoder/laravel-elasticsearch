@@ -64,7 +64,7 @@ class BaseIntegrationTestCase extends TestCase
      */
     private function tearDownMethodLogic(): void
     {
-        self::truncateTestModels();
+        self::truncateModels();
     }
 
     public static function bootApplication(): void
@@ -99,12 +99,10 @@ class BaseIntegrationTestCase extends TestCase
 
     }
 
-    public static function truncateTestModels()
+    public static function truncateModels(): void
     {
-        /* @var BaseElasticsearchModel $model */
-        foreach (self::MODELS_MUST_TRUNCATE_BETWEEN_TEST_CASE as $model) {
-            $model::newQuery()->mustBeSync()->truncate();
-        }
+
+        Artisan::call('elastic:migrate --fresh');
     }
 
 }
