@@ -416,6 +416,9 @@ abstract class BaseElasticMigration
     {
         $this->schema($this);
 
+        if (!$this->isDynamicMapping) {
+            $this->shutdownDynamicMapping();
+        }
 
         if ($this->isCreationState()) {
             $this->createIndexAndSchema();
@@ -485,6 +488,7 @@ abstract class BaseElasticMigration
     /**
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
      * @throws ReflectionException
      * @throws RequestException
      */
@@ -615,14 +619,19 @@ abstract class BaseElasticMigration
 
         $finalMappings = Arr::except($finalMappings, array_keys($this->dropMappingFields));
 
+        $this->schema = [
+            ...['dynamic' => $this->schema['dynamic']],
+            ...[
+                'properties' => $finalMappings
+            ]
+        ];
+
         // todo: doesn't support nested object
         $chosenSource = array_keys($finalMappings);
 
         $this->elasticApiService
             ->setModel($this->getModel())
-            ->put('_mapping', [
-                "properties" => $finalMappings
-            ]);
+            ->put(self::MAPPINGS, $this->schema);
 
         $this->elasticApiService->setModel(null)
             ->post(path: '_reindex', data: [
@@ -732,10 +741,6 @@ abstract class BaseElasticMigration
             throw new IndicesAlreadyExistsException();
         }
 
-        if (!$this->isDynamicMapping) {
-            $this->shutdownDynamicMapping();
-        }
-
         ElasticSchema::deleteIndexIfExists($this->getModel());
 
         $this->elasticApiService->setModel($this->getModel())
@@ -750,6 +755,11 @@ abstract class BaseElasticMigration
 
     private function shutdownDynamicMapping(): void
     {
+        if ($this instanceof AlterElasticIndexMigrationInterface) {
+            $this->schema['dynamic'] = false;
+            return;
+        }
+
         $this->schema['mappings']['dynamic'] = false;
     }
 
