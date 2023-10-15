@@ -260,7 +260,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
             return null;
         }
 
-        $fullPath = $this->getUrl('', true);
+        $fullPath = $this->getUrl('', false);
 
         return $this->client->delete($fullPath);
     }
