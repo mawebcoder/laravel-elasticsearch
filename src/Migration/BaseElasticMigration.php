@@ -426,7 +426,7 @@ abstract class BaseElasticMigration
         }
 
         if (!Elasticsearch::hasIndex($this->getModelIndex())) {
-            throw new IndicesNotFoundException();
+            return;
         }
 
         // sure user add the new mapping method in migration or drop a fields
@@ -459,7 +459,7 @@ abstract class BaseElasticMigration
     public function down(): void
     {
         if (!Elasticsearch::hasIndex($this->getModelIndex())) {
-            throw new IndicesNotFoundException();
+            return;
         }
 
         if ($this->isCreationState()) {
