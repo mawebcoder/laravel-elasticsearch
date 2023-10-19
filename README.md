@@ -659,7 +659,7 @@ $aggregations=$eArticleModel['aggregations'];
 
 ```
 
-By default, bucket method returns ``2147483647`` number of the records,if You want to change it:
+By default, bucket method returns maximum ``2147483647`` number of the records,if You want to change it:
 
 ``` 
 $eArticleModel
