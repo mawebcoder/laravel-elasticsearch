@@ -199,6 +199,7 @@ abstract class BaseElasticMigration
             return;
         }
 
+
         $this->schema['properties'][$field] = [
             ...["type" => 'object'],
             ...["properties" => $types]
@@ -410,15 +411,18 @@ abstract class BaseElasticMigration
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws JsonException|IndicesAlreadyExistsException
-     * @throws IndicesNotFoundException
      */
     public function up(): void
     {
         $this->schema($this);
 
+
+
         if (!$this->isDynamicMapping) {
             $this->shutdownDynamicMapping();
         }
+
+
 
         if ($this->isCreationState()) {
             $this->createIndexAndSchema();
@@ -697,7 +701,7 @@ abstract class BaseElasticMigration
     {
         $model = $this->getModel();
 
-        return (new $model())->getIndex();
+        return (new $model())->getIndexWithPrefix();
     }
 
     /**
@@ -731,7 +735,6 @@ abstract class BaseElasticMigration
     /**
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
-     * @throws JsonException
      * @throws ReflectionException
      * @throws IndicesAlreadyExistsException
      */
@@ -740,8 +743,6 @@ abstract class BaseElasticMigration
         if (Elasticsearch::hasIndex($this->getModelIndex())) {
             throw new IndicesAlreadyExistsException();
         }
-
-        ElasticSchema::deleteIndexIfExists($this->getModel());
 
         $this->elasticApiService->setModel($this->getModel())
             ->put(data: $this->schema);
