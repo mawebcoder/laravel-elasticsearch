@@ -3,7 +3,7 @@
 
 By using an Eloquent-like query builder, you can tame the beast without having to worry about Elasticsearch's monstrous syntax.
 
-You can use this package without needing to master Elasticسearch deeply and save your time by not having to memorize the higherarchical nested syntax.
+You can use this package without needing to master Elasticsearch deeply and save your time by not having to memorize the higherarchical nested syntax.
 
 ## Dependencies
 
