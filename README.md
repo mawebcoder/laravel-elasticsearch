@@ -263,7 +263,7 @@ Finally, migrate your migration:
 ``php artisan elastic:migrate``
 
 ### Dynamic Mapping
-By default, Elasticsearch detects the type of fields that you have not introduced in mapping and defines its type automatically. The package has disabled it automatically. To activate it, do the following in your migration:
+By default, Elasticsearch detects the type of fields that you have not introduced in mapping and defines its type automatically. The package has disabled it by default. To activate it, do the following in your migration:
 
 ```
 protected bool $isDynamicMapping = true;
