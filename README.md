@@ -3,28 +3,20 @@
 
 By using an Eloquent-like query builder, you can tame the beast without having to worry about Elasticsearch's monstrous syntax.
 
-You can use this package if you are already familiar with Elasticsearch and want to save time by not having to memorize the higherarchical nested syntax.
-
-As you would with migrations and models in Laravel, you can create and alter mappings and indices.
-
-Those with a little more knowledge can also take advantage of so many advanced features of Elasticsearch in the package.
-
-We will keep you updated on this amazing package in the future. :bomb: :sparkles: :computer:
-
-
+You can use this package without needing to master Elasticسearch deeply and save your time by not having to memorize the higherarchical nested syntax.
 
 ## Dependencies
 
 | Dependency    | version |
 |---------------|---------|
 | Elasticsearch | ^7.17.9 |
-| Laravel       | ^10     |
+| Laravel       | ^9.0     |
 | php           | ^8.1    |
 
 
+# Config file and Elasticsearch migration log
 
-@github/mawebcoder @github/KomeilShadan
-# Publish config file and migration
+In order to be able to save logs related to migrations and customize your configurations, you need to run command below:
 
 ``php artisan vendor:publish --tag=elastic``
 
@@ -32,8 +24,9 @@ Then  migrate your database :
 
 ``php artisan migrate``
 
-# Config 
+# Config
 
+After publishing the config file, you will see the following content
 ``` 
 
 return [
@@ -50,16 +43,18 @@ return [
 ```
 
 # ORM
-This package works based on the ORM Database design to induce a more comfortable use experience in using elasticsearch.
+This package has added ``ORM`` functionality to make it easier to work with documentation, just like what we see in Laravel.We will get to know more as we go forward.Let's dive into it
 
 # Models
-To communicate with Elasticsearch, we need a model for each index.To create a model:
+to be able to have a more effective relationship with our documents, we need to have a model for each index. Models similar to what we see in Laravel greatly simplify the work of communicating with the database.
 
-``php artisan elastic:make-model <model-name>``
+In order to create a Model:
+
+`php artisan elastic:make-model <model-name>`
 
 By default, your models base path is in ``app/Elasticsearch/Models`` directory, But you can  define your own base path  in ``config/elasticsearch.php`` file.
 
-Then you need to return your index name in ``getIndex`` method :
+All your models must inherit from the `BaseElasticsearchModel` class. This class is an abstract class that enforce you to implement the `getIndex` method that returns the index name of this model.
 
 ```
 public function getIndex():string 
@@ -69,10 +64,14 @@ public function getIndex():string
 }
 
 ```
+We use the return value of this method to create the index you want in migrations
 
 # Migrations
 
-After defining the model, you have to create a migration to register your desired fields:
+As you may know, Elasticsearch uses mappings for the structure of its documents, which may seem a little difficult to create in raw form. In order to simplify this process, we use migrations to make this process easier.
+After defining the model, you have to create a migration to register your desired fields.All your migrations must inherit from the `BaseElasticSearchMigration`   abstract class.
+
+To Create a new Migration:
 
 ``php artisan elastic:make-migration <migration-name>``
 
@@ -114,7 +113,7 @@ public function getModel():string
 
 ```
 
-To load  migrations in  AppServiceProvider:
+Unfortunately, the package cannot automatically find the path of your migrations. To introduce the path of migrations,put the sample code below in one of your providers:
 
 ```
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
@@ -122,6 +121,7 @@ use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
  public function register(): void
     {
         Elasticsearch::loadMigrationsFrom(__DIR__ . '/../Elastic/Migrations');
+        Elasticsearch::loadMigrationsFrom(__DIR__ . '/../App/Migrations');
     }
 
 ```
@@ -135,11 +135,11 @@ To migrate migrations and create your indices mappings :
 
 ``php artisan elastic:migrate``
 
-To reset all migrations :
+To reset all migrations(this command just runs `down` method in all migrations) :
 
 ``php artisan elstic:migrate --reset``
 
-To fresh all migrations :
+To drop all indices and register them again:
 
 ``php artisan elastic:migrate --fresh``
 
@@ -226,7 +226,7 @@ $this->datetime('created_at');
 
 # Edit Indices Mappings
 
-Sometimes you need to add or drop fields from your indices mapping. To do this
+Sometimes you need modify your mappings. To do this
 you have to add a new migration:
 
 ``php artisan elastic:make-migration <alter migration name>``
@@ -262,8 +262,16 @@ Finally, migrate your migration:
 
 ``php artisan elastic:migrate``
 
+### Dynamic Mapping
+By default, Elasticsearch detects the type of fields that you have not introduced in mapping and defines its type automatically. The package has disabled it automatically. To activate it, do the following in your migration:
+
+```
+protected bool $isDynamicMapping = true;
+```
+
 # Query Builder
 
+Just like Laravel, which enabled you to create complex and crude queries by using a series of pre-prepared methods, this package also uses this feature to give you a similar experience.
 ### Store a recorde
 
 ``` php
@@ -288,8 +296,7 @@ $eArticleModel->save();
 
 ```
 
-- Note: If you pass any field that doesn't exist in your mappings you will encounter handled exception that prevents from storing invalid data into DB.
-- Note: If you don't pass any field that exists in mapping,we set that as null by default
+- Note: If you don't pass any field that exists in your mappings,we set that as null by default
 
 ### Store Several Records (Bulk Insert)
 
@@ -364,7 +371,7 @@ $eArticleModel->where('id','>',10)->orWhere('id','>=',20)->get();
 #### Lower Than
 
 ```
-$eArticleModel->where('id','<',2)->orWhere('id','<=',1)->first();
+$eArticleModel->where('id','<',2)->orWhere('id',null)->first();
 ```
 
 #### Like
@@ -398,10 +405,23 @@ $eArticleModel->whereNotIn('id',[1,2])->orWhereNotIn('id',[26,23])->get();
 $eArticleModel->whereBetween('id,[1,2])->orWhereBetween('age',[26,27])->first();
 ```
 
+
 #### whereNotBetween
 
 ```
 $eArticleModel->whereNotBetween('id',[1,2])->orWhereNotBetween('id,'26,27])->get();
+```
+
+### whereNull
+
+```
+$eArticleModel->whereNull('id')->orWhereNull('name')->first();
+```
+
+### whereNotNull
+
+```
+$eArticleModel->whereNotNull('id')->orWhereNotNull()->first();
 ```
 
 #### Chaining
@@ -421,22 +441,6 @@ $eArticleModel
 
 ```
 
-### Callback Conditions
-
-```
-$eArticleModel=new EArticleModel();
-
-$eArticleModel
-->where( function(EArticleModel $eArticleModel){
-            $eArticleModel->where('name,'mawebcoder')
-            ->orWhereIn('id',[1,2,3]);
-})->orWhere(function(EArticleModel $eArticleModel){
-            $eArticleModel->whereFuzzy('name,'mawebcoder',fuzziness:3)
-            ->orWhereFuzzy('category.name','mawebcoder',fuzziness:2);
-})->where('category.name','car')
-->get();
-
-```
 #### Fuzzy Search
 
 Note: fuzzy search just works on the text fields
@@ -535,7 +539,7 @@ $eArticleModel=new EArticleModel();
 
 $eArticleModel
 ->where('name','<>','mohammad')
-->select('name,'age')
+->select('name,'age','id')
 ->get();
 
 ```
@@ -572,32 +576,12 @@ $model->where('age','>=',12);
 });
 ```
 
-### Get mappings fields
-
-```
-$eArticleModel->getFields();
-```
-
-### Get mappings
-
-``` 
-$eArticleModel->getMappings();
-```
-
 ### Get specific field's value
 
 ```
 $name=$eArticleModel->name;
 ```
 
-To  export from your raw queries
-```
-$eArticleModel
-->where('name','<>','mohammad')
-->select('name,'age')
-->orderBy('age','desc')
-->dd();
-```
 
 ### Nested Query
 
@@ -718,6 +702,18 @@ $model->avg('year')->get()
 $model->sum('year')->get()
 ```
 
+### Unique
+Sometimes you need to retrieve only unique records based on an criterion:
+``` 
+$model->where('category','elastic')->unique('name');
+```
+
+### groupBy
+In order to group data based on a criterion
+
+``` 
+$model->where('category','elastic')->groupby(field:'age',sortField:'category',direction:'desc');
+```
 
 ### Pagination
 ```
@@ -745,9 +741,52 @@ The result will be something like this:
     'prev_link' => localhost:9200?page=8,
 ]
 ```
+# Interact With Documentations
+
+### Drop indices by name
+
+```
+
+Elasticsearch::dropIndexByName('indices')
+```
+
+### Check iondex Exists
+
+```
+
+Elasticsearch::hasIndex('indices')
+```
+
+### Get all indices
+
+```
+
+Elasticsearch::getAllIndexes('indices')
+```
+
+### Drop index by model
+
+```
+
+Elasticsearch::setModel(EArticle::class)->dropModelIndex()
+```
+
+### Get all model fields
+
+```
+
+Elasticsearch::setModel(EArticle::class)->getFields()
+```
+
+### Get model mappings
+
+```
+
+Elasticsearch::setModel(EArticle::class)->getMappings()
+```
 
 
 # Coming soon
 - Histogram
-- Define normalizer and tokenizer 
+- Define normalizer and tokenizer
 - Raw Queries
