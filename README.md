@@ -751,7 +751,7 @@ Elasticsearch::hasIndex('indices')
 
 ```
 
-Elasticsearch::getAllIndexes('indices')
+Elasticsearch::getAllIndexes()
 ```
 
 ### Drop index by model
