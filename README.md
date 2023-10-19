@@ -54,7 +54,7 @@ In order to create a Model:
 
 By default, your models base path is in ``app/Elasticsearch/Models`` directory, But you can  define your own base path  in ``config/elasticsearch.php`` file.
 
-All your models must inherit from the `BaseElasticsearchModel` class. This class is an abstract class that enforce you to implement the `getIndex` method that returns the index name of this model.
+All your models must inherit from the `BaseElasticsearchModel` class. This class is an abstract class that enforce you to implement the `getIndex` method that returns the index name of  model.
 
 ```
 public function getIndex():string 
