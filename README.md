@@ -64,8 +64,13 @@ public function getIndex():string
 }
 
 ```
-We use the return value of this method to create the index you want in migrations
+We use the return value of this method to create the index you want in migrations.
 
+If you want to get your index name with the prefix that you defined in config file:
+
+```
+$model->getIndexWithPrefix();
+```
 # Migrations
 
 As you may know, Elasticsearch uses mappings for the structure of its documents, which may seem a little difficult to create in raw form. In order to simplify this process, we use migrations to make this process easier.
