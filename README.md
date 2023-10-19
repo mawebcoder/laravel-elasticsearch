@@ -74,13 +74,13 @@ $model->getIndexWithPrefix();
 # Migrations
 
 As you may know, Elasticsearch uses mappings for the structure of its documents, which may seem a little difficult to create in raw form. In order to simplify this process, we use migrations to make this process easier.
-After defining the model, you have to create a migration to register your desired fields.All your migrations must inherit from the `BaseElasticSearchMigration`   abstract class.
+After defining the model, you have to create a migration to register your desired fields.All your migrations must inherit from the `BaseElasticMigration`   abstract class.
 
 To Create a new Migration:
 
 ``php artisan elastic:make-migration <migration-name>``
 
-By default your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can define your own base path in ``config/elasticsearch.php`` file.
+By default, your migrations base path is in ``app/Elasticsearch/Migrations`` directory, but you can define your own base path in ``config/elasticsearch.php`` file.
 
 
 ```
