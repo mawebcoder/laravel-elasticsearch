@@ -742,14 +742,14 @@ The result will be something like this:
 
 ```
 
-Elasticsearch::dropIndexByName('indices')
+Elasticsearch::dropIndexByName($model->getIndexWithPrefix())
 ```
 
 ### Check index Exists
 
 ```
 
-Elasticsearch::hasIndex('indices')
+Elasticsearch::hasIndex($model->getIndexWithPrefix())
 ```
 
 ### Get all indices
