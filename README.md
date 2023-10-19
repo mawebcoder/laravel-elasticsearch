@@ -638,7 +638,7 @@ $eArticleModel->destroy([1,2,3]);
 
 ### Aggregations
 
-By default, all data will be return, If you want just aggregations be in your result use ``take(0)`` to prevent oveloading data in you request
+By default, all related data  also will be return, If you want just aggregations be in your result use ``take(0)`` to prevent oveloading data in you request
 
 #### Count
 
