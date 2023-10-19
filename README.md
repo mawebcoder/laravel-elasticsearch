@@ -740,7 +740,7 @@ The result will be something like this:
 Elasticsearch::dropIndexByName('indices')
 ```
 
-### Check iondex Exists
+### Check index Exists
 
 ```
 
