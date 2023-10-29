@@ -4,6 +4,8 @@ namespace Mawebcoder\Elasticsearch\Trait;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Arr;
+use JsonException;
+use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidInterval;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidIntervalType;
 use Mawebcoder\Elasticsearch\Exceptions\InvalidRanges;
@@ -106,12 +108,13 @@ trait Aggregatable
      * @throws InvalidInterval
      */
     public function dateHistogram(
-        string $field,
-        string $intervalType,
-        string $interval,
-        string $aggName = 'custom_aggregation',
+        string  $field,
+        string  $intervalType,
+        string  $interval,
+        string  $aggName = 'custom_aggregation',
         ?string $order = null
-    ): static {
+    ): static
+    {
         $this->checkIntervalType($intervalType);
 
         $this->validateInterval($intervalType, $interval);
@@ -137,11 +140,12 @@ trait Aggregatable
      * @throws InvalidSortDirection
      */
     public function histogram(
-        string $field,
-        int $interval,
-        string $aggName = 'custom_aggregation',
+        string  $field,
+        int     $interval,
+        string  $aggName = 'custom_aggregation',
         ?string $order = null
-    ): static {
+    ): static
+    {
         $this->aggregate(
             operation: 'histogram',
             field: $field,
@@ -211,15 +215,16 @@ trait Aggregatable
      * @throws InvalidSortDirection
      */
     private function aggregate(
-        string $operation,
-        string $field,
-        string $aggName,
-        string $intervalType = null,
+        string     $operation,
+        string     $field,
+        string     $aggName,
+        string     $intervalType = null,
         string|int $interval = null,
-        string $order = null,
-        array $ranges = null,
-        int $size = null
-    ): void {
+        string     $order = null,
+        array      $ranges = null,
+        int        $size = null
+    ): void
+    {
         $this->search['aggs'][$aggName][$operation]['field'] = $field;
 
         $this->setInterval($operation, $aggName, $intervalType, $interval);
@@ -241,11 +246,12 @@ trait Aggregatable
      * @return void
      */
     private function setInterval(
-        string $operation,
-        string $aggName,
-        ?string $intervalType,
+        string          $operation,
+        string          $aggName,
+        ?string         $intervalType,
         string|int|null $interval
-    ): void {
+    ): void
+    {
         if (!$intervalType || !$interval) {
             return;
         }
@@ -407,6 +413,8 @@ trait Aggregatable
      * @return mixed
      * @throws GuzzleException
      * @throws ReflectionException
+     * @throws JsonException
+     * @throws IndexNamePatternIsNotValidException
      */
     public function count(): int
     {
@@ -414,12 +422,31 @@ trait Aggregatable
         $result = Elasticsearch::setModel(static::class)
             ->post('_count', $search);
 
-        return json_decode($result->getBody(), true)['count'];
+        return json_decode($result->getBody(), true, 512, JSON_THROW_ON_ERROR)['count'];
     }
 
-    public function bucket(string $field, string $as, int $size = 2147483647): static
+    /**
+     * @throws InvalidSortDirection
+     */
+    public function bucket(string|array $fields, string $as, int $size = 2147483647, ?string $orderKey = '_key', string $orderDirection = 'desc'): static
     {
-        $this->search['aggs'][$as]['terms'] = ['field' => $field, 'size' => $size];
+        if (!in_array($orderDirection, ['asc', 'desc'])) {
+            throw new InvalidSortDirection();
+        }
+
+        if (!is_array($fields)) {
+
+            $this->search['aggs'][$as]['terms'] = ['field' => $fields, 'size' => $size];
+
+            $this->search['aggs'][$as]['terms']['order'] = [$orderKey => $orderDirection];
+
+        } else {
+            foreach ($fields as $field) {
+                $this->search['aggs'][$as]['multi_terms']['terms'][] = ['field' => $field];
+            }
+
+            $this->search['aggs'][$as]['multi_terms']['order'] = [$orderKey => $orderDirection];
+        }
 
         return $this;
     }
