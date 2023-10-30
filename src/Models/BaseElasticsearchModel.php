@@ -9,7 +9,6 @@ use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Psr\Http\Message\ResponseInterface;
-use Ramsey\Uuid\Exception\UnableToBuildUuidException;
 use Throwable;
 use ReflectionException;
 use Illuminate\Support\Arr;
@@ -83,6 +82,9 @@ abstract class BaseElasticsearchModel
             ]
         ],
         self::SOURCE_KEY => [],
+
+        "from" => 0
+
     ];
 
     abstract public function getIndex(): string;
