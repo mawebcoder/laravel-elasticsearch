@@ -1777,7 +1777,7 @@ abstract class BaseElasticsearchModel
         );
     }
 
-    public function parseField(?string $field): string|Closure|null
+    public function parseField(null|string|Closure $field): string|Closure|null
     {
         if ($field === self::KEY_ID) {
             return '_id';
