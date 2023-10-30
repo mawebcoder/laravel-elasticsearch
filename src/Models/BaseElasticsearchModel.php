@@ -1745,9 +1745,9 @@ abstract class BaseElasticsearchModel
                 $documentInfo['index']['_id'] = $id;
             }
 
-            $parameters[] = json_encode($documentInfo, JSON_THROW_ON_ERROR);
+            $parameters[] = trim(json_encode($documentInfo, JSON_THROW_ON_ERROR));
 
-            $parameters[] = json_encode($normalizeItem, JSON_THROW_ON_ERROR);
+            $parameters[] = trim(json_encode($normalizeItem, JSON_THROW_ON_ERROR));
         }
 
         return implode("\n", $parameters) . "\n";
