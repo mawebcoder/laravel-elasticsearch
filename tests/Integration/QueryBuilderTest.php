@@ -1376,5 +1376,40 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertCount(2, $results);
     }
 
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function test_get_function_without_take()
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+
+        $elasticsearchModel->mustBeSync()->save();
+
+        $results = EUserModel::newQuery()
+            ->orWhereNotNull(EUserModel::KEY_IS_ACTIVE)
+            ->get();
+
+        $this->assertCount(2, $results);
+    }
+
 
 }

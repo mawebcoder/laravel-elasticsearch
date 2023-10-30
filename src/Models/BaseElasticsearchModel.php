@@ -82,9 +82,6 @@ abstract class BaseElasticsearchModel
             ]
         ],
         self::SOURCE_KEY => [],
-
-        "from" => 0
-
     ];
 
     abstract public function getIndex(): string;
@@ -469,6 +466,10 @@ abstract class BaseElasticsearchModel
      */
     public function requestForSearch(): mixed
     {
+        if (!isset($this->search['size'])) {
+            $this->search['size'] = $this->count();
+        }
+
         $response = Elasticsearch::setModel(static::class)
             ->post('_doc/_search', $this->search);
 

@@ -419,6 +419,7 @@ trait Aggregatable
     public function count(): int
     {
         $search = Arr::except($this->search, ['_source', 'sort']);
+
         $result = Elasticsearch::setModel(static::class)
             ->post('_count', $search);
 
