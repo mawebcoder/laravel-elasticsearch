@@ -6,6 +6,7 @@ use Closure;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
 use JsonException;
+use Mawebcoder\Elasticsearch\Enums\ConditionsEnum;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Psr\Http\Message\ResponseInterface;
@@ -467,6 +468,9 @@ abstract class BaseElasticsearchModel
      */
     public function get(): Collection
     {
+        $this->buildQuery();
+
+
         $response = $this->requestForSearch();
 
         return $this->mapResultToCollection($response);
@@ -490,13 +494,35 @@ abstract class BaseElasticsearchModel
         if (is_callable($field)) {
             $query = $field(static::newQuery());
 
-            $this->wheres[] = $query;
+            $this->wheres[ConditionsEnum::WHERE->value][] = $query;
 
             return $this;
         }
-
         $this->getQueryForWhere($operation, $value, $field);
 
+
+        return $this;
+    }
+
+    public function orWhere(
+        $field,
+        $operation = null,
+        $value = null,
+    ): static|array
+    {
+        $numberOfArguments = count(func_get_args());
+
+        $field = $this->parseField($field);
+
+        [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
+
+        if (is_callable($field)) {
+            $query = $field(static::newQuery());
+
+            $this->wheres[ConditionsEnum::OR_WHERE->value][] = $query;
+            return $this;
+        }
+        $this->getOrWhereQueryBuilder($operation, $value, $field);
 
         return $this;
     }
@@ -656,29 +682,6 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
-    public function orWhere(
-        $field,
-        $operation = null,
-        $value = null,
-    ): static|array
-    {
-        $numberOfArguments = count(func_get_args());
-
-        $field = $this->parseField($field);
-
-        [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
-
-        if (is_callable($field)) {
-
-            $field($this->getQuery());
-
-            return $this;
-        }
-
-        $this->getOrWhereQueryBuilder($operation, $value, $field);
-
-        return $this;
-    }
 
     public function orWhereIn($field, array $values, bool $inClosure = false): static|array
     {
@@ -2194,6 +2197,36 @@ abstract class BaseElasticsearchModel
         }
 
         return collect($groupByResult);
+    }
+
+    private function buildQuery(): void
+    {
+        foreach ($this->wheres as $condition => $queries) {
+
+            /**
+             * @type BaseElasticsearchModel $query
+             */
+            if ($condition === ConditionsEnum::WHERE->value) {
+                foreach ($queries as $query) {
+                    if ($query) {
+
+                        $query->buildQuery();
+
+                        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = $query->search['query'];
+                    }
+                }
+            } else {
+                foreach ($queries as $query) {
+                    if ($query) {
+                        $query->buildQuery();
+
+                        $this->search['query']['bool']['should'][] = $query->search['query'];
+                    }
+                }
+            }
+
+
+        }
     }
 
 
