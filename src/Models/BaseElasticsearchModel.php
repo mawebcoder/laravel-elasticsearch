@@ -635,8 +635,21 @@ abstract class BaseElasticsearchModel
     #[NoReturn] public function dd(): void
     {
         $this->buildQuery();
-        
+
         dd($this->search);
+    }
+
+
+    /**
+     * @throws JsonException
+     */
+    public function toJson(): false|string
+    {
+        $this->buildQuery();
+
+        header('Content-Type:application/json');
+
+        return json_encode($this->search, JSON_THROW_ON_ERROR);
     }
 
     /**
