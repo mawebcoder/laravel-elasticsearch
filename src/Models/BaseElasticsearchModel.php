@@ -15,9 +15,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\ClientException;
 use Illuminate\Http\Client\RequestException;
-use Symfony\Component\HttpFoundation\Response;
 use Mawebcoder\Elasticsearch\Trait\Aggregatable;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentType;
@@ -38,10 +36,6 @@ abstract class BaseElasticsearchModel
 
     public const GROUP_BY_PREFIX = 'groupBy_';
     public array $attributes = [];
-
-    private int $closureCounter = 0;
-
-
     public const OPERATOR_LIKE = 'like';
     public const OPERATOR_NOT_LIKE = 'not like';
     public const   OPERATOR_EQUAL = '=';
@@ -54,14 +48,12 @@ abstract class BaseElasticsearchModel
 
     private bool $mustBeSync = false;
 
-    private string $conditionStatus;
-
-    private array $closureConditions = [];
-
     /**
      * @deprecated please use KEY_ID instead
      */
     public const FIELD_ID = 'id';
+
+    public array $wheres = [];
 
     public const SOURCE_KEY = '_source';
 
@@ -495,7 +487,16 @@ abstract class BaseElasticsearchModel
 
         [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
 
+        if (is_callable($field)) {
+            $query = $field(static::newQuery());
+
+            $this->wheres[] = $query;
+
+            return $this;
+        }
+
         $this->getQueryForWhere($operation, $value, $field);
+
 
         return $this;
     }
@@ -666,6 +667,13 @@ abstract class BaseElasticsearchModel
         $field = $this->parseField($field);
 
         [$value, $operation] = $this->getOperationValue($value, $operation, $numberOfArguments);
+
+        if (is_callable($field)) {
+
+            $field($this->getQuery());
+
+            return $this;
+        }
 
         $this->getOrWhereQueryBuilder($operation, $value, $field);
 
@@ -1448,16 +1456,6 @@ abstract class BaseElasticsearchModel
     }
 
 
-    private function increaseClosureCounter(Closure $field): BaseElasticsearchModel
-    {
-        $this->closureCounter++;
-        $this->conditionStatus = 'where';
-
-        $field($this);
-
-        return $this;
-    }
-
     public function getQueryForWhere(mixed $operation, mixed $value, Closure|string $field): void
     {
         switch ($operation) {
@@ -2197,5 +2195,6 @@ abstract class BaseElasticsearchModel
 
         return collect($groupByResult);
     }
+
 
 }
