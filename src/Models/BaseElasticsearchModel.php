@@ -467,7 +467,6 @@ abstract class BaseElasticsearchModel
     {
         $this->buildQuery();
 
-
         $response = $this->requestForSearch();
 
         return $this->mapResultToCollection($response);
