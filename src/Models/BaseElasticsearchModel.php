@@ -618,8 +618,6 @@ abstract class BaseElasticsearchModel
         $this->isNumberOfValuesValid($values);
 
         $this->isValuesAreNumeric($values);
-
-
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'range' => [
                 $field => [
