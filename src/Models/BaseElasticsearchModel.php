@@ -2202,30 +2202,30 @@ abstract class BaseElasticsearchModel
     private function buildQuery(): void
     {
         foreach ($this->wheres as $condition => $queries) {
-
-            /**
-             * @type BaseElasticsearchModel $query
-             */
             if ($condition === ConditionsEnum::WHERE->value) {
                 foreach ($queries as $query) {
-                    if ($query) {
-
-                        $query->buildQuery();
-
-                        $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = $query->search['query'];
+                    /**
+                     * @type BaseElasticsearchModel $query
+                     */
+                    if (!$query) {
+                        continue;
                     }
+                    $query->buildQuery();
+
+                    $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = $query->search['query'];
                 }
             } else {
                 foreach ($queries as $query) {
-                    if ($query) {
-                        $query->buildQuery();
 
-                        $this->search['query']['bool']['should'][] = $query->search['query'];
+                    if (!$query) {
+                        continue;
                     }
+
+                    $query->buildQuery();
+
+                    $this->search['query']['bool']['should'][] = $query->search['query'];
                 }
             }
-
-
         }
     }
 
