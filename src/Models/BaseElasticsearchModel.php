@@ -160,16 +160,12 @@ abstract class BaseElasticsearchModel
 
         $attributes = $this->getAttributes();
 
-        // get the mappings from model and current field to set null fields that doesn't have any value
         $nullValueFields = $this->getNullValueFields($attributes);
-
 
         if (in_array('id', $nullValueFields, true)) {
             unset($nullValueFields[array_search('id', $nullValueFields, true)]);
         }
 
-        // sure if it doesn't have id and get if from elasticsearch
-        // update the search query and also set the id that get from elasticsearch
         if (!$hasCustomId) {
             $object->{self::KEY_ID} = $this->getIdFromElasticsearchResponse($response);
             $this->updateQueryWithInsinuatedObject($object->{self::KEY_ID}, $object);
@@ -322,6 +318,7 @@ abstract class BaseElasticsearchModel
         }
 
         $result = $result[0];
+
         $sourceResult = $result[self::SOURCE_KEY];
 
         $object = new static();
@@ -500,7 +497,6 @@ abstract class BaseElasticsearchModel
         }
         $this->getQueryForWhere($operation, $value, $field);
 
-
         return $this;
     }
 
@@ -620,13 +616,9 @@ abstract class BaseElasticsearchModel
     {
         $field = $this->parseField($field);
 
-        if (count($values) !== 2) {
-            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
-        }
+        $this->isNumberOfValuesValid($values);
 
-        if (!$this->isNumericArray($values)) {
-            throw new WrongArgumentType(message: 'values must be numeric.');
-        }
+        $this->isValuesAreNumeric($values);
 
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
@@ -643,6 +635,8 @@ abstract class BaseElasticsearchModel
 
     #[NoReturn] public function dd(): void
     {
+        $this->buildQuery();
+        
         dd($this->search);
     }
 
@@ -654,13 +648,9 @@ abstract class BaseElasticsearchModel
     {
         $field = $this->parseField($field);
 
-        if (count($values) !== 2) {
-            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
-        }
+        $this->isNumberOfValuesValid($values);
 
-        if (!$this->isNumericArray($values)) {
-            throw new WrongArgumentType(message: 'values must be numeric.');
-        }
+        $this->isValuesAreNumeric($values);
 
         $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = [
             'range' => [
@@ -754,13 +744,9 @@ abstract class BaseElasticsearchModel
     {
         $field = $this->parseField($field);
 
-        if (count($values) !== 2) {
-            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
-        }
+        $this->isNumberOfValuesValid($values);
 
-        if (!$this->isNumericArray($values)) {
-            throw new WrongArgumentType(message: 'values must be numeric.');
-        }
+        $this->isValuesAreNumeric($values);
 
         if ($inClosure) {
             return [
@@ -793,30 +779,9 @@ abstract class BaseElasticsearchModel
     {
         $field = $this->parseField($field);
 
-        if (count($values) !== 2) {
-            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
-        }
+        $this->isNumberOfValuesValid($values);
 
-        if (!$this->isNumericArray($values)) {
-            throw new WrongArgumentType(message: 'values must be numeric.');
-        }
-
-        if ($inClosure) {
-            return [
-                'bool' => [
-                    'must_not' => [
-                        [
-                            'range' => [
-                                $field => [
-                                    'lt' => $values[0],
-                                    'gt' => $values[1]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ];
-        }
+        $this->isValuesAreNumeric($values);
 
         $this->search['query']['bool']['should'][]['bool']['must_not'][] = [
             'range' => [
@@ -1152,29 +1117,29 @@ abstract class BaseElasticsearchModel
         return new static();
     }
 
-
-    private function isOrConditionsInClosure(array $conditions): bool
+    /**
+     * @param array $values
+     * @return void
+     * @throws WrongArgumentNumberForWhereBetweenException
+     */
+    public function isNumberOfValuesValid(array $values): void
     {
-        $isOr = false;
-
-        foreach ($conditions as $condition) {
-            if ($condition['condition'] === 'or') {
-                $isOr = true;
-            }
+        if (count($values) !== 2) {
+            throw new WrongArgumentNumberForWhereBetweenException(message: 'values members must be 2');
         }
-        return $isOr;
     }
 
-    private function getLastActiveKey(false|int|string $lastKey): bool|int|string
+    /**
+     * @param array $values
+     * @return void
+     * @throws WrongArgumentType
+     */
+    public function isValuesAreNumeric(array $values): void
     {
-        if ($lastKey === 0 || $lastKey) {
-            $lastKey++;
-        } else {
-            $lastKey = 0;
+        if (!$this->isNumericArray($values)) {
+            throw new WrongArgumentType(message: 'values must be numeric.');
         }
-        return $lastKey;
     }
-
 
     private function updateQueryWithInsinuatedObject($id, ?object $object = null): void
     {
@@ -2210,6 +2175,7 @@ abstract class BaseElasticsearchModel
                     if (!$query) {
                         continue;
                     }
+
                     $query->buildQuery();
 
                     $this->search['query']['bool']['should'][self::MUST_INDEX]['bool']['must'][] = $query->search['query'];
