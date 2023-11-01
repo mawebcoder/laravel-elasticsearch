@@ -461,7 +461,6 @@ $eArticleModel
 
 You can change the fuzziness value as you want
 
-Note: By default Elasticsearch retrieve 10 records,if you want to set more ,just use ``take($records)`` method,
 #### Get pure Query
 
 ```
@@ -578,7 +577,7 @@ $name=$eArticleModel->name;
 ```
 
 
-### Nested Query
+### Nested Search
 
 First of all we need to define ``object`` type in our migration:
 
@@ -640,6 +639,27 @@ $eArticleModel
 ``` 
 $eArticleModel->destroy([1,2,3]);
 ```
+
+### Nested Queries
+
+In order to create complex and nested queries, you can use the nesting function of the builder. There is no limit to the nesting of your queries:
+
+```
+$model=Model::newQuery()
+->where('name','john')
+->where(function($model){
+        return $model->where('age',22)
+        ->orWhere(function($model){
+        return $model->whereBetween('range',[1,10]);
+        })
+})->orWhere(function($model){
+    return $model->where('color','red')
+    ->orWhereIn('cars',['bmw','buggati'])
+})->get()
+
+```
+Just pay attention that you need to return the queries inside closure otherwise
+it will be ignored
 
 ### Aggregations
 
