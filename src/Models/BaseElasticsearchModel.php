@@ -2221,8 +2221,13 @@ abstract class BaseElasticsearchModel
             return;
         }
 
+
+
         foreach (range(1, $chunks) as $chunk) {
-            $callback($this->take($number)->get());
+
+            $result = $this->take($number)->offset(($chunk - 1) * $number)->get();
+
+            $callback($result);
         }
     }
 

@@ -1455,9 +1455,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         EUserModel::newQuery()
             ->chunk(2, function (Collection $collection) use (&$iterator) {
                 $iterator++;
-
                 $this->assertCount(2, $collection);
-
             });
 
         $this->assertEquals(2, $iterator);
