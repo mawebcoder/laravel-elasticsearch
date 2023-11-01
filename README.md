@@ -341,7 +341,7 @@ Also if you want to rollback transaction if any error happend set the `$withTran
 ```
 $result=EUserModel::newQuery()->saveMany(items:$users,withTransaction:true);
 ```
-this action will remove the imported items from Elasticsearch database.
+this action will remove the imported items from database.
 
 
 
