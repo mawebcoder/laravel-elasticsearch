@@ -336,6 +336,14 @@ if($result->hasError()){
 
 $importedItems=$result->getImportedItems();
 ```
+Also if you want to rollback transaction if any error happend set the `$withTransaction` argumet as `true`:
+
+```
+$result=EUserModel::newQuery()->saveMany(items:$users,withTransaction:true);
+```
+this action will remove the imported items from Elasticsearch database.
+
+
 
 ### Find record
 
