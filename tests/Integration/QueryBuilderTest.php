@@ -167,6 +167,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      * @throws AtLeastOneArgumentMustBeChooseInSelect
      * @throws GuzzleException
      * @throws JsonException
+     * @throws RequestException
      */
     public function testSelect(): void
     {
@@ -187,7 +188,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
      * @throws GuzzleException
-     * @throws JsonException
+     * @throws JsonException|RequestException
      */
     public function testTake(): void
     {
@@ -202,10 +203,12 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
 
     /**
-     * @throws IndexNamePatternIsNotValidException
-     * @throws ReflectionException
+     * @return void
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
      * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function testOffset(): void
     {
@@ -299,12 +302,13 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
 
     /**
-     * @throws IndexNamePatternIsNotValidException
-     * @throws WrongArgumentNumberForWhereBetweenException
-     * @throws ReflectionException
      * @throws GuzzleException
-     * @throws WrongArgumentType
+     * @throws IndexNamePatternIsNotValidException
      * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws WrongArgumentNumberForWhereBetweenException
+     * @throws WrongArgumentType
      */
     public function testNotBetweenCondition(): void
     {
@@ -359,11 +363,13 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
 
     /**
+
+     * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws InvalidSortDirection
-     * @throws ReflectionException
-     * @throws GuzzleException
      * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function testOrderByAsc(): void
     {
@@ -389,11 +395,12 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
 
     /**
+     * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws InvalidSortDirection
-     * @throws ReflectionException
-     * @throws GuzzleException
      * @throws JsonException
+     * @throws ReflectionException
+     * @throws RequestException
      */
     public function testOrderByDesc(): void
     {
@@ -849,141 +856,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $this->assertEquals($expected, $mappings);
     }
 
-    /**
-     * @throws Throwable
-     */
-    public function test_where_clause_while_value_is_null(): void
-    {
-        $this->markTestSkipped();
-
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->where('id', null);
-
-        $this->assertEquals([
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'bool' => [
-                                        'must_not' => [
-                                            [
-                                                'exists' => [
-                                                    'field' => '_id'
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ],
-                        ]
-                    ]
-                ]
-            ]
-
-        ], $elasticsearchModel->search['query']);
-    }
-
-    /**
-     * @throws Throwable
-     */
-    public function test_where_clause_while_value_is_not_null(): void
-    {
-        $this->markTestSkipped();
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_NOT_EQUAL_SPACESHIP, null);
-
-        $this->assertEquals([
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ],
-                        ]
-                    ]
-                ]
-            ]
-
-        ], $elasticsearchModel->search['query']);
-    }
-
-    /**
-     * @throws Throwable
-     */
-    public function test_where_clause_while_value_is_like_null(): void
-    {
-        $this->markTestSkipped();
-
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_LIKE, null);
-
-        $this->assertEquals([
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'bool' => [
-                                        'must_not' => [
-                                            [
-                                                'exists' => [
-                                                    'field' => '_id'
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ],
-                        ]
-                    ]
-                ]
-            ]
-
-        ], $elasticsearchModel->search['query']);
-    }
-
-    /**
-     * @throws Throwable
-     */
-    public function test_where_clause_while_value_is_not_like_null(): void
-    {
-        $this->markTestSkipped();
-
-        $elasticsearchModel = new EUserModel();
-
-        $elasticsearchModel->where('id', BaseElasticsearchModel::OPERATOR_NOT_LIKE, null);
-
-        $this->assertEquals([
-            'bool' => [
-                'should' => [
-                    [
-                        'bool' => [
-                            'must' => [
-                                [
-                                    'exists' => [
-                                        'field' => '_id'
-                                    ]
-                                ]
-                            ],
-                        ]
-                    ]
-                ]
-            ]
-
-        ], $elasticsearchModel->search['query']);
-    }
-
 
     /**
      * @throws IndexNamePatternIsNotValidException
@@ -993,7 +865,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      */
     public function test_unique_function_in_model(): void
     {
-
         $elasticsearchModel = EUserModel::newQuery();
 
         $elasticsearchModel->unique('name');
@@ -1017,13 +888,11 @@ class QueryBuilderTest extends BaseIntegrationTestCase
     {
 
         $elasticsearchModel = EUserModel::newQuery();
-
         $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
         $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
         $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
         $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
         $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
-
         $elasticsearchModel->mustBeSync()->save();
 
         $elasticsearchModel = EUserModel::newQuery();
@@ -1103,7 +972,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
                 'inner_hits' => [
                     'name' => 'groupBy_age'
                 ]
-            ]
+            ],
+            'size'=>0
         ];
 
         $this->assertEquals($expected, $elasticsearchModel->search);
@@ -1148,7 +1018,8 @@ class QueryBuilderTest extends BaseIntegrationTestCase
                         ]
                     ]
                 ]
-            ]
+            ],
+            'size'=>0
         ];
 
         $this->assertEquals($expected, $elasticsearchModel->search);
@@ -1206,6 +1077,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
         $result = EUserModel::newQuery()
             ->groupBy('age');
+
 
         $expected = [
             22 => 2,
@@ -1459,6 +1331,28 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             });
 
         $this->assertEquals(2, $iterator);
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function test_returns_null_if_data_not_set():void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+        $elasticsearchModel->mustBeSync()->save();
+
+        $result=EUserModel::newQuery()
+            ->find(1);
+
+        $this->assertNull($result->{EUserModel::KEY_AGE});
     }
 
 

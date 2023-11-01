@@ -54,7 +54,14 @@ class UpdateTest extends BaseIntegrationTestCase
     }
 
 
-    public function test_update_method_works_correctly_after_insert_then_find_and_update_with_id()
+    /**
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    public function test_update_method_works_correctly_after_insert_then_find_and_update_with_id():void
     {
         $model = new EUserModel();
 
@@ -65,12 +72,14 @@ class UpdateTest extends BaseIntegrationTestCase
             'age' => 30
         ]);
 
+
         $this->assertEquals([
             'id' => 1,
             'name' => 'mohammad amiri',
             'is_active' => true,
             'age' => 30,
             'description' => null,
+            'information'=>null
         ], $userDocument->getAttributes());
 
         $userDocument = $model->find(1);
@@ -87,13 +96,21 @@ class UpdateTest extends BaseIntegrationTestCase
             'is_active' => true,
             'age' => 30,
             'description' => null,
+            'information'=>null
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
 
-    public function test_update_method_works_correctly_after_insert_without_id()
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     */
+    public function test_update_method_works_correctly_after_insert_without_id(): void
     {
         $model = new EUserModel();
 
@@ -111,6 +128,7 @@ class UpdateTest extends BaseIntegrationTestCase
             'is_active' => true,
             'age' => 25,
             'description' => null,
+            'information'=>null
         ], Arr::except($userDocument->getAttributes(), 'id'));
 
         // run update method
@@ -130,13 +148,21 @@ class UpdateTest extends BaseIntegrationTestCase
             'is_active' => true,
             'age' => 25,
             'description' => null,
+            'information'=>null
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());
     }
 
 
-    public function test_update_method_works_correctly_after_insert_then_find_and_update_without_id()
+    /**
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    public function test_update_method_works_correctly_after_insert_then_find_and_update_without_id(): void
     {
         $model = new EUserModel();
 
@@ -148,12 +174,13 @@ class UpdateTest extends BaseIntegrationTestCase
 
         $idAfterInsert = $userDocument->id;
 
-        $this->assertEquals(Arr::except($userDocument->getAttributes(), 'id'), [
+        $this->assertEquals([
             'name' => 'mohammad amiri',
             'is_active' => true,
             'age' => 30,
-            'description' => null
-        ]);
+            'description' => null,
+            'information'=>null
+        ], Arr::except($userDocument->getAttributes(), 'id'));
 
         $userDocument = $model->find($idAfterInsert);
 
@@ -168,7 +195,8 @@ class UpdateTest extends BaseIntegrationTestCase
             'name' => 'ali',
             'is_active' => true,
             'age' => 30,
-            'description' => null
+            'description' => null,
+            'information'=>null
         ];
 
         $this->assertEquals($expected, $userAfterUpdate->getAttributes());

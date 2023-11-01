@@ -77,6 +77,7 @@ abstract class BaseElasticsearchModel
         self::SOURCE_KEY => [],
     ];
 
+
     abstract public function getIndex(): string;
 
     /**
@@ -142,6 +143,7 @@ abstract class BaseElasticsearchModel
      * @throws IndexNamePatternIsNotValidException
      * @throws ReflectionException
      * @throws RequestException
+     * @throws JsonException
      */
     public function save(): static
     {
@@ -376,6 +378,7 @@ abstract class BaseElasticsearchModel
      */
     public function mapResultToCollection(array $result): Collection
     {
+
         $aggregations = $result['aggregations'] ?? null;
 
         $total = $result['hits']['total']['value'];
@@ -421,6 +424,7 @@ abstract class BaseElasticsearchModel
      */
     public function mapResultToModelObject($result): static
     {
+
         $object = new static();
 
         foreach ($result as $key => $value) {
@@ -434,7 +438,10 @@ abstract class BaseElasticsearchModel
             if (!is_null($object->{$key})) {
                 continue;
             }
-            $object->{$key} = null;
+
+            if (empty($this->search[self::SOURCE_KEY]) || isset($this->search[self::SOURCE_KEY][$key])) {
+                $object->{$key} = null;
+            }
         }
 
         return $object;
@@ -449,11 +456,12 @@ abstract class BaseElasticsearchModel
     public function requestForSearch(): mixed
     {
         if (!isset($this->search['size'])) {
+
             $this->search['size'] = $this->count();
         }
 
         $response = Elasticsearch::setModel(static::class)
-            ->post('_doc/_search', $this->search);
+            ->post('_search', $this->search);
 
         return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
     }
@@ -1228,8 +1236,9 @@ abstract class BaseElasticsearchModel
      * @param array $currentAttributes
      * @return array
      * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
      * @throws ReflectionException
-     * @throws RequestException
      */
     private function getNullValueFields(array $currentAttributes): array
     {
@@ -2220,7 +2229,6 @@ abstract class BaseElasticsearchModel
         if (!$count) {
             return;
         }
-
 
 
         foreach (range(1, $chunks) as $chunk) {

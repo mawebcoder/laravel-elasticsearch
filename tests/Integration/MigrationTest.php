@@ -202,15 +202,7 @@ class MigrationTest extends TestCase
 
     }
 
-    public function test_throw_exception_while_creating_indices_if_indices_are_not_already_exists(): void
-    {
-        $this->assertThrows(function () {
-            $this->dummyMigrationAlterState->up();
-        }, IndicesNotFoundException::class);
-    }
-
     /**
-     * @throws IndicesNotFoundException
      * @throws IndexNamePatternIsNotValidException
      * @throws RequestException
      * @throws JsonException

@@ -18,6 +18,7 @@ trait HasSyncOperation
      * @throws ReflectionException
      * @throws RequestException
      * @throws GuzzleException
+     * @throws JsonException
      */
     public function insertElasticDocument(BaseElasticsearchModel $model, array $data): BaseElasticsearchModel
     {
@@ -28,6 +29,13 @@ trait HasSyncOperation
         return $model->mustBeSync()->save();
     }
 
+    /**
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws JsonException
+     * @throws ReflectionException
+     */
     public function registerSomeTestUserRecords(): array
     {
         $userId1 = $this->faker->unique()->numberBetween(1, 9);

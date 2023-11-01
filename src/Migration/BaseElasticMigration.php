@@ -6,7 +6,6 @@ use GuzzleHttp\Client;
 use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\IndicesAlreadyExistsException;
-use Mawebcoder\Elasticsearch\Exceptions\IndicesNotFoundException;
 use Mawebcoder\Elasticsearch\Facade\Elasticsearch;
 use ReflectionException;
 use Illuminate\Support\Arr;
@@ -458,7 +457,6 @@ abstract class BaseElasticMigration
      * @throws ReflectionException
      * @throws RequestException
      * @throws JsonException
-     * @throws IndicesNotFoundException
      */
     public function down(): void
     {
