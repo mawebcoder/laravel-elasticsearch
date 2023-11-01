@@ -6,6 +6,7 @@ use Closure;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
 use JsonException;
+use Mawebcoder\Elasticsearch\Bulk\BulkInsert;
 use Mawebcoder\Elasticsearch\Enums\ConditionsEnum;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
@@ -192,8 +193,10 @@ abstract class BaseElasticsearchModel
      * @throws Exception
      * @throws Throwable
      */
-    public function saveMany(array $items, bool $withTransaction = false): array
+    public function saveMany(array $items, bool $withTransaction = false): BulkInsert
     {
+        $bulk = new BulkInsert();
+
         $items = Arr::wrap($items);
 
         $bodyPayload = $this->generateNdJsonForBulkWrite($items);
@@ -203,10 +206,13 @@ abstract class BaseElasticsearchModel
         $body = $this->decodeResponse($response);
 
         if ($this->isThereAnyErrorsInBulkInsert($body) === false) {
-            return [
-                'imported_items' => $body['items'],
-                'not_imported_items' => []
-            ];
+
+
+            $bulk->setImportedItems($body['items'])
+                ->setNotImportedItems([]);
+
+            return $bulk;
+
         }
 
         $notImportedItems = $this->getNotImportedItemsInBulkInsert($body);
@@ -216,11 +222,11 @@ abstract class BaseElasticsearchModel
         if ($withTransaction) {
             $this->removeImportedItemsWhileTransactionFailedInBulkInsert($importedItems);
         }
+        $bulk->setHasError(true)
+            ->setImportedItems($importedItems->toArray())
+            ->setNotImportedItems($notImportedItems->toArray());
 
-        return [
-            'imported_items' => $importedItems->toArray(),
-            'not_imported_items' => $notImportedItems->toArray()
-        ];
+        return $bulk;
 
     }
 
