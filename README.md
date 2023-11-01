@@ -661,6 +661,19 @@ $model=Model::newQuery()
 Just pay attention that you need to return the queries inside closure otherwise
 it will be ignored
 
+
+### chunk
+
+for better managing your memory usage you can use the chunk method :
+
+```
+$model=Model::newQuery()
+->where('name','mohammad')
+->chunk(100,function(Collection $collection){
+    //code here
+})
+```
+
 ### Aggregations
 
 By default, all related data  also will be return, If you want just aggregations be in your result use ``take(0)`` to prevent oveloading data in you request
