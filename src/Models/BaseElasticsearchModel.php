@@ -10,6 +10,7 @@ use Mawebcoder\Elasticsearch\Enums\ConditionsEnum;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 use ReflectionException;
 use Illuminate\Support\Arr;
@@ -48,6 +49,7 @@ abstract class BaseElasticsearchModel
     public const   OPERATOR_LTE = '<=';
 
     private bool $mustBeSync = false;
+
 
     /**
      * @deprecated please use KEY_ID instead
@@ -188,15 +190,38 @@ abstract class BaseElasticsearchModel
      * @throws ReflectionException
      * @throws GuzzleException
      * @throws Exception
+     * @throws Throwable
      */
-    public function saveMany(array $items): ResponseInterface
+    public function saveMany(array $items, bool $withTransaction = false): array
     {
         $items = Arr::wrap($items);
 
         $bodyPayload = $this->generateNdJsonForBulkWrite($items);
 
-        return Elasticsearch::setModel(static::class)
-            ->post('_bulk', $bodyPayload, $this->mustBeSync);
+        $response = $this->sendRequestForBulkInsert($bodyPayload);
+
+        $body = $this->decodeResponse($response);
+
+        if ($this->isThereAnyErrorsInBulkInsert($body) === false) {
+            return [
+                'imported_items' => $body['items'],
+                'not_imported_items' => []
+            ];
+        }
+
+        $notImportedItems = $this->getNotImportedItemsInBulkInsert($body);
+
+        $importedItems = $this->getImportedItemsInBulkInsert($body);
+
+        if ($withTransaction) {
+            $this->removeImportedItemsWhileTransactionFailedInBulkInsert($importedItems);
+        }
+
+        return [
+            'imported_items' => $importedItems->toArray(),
+            'not_imported_items' => $notImportedItems->toArray()
+        ];
+
     }
 
 
@@ -311,7 +336,7 @@ abstract class BaseElasticsearchModel
         $response = Elasticsearch::setModel(static::class)
             ->post('_search', $this->search);
 
-        $result = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        $result = $this->decodeResponse($response);
 
         $result = $result['hits']['hits'];
 
@@ -463,7 +488,7 @@ abstract class BaseElasticsearchModel
         $response = Elasticsearch::setModel(static::class)
             ->post('_search', $this->search);
 
-        return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        return $this->decodeResponse($response);
     }
 
     /**
@@ -1280,6 +1305,68 @@ abstract class BaseElasticsearchModel
     public function checkFieldExistsInMapping($key, array $fields): bool
     {
         return array_key_exists($key, $fields);
+    }
+
+
+    private function isThereAnyErrorsInBulkInsert(array $body): bool
+    {
+        return $body['errors'];
+    }
+
+
+    public function getNotImportedItemsInBulkInsert(array $body): Collection
+    {
+        return collect($body['items'])
+            ->filter(function ($item) {
+                return $item['index']['status'] !== Response::HTTP_CREATED;
+            });
+    }
+
+
+    public function getImportedItemsInBulkInsert(array $body): Collection
+    {
+        return collect($body['items'])
+            ->filter(function ($item) {
+                return $item['index']['status'] === Response::HTTP_CREATED;
+            });
+    }
+
+    /**
+     * @param Collection $importedItems
+     * @return void
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws Throwable
+     */
+    public function removeImportedItemsWhileTransactionFailedInBulkInsert(Collection $importedItems): void
+    {
+        $importedItemsIds = $importedItems->pluck('index._id')->toArray();
+
+        $this->whereIn(self::KEY_ID, $importedItemsIds)
+            ->delete();
+    }
+
+    /**
+     * @param string $bodyPayload
+     * @return ResponseInterface
+     * @throws GuzzleException
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     */
+    public function sendRequestForBulkInsert(string $bodyPayload): ResponseInterface
+    {
+        return Elasticsearch::setModel(static::class)
+            ->post('_bulk', $bodyPayload, $this->mustBeSync);
+    }
+
+    /**
+     * @param ResponseInterface $response
+     * @return mixed
+     * @throws JsonException
+     */
+    private function decodeResponse(ResponseInterface $response): mixed
+    {
+        return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
     }
 
     private function getInClosureQueryForWhere(mixed $operation, mixed $value, string $field): array

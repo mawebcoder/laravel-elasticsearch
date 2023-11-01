@@ -18,6 +18,7 @@ class BulkInsertTest extends BaseIntegrationTestCase
      * @throws ReflectionException
      * @throws JsonException
      * @throws IndexNamePatternIsNotValidException
+     * @throws \Throwable
      */
     public function test_can_insert_multi_user_with_one_method_call():void
     {
@@ -40,7 +41,7 @@ class BulkInsertTest extends BaseIntegrationTestCase
 
         EUserModel::newQuery()
             ->mustBeSync()
-            ->saveMany($items);
+            ->saveMany($items,true);
 
         $result = EUserModel::newQuery()
             ->whereIn('id', [10, 20])
