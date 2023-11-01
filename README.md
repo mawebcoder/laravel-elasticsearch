@@ -323,7 +323,18 @@ $users = [
     ]
 ];
 
-EUserModel::newQuery()->saveMany($users);
+$result=EUserModel::newQuery()->saveMany($users);
+```
+
+
+Sometimes, some items may not be saved in the database due to an error. you can check this like below:
+
+```
+if($result->hasError()){
+    $notImportedItems=$result->getNotImportedItems();
+}
+
+$importedItems=$result->getImportedItems();
 ```
 
 ### Find record
