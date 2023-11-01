@@ -2205,5 +2205,26 @@ abstract class BaseElasticsearchModel
         }
     }
 
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function chunk(int $number, callable $callback): void
+    {
+        $count = $this->count();
+
+        $chunks = ceil($count / $number);
+
+        if (!$count) {
+            return;
+        }
+
+        foreach (range(1, $chunks) as $chunk) {
+            $callback($this->take($number)->get());
+        }
+    }
+
 
 }

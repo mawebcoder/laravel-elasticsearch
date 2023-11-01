@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
 use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\DirectoryNotFoundException;
@@ -1409,6 +1410,57 @@ class QueryBuilderTest extends BaseIntegrationTestCase
             ->get();
 
         $this->assertCount(2, $results);
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws ReflectionException
+     * @throws RequestException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function test_chunk_method(): void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 22;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 45;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 2;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 446;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 6;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+        $elasticsearchModel->mustBeSync()->save();
+
+        $elasticsearchModel = EUserModel::newQuery();
+        $elasticsearchModel->{EUserModel::KEY_AGE} = 455;
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 10;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+        $elasticsearchModel->mustBeSync()->save();
+
+        $iterator = 0;
+
+        EUserModel::newQuery()
+            ->chunk(2, function (Collection $collection) use (&$iterator) {
+                $iterator++;
+
+                $this->assertCount(2, $collection);
+
+            });
+
+        $this->assertEquals(2, $iterator);
     }
 
 
