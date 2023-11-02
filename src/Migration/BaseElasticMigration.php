@@ -30,6 +30,7 @@ abstract class BaseElasticMigration
     protected bool $isDynamicMapping = false;
     public const MAPPINGS = '_mappings';
 
+    public array $callbacks = [];
     public array $dropMappingFields = [];
 
     public readonly string $basePath;
@@ -144,14 +145,18 @@ abstract class BaseElasticMigration
     abstract public function getModel(): string;
 
 
-    public function integer(string $field): void
+    public function integer(string $field): static
     {
         if ($this->isCreationState()) {
+
             $this->schema['mappings']['properties'][$field] = ['type' => 'integer'];
-            return;
+
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'integer'];
+
+        return $this;
     }
 
 
@@ -160,14 +165,26 @@ abstract class BaseElasticMigration
      * @throws FieldNameException
      * @throws TypeFormatIsNotValidException
      */
-    public function object(string $field, array $options): void
+    public function object(string $field, $options): static
     {
         $types = [];
 
+        if (is_callable($options)) {
+
+            $migration = $options(new static);
+
+            $this->callbacks[$field] = $migration;
+
+            return $migration;
+
+        }
 
         foreach ($options as $fieldName => $typeOrOptions) {
+
             $this->isTypeFormatValid($fieldName);
+
             if ($this->shouldAddFieldData($typeOrOptions)) {
+
                 $types = $this->addFieldDataToTextType($typeOrOptions, $types, $fieldName);
 
                 continue;
@@ -175,12 +192,14 @@ abstract class BaseElasticMigration
 
             // sure type isn't options
             if (!is_array($typeOrOptions)) {
+
                 $types[$fieldName] = ['type' => $typeOrOptions];
                 continue;
             }
 
             // one object in another nested
             if (!array_key_exists('type', $typeOrOptions)) {
+
                 $types[$fieldName]['type'] = 'object';
 
                 foreach ($typeOrOptions as $subFieldName => $typeSubField) {
@@ -190,12 +209,13 @@ abstract class BaseElasticMigration
         }
 
         if ($this->isCreationState()) {
+
             $this->schema['mappings']['properties'][$field] = [
                 ...["type" => 'object'],
                 ...['properties' => $types]
             ];
 
-            return;
+            return $this;
         }
 
 
@@ -203,21 +223,26 @@ abstract class BaseElasticMigration
             ...["type" => 'object'],
             ...["properties" => $types]
         ];
+
+        return $this;
     }
 
     /**
      * @throws FieldNameException
      * @throws TypeFormatIsNotValidException
      */
-    public function nested(string $field, array $properties): void
+    public function nested(string $field, array $properties): static
     {
         $types = [];
 
         foreach ($properties as $fieldName => $type) {
+
             $this->isTypeFormatValid($fieldName);
 
             if ($this->shouldAddFieldData($type)) {
+
                 $types = $this->addFieldDataToTextType($type, $types, $fieldName);
+
                 continue;
             }
 
@@ -226,105 +251,112 @@ abstract class BaseElasticMigration
         }
 
         if ($this->isCreationState()) {
+
             $this->schema['mappings']['properties'][$field] = [
                 ...["type" => 'nested'],
                 ...['properties' => $types]
             ];
 
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = [
             ...["nested" => 'nested'],
             ...["properties" => $types]
         ];
+
+        return $this;
     }
 
-    /**
-     * @throws NotValidFieldTypeException
-     */
-    public function setType(string $type): array
-    {
-        if (!in_array($type, self::VALID_TYPES)) {
-            throw  new  NotValidFieldTypeException();
-        }
-
-        return ['type' => $type];
-    }
-
-    public function boolean(string $field): void
+    public function boolean(string $field): static
     {
         if ($this->isCreationState()) {
+
             $this->schema['mappings']['properties'][$field] = ['type' => 'boolean'];
-            return;
+
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'boolean'];
+
+        return $this;
     }
 
-    public function smallInteger(string $field): void
+    public function smallInteger(string $field): static
     {
         if ($this->isCreationState()) {
+
             $this->schema['mappings']['properties'][$field] = ['type' => 'short'];
-            return;
+
+            return $this;
         }
+
         $this->schema['properties'][$field] = ['type' => 'short'];
+
+        return $this;
     }
 
-    public function bigInteger(string $field): void
+    public function bigInteger(string $field): static
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'long'];
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'long'];
+        return $this;
     }
 
-    public function double(string $field): void
+    public function double(string $field): static
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'double'];
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'double'];
+
+        return $this;
     }
 
-    public function float(string $field): void
+    public function float(string $field): static
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'float'];
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'float'];
+        return $this;
     }
 
-    public function tinyInt(string $field): void
+    public function tinyInt(string $field): static
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'byte'];
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'byte'];
+
+        return $this;
     }
 
-    public function string(string $field): void
+    public function string(string $field): static
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'keyword'];
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'keyword'];
+        return $this;
     }
 
     /**
      * @throws InvalidAnalyzerType
      */
-    public function text(string $field, bool $fieldData = false, ?string $analyzer = null): void
+    public function text(string $field, bool $fieldData = false, ?string $analyzer = null): static
     {
         $mapping = ['type' => 'text'];
 
@@ -347,7 +379,7 @@ abstract class BaseElasticMigration
                     ...['analyzer' => $analyzer]
                 ];
             }
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = $mapping;
@@ -361,24 +393,29 @@ abstract class BaseElasticMigration
                 ...['analyzer' => $analyzer],
                 ... $this->schema['properties'][$field]
             ];
+            return $this;
         }
+
+        return $this;
     }
 
-    public function datetime(string $field): void
+    public function datetime(string $field): static
     {
         if ($this->isCreationState()) {
             $this->schema['mappings']['properties'][$field] = ['type' => 'date'];
-            return;
+            return $this;
         }
 
         $this->schema['properties'][$field] = ['type' => 'date'];
+
+        return $this;
     }
 
     /**
      * @throws InvalidNormalizerTokenFilter
      * @throws FieldTypeIsNotKeyword
      */
-    public function setNormalizer(string $field, string $tokenFilter, string $name = 'custom_normalizer'): void
+    public function setNormalizer(string $field, string $tokenFilter, string $name = 'custom_normalizer'): static
     {
         if ($this->isCreationState()) {
             $this->normalizerCheckKeywordType($field);
@@ -390,7 +427,7 @@ abstract class BaseElasticMigration
                 ...['normalizer' => $name]
             ];
 
-            return;
+            return $this;
         }
 
         $this->normalizerCheckKeywordType($field);
@@ -401,6 +438,7 @@ abstract class BaseElasticMigration
             ...$this->schema['properties'][$field],
             ...['normalizer' => $name]
         ];
+        return $this;
     }
 
 
@@ -415,12 +453,11 @@ abstract class BaseElasticMigration
     {
         $this->schema($this);
 
-
+        $this->buildSchema();
 
         if (!$this->isDynamicMapping) {
             $this->shutdownDynamicMapping();
         }
-
 
 
         if ($this->isCreationState()) {
@@ -911,6 +948,11 @@ abstract class BaseElasticMigration
         }
 
         return $types;
+    }
+
+    private function buildSchema(): void
+    {
+
     }
 }
 
