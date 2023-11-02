@@ -165,66 +165,23 @@ abstract class BaseElasticMigration
      * @throws FieldNameException
      * @throws TypeFormatIsNotValidException
      */
-    public function object(string $field, $options): static
+    public function object(string $field, callable $callback): static
     {
-        $types = [];
+        $nestedMapper = new static();
 
-        if (is_callable($options)) {
+        $callback($nestedMapper);
 
-            $migration = $options(new static);
-
-            $this->callbacks[$field] = $migration;
-
-            return $migration;
-
-        }
-
-        foreach ($options as $fieldName => $typeOrOptions) {
-
-            $this->isTypeFormatValid($fieldName);
-
-            if ($this->shouldAddFieldData($typeOrOptions)) {
-
-                $types = $this->addFieldDataToTextType($typeOrOptions, $types, $fieldName);
-
-                continue;
-            }
-
-            // sure type isn't options
-            if (!is_array($typeOrOptions)) {
-
-                $types[$fieldName] = ['type' => $typeOrOptions];
-                continue;
-            }
-
-            // one object in another nested
-            if (!array_key_exists('type', $typeOrOptions)) {
-
-                $types[$fieldName]['type'] = 'object';
-
-                foreach ($typeOrOptions as $subFieldName => $typeSubField) {
-                    $types = $this->setObjectValues($typeOrOptions, $types, $typeSubField, $fieldName, $subFieldName);
-                }
-            }
-        }
-
-        if ($this->isCreationState()) {
-
-            $this->schema['mappings']['properties'][$field] = [
-                ...["type" => 'object'],
-                ...['properties' => $types]
-            ];
-
-            return $this;
-        }
-
-
-        $this->schema['properties'][$field] = [
-            ...["type" => 'object'],
-            ...["properties" => $types]
+        $this->schema['mappings']['properties'][$field] = [
+            'type' => 'object',
+            'properties' => $nestedMapper->getSchemaProperties()
         ];
 
         return $this;
+    }
+
+    public function getSchemaProperties(): array
+    {
+        return $this->schema['mappings']['properties'] ?? [];
     }
 
     /**
@@ -452,8 +409,6 @@ abstract class BaseElasticMigration
     public function up(): void
     {
         $this->schema($this);
-
-        $this->buildSchema();
 
         if (!$this->isDynamicMapping) {
             $this->shutdownDynamicMapping();
@@ -952,6 +907,30 @@ abstract class BaseElasticMigration
 
     private function buildSchema(): void
     {
+
+        foreach ($this->callbacks as $field => $callback) {
+
+            /**
+             * @type BaseElasticMigration $callback
+             */
+            $callback->buildSchema();
+
+            if ($this->isCreationState()) {
+
+                $this->schema['mappings']['properties'][$field] = [
+                    ...["type" => 'object'],
+                    ...['properties' => $callback->schema['mappings']['properties']]
+                ];
+
+            } else {
+
+                $this->schema['properties'][$field] = [
+                    ...["type" => 'object'],
+                    ...["properties" => $callback->schema['properties']]
+                ];
+            }
+
+        }
 
     }
 }
