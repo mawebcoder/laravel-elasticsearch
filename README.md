@@ -175,10 +175,13 @@ $this->string('name');
 ### Object
 
 ```
-$this->object('object_field',[
-    'name'=>self::TYPE_STRING,
-    'age'=>self::TYPE_INTEGER
-]);
+$this->object('categories',function($mapper){
+    return $mapper->string('name','teylor')
+-           >integer('parentM_id',22)
+            ->object('sequences',function($mapper){
+                    return $mapper->bigInt('id');
+            })
+})
 ```
 
 ### Boolean
