@@ -170,18 +170,30 @@ abstract class BaseElasticMigration
         $nestedMapper = new static();
 
         $callback($nestedMapper);
+        if ($this instanceof AlterElasticIndexMigrationInterface) {
+            $this->schema['properties'][$field] = [
+                'type' => 'object',
+                'properties' => $nestedMapper->getSchemaProperties()
+            ];
+        } else {
+            $this->schema['mappings']['properties'][$field] = [
+                'type' => 'object',
+                'properties' => $nestedMapper->getSchemaProperties()
+            ];
+        }
 
-        $this->schema['mappings']['properties'][$field] = [
-            'type' => 'object',
-            'properties' => $nestedMapper->getSchemaProperties()
-        ];
 
         return $this;
     }
 
     public function getSchemaProperties(): array
     {
+        if ($this instanceof AlterElasticIndexMigrationInterface) {
+            return $this->schema['properties'] ?? [];
+        }
+
         return $this->schema['mappings']['properties'] ?? [];
+
     }
 
     /**
