@@ -108,10 +108,12 @@ public function getModel():string
         $mapper->boolean('is_active');
         $mapper->text('details');
         $mapper->integer('age');
-        $mapper->object('user',[
-            'name'=>self::TYPE_STRING,
-            'id'=>self::TYPE_BIGINT
-        ]);
+        $mapper->object('user',function($BaseElasticMigration $mapper){
+                                        return $mapper->string('name')
+                                        ->object('values',function($mapper){
+                                                return $mapper->bigInt('id);
+                                        })
+                                        });
     }
 
 };
