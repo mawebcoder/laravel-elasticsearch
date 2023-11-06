@@ -1095,7 +1095,7 @@ abstract class BaseElasticsearchModel
             'fuzzy' => [
                 $field => [
                     "value" => $value,
-                    "fuzziness" => $fuzziness,
+                    "fuzziness" => 'AUTO',
                     'prefix_length' => $prefixLength
                 ]
             ]
@@ -1118,7 +1118,7 @@ abstract class BaseElasticsearchModel
             'fuzzy' => [
                 $field => [
                     "value" => $value,
-                    "fuzziness" => $fuzziness,
+                    "fuzziness" => "AUTO",
                     'prefix_length' => $prefixLength
                 ]
             ]
