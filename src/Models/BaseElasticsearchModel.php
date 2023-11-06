@@ -385,6 +385,7 @@ abstract class BaseElasticsearchModel
      */
     public function first(): null|static
     {
+
         $this->search['size'] = 1;
 
         $result = $this->requestForSearch();
@@ -395,7 +396,16 @@ abstract class BaseElasticsearchModel
             return null;
         }
 
+
+        $id = $result['hits']['hits'][0]['_id'];
+
         $result = $result['hits']['hits'][0][static::SOURCE_KEY];
+
+        $result = [
+            ...['id' => $id],
+            ...$result,
+
+        ];
 
         return $this->mapResultToModelObject($result);
     }
