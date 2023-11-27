@@ -28,7 +28,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
     public function __construct()
     {
-        $this->client = new Client();
+        $this->client = new Client(['verify' => config('elasticsearch.ssl')]);
     }
 
     public function setTempIndex(): static
