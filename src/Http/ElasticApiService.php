@@ -310,6 +310,7 @@ class ElasticApiService implements ElasticHttpRequestInterface
             RequestOptions::AUTH => $this->getCredentials(),
             RequestOptions::HEADERS => ['Accept' => 'application/json', 'Content-Type' => 'application/json'],
         ];
+
         $response = $this->client->get($path, $options);
 
         $result = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);

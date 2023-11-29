@@ -3,6 +3,7 @@
 namespace Mawebcoder\Elasticsearch\Migration;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\RequestOptions;
 use JsonException;
 use Mawebcoder\Elasticsearch\Exceptions\IndexNamePatternIsNotValidException;
 use Mawebcoder\Elasticsearch\Exceptions\IndicesAlreadyExistsException;
@@ -43,7 +44,7 @@ abstract class BaseElasticMigration
     {
         $this->basePath = config('elasticsearch.host') . ":" . config('elasticsearch.port');
 
-        $this->client = new Client();
+        $this->client = new Client(['verify' => false]);
 
         $this->elasticApiService = new ElasticApiService();
     }
@@ -692,8 +693,14 @@ abstract class BaseElasticMigration
         $path = trim($this->basePath, '/') .
             '/' . '_reindex?wait_for_completion=false';
 
+        $options = [
+            RequestOptions::AUTH => $this->elasticApiService->getCredentials(),
+            RequestOptions::HEADERS => ['Accept' => 'application/json', 'Content-Type' => 'application/json'],
+        ];
+
         $response = $this->client->post($path, [
-            'json' => $reIndexData
+            'json' => $reIndexData,
+            ...[$options]
         ]);
 
         return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
