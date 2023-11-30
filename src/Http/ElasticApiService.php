@@ -262,7 +262,10 @@ class ElasticApiService implements ElasticHttpRequestInterface
 
         $fullPath = $this->getUrl('', false);
 
-        return $this->client->delete($fullPath);
+        $options = [
+            RequestOptions::AUTH => $this->getCredentials()
+        ];
+        return $this->client->delete($fullPath, $options);
     }
 
 

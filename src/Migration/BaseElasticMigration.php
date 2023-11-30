@@ -693,14 +693,9 @@ abstract class BaseElasticMigration
         $path = trim($this->basePath, '/') .
             '/' . '_reindex?wait_for_completion=false';
 
-        $options = [
-            RequestOptions::AUTH => $this->elasticApiService->getCredentials(),
-            RequestOptions::HEADERS => ['Accept' => 'application/json', 'Content-Type' => 'application/json'],
-        ];
-
         $response = $this->client->post($path, [
-            'json' => $reIndexData,
-            ...[$options]
+            RequestOptions::JSON => $reIndexData,
+            RequestOptions::AUTH=>$this->elasticApiService->getCredentials()
         ]);
 
         return json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
