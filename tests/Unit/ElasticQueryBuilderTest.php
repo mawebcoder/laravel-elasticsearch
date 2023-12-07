@@ -16,6 +16,7 @@ use Mawebcoder\Elasticsearch\Exceptions\InvalidSortDirection;
 use Mawebcoder\Elasticsearch\Exceptions\AtLeastOneArgumentMustBeChooseInSelect;
 use Mawebcoder\Elasticsearch\Exceptions\SelectInputsCanNotBeArrayOrObjectException;
 use Mawebcoder\Elasticsearch\Exceptions\WrongArgumentNumberForWhereBetweenException;
+use Throwable;
 
 class ElasticQueryBuilderTest extends TestCase
 {
@@ -44,6 +45,31 @@ class ElasticQueryBuilderTest extends TestCase
         $this->elastic = new EUserModel();
     }
 
+
+    /**
+     * @throws Throwable
+     */
+    public function testInRandomOrderTest():void
+    {
+        $this->elastic
+            ->where('name', 'mohammad')
+            ->inRandomOrder();
+
+
+        $expected = [
+           [
+               '_script' => [
+                   'script' => "Math.random() * 200000",
+                   'type' => 'number',
+                   'order' => 'asc'
+               ]
+           ]
+        ];
+
+
+        $this->assertEquals($this->elastic->search['sort'], $expected);
+
+    }
 
     public function test_elastic_where_only_value(): void
     {
@@ -398,13 +424,13 @@ class ElasticQueryBuilderTest extends TestCase
                                 'must' => []
                             ]
                         ],
-                  [
-                      'term' => [
-                          $field =>[
-                              'value'=> $value
-                          ]
-                      ]
-                  ]
+                        [
+                            'term' => [
+                                $field => [
+                                    'value' => $value
+                                ]
+                            ]
+                        ]
                     ]
                 ]
             ],

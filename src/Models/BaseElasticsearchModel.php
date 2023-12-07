@@ -1140,6 +1140,20 @@ abstract class BaseElasticsearchModel
         return $this;
     }
 
+    public function inRandomOrder(): static
+    {
+        $this->search['sort'][] = [
+            "_script" => [
+                "script" => "Math.random() * 200000",
+                "type" => "number",
+                "order" => "asc"
+            ]
+        ];
+
+        return $this;
+    }
+
+
     public function orWhereNull(string $field): static
     {
         $this->getOrWhereQueryBuilder(self::OPERATOR_EQUAL, null, $field);
