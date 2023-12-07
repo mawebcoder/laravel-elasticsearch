@@ -16,10 +16,12 @@ return new class extends BaseElasticMigration {
         $mapper->integer(EUserModel::KEY_AGE);
         $mapper->boolean(EUserModel::KEY_IS_ACTIVE);
         $mapper->text(EUserModel::KEY_DESCRIPTION);
-        $mapper->object(EUserModel::KEY_INFORMATION, [
-            'ages' => self::TYPE_OBJECT,
-            'name' => self::TYPE_STRING,
-            'age' => self::TYPE_INTEGER,
-        ]);
+
+        $mapper->object(EUserModel::KEY_INFORMATION, function (BaseElasticMigration $baseElasticMigration) {
+            return $baseElasticMigration->object('ages', function (BaseElasticMigration $baseElasticMigration) {
+                return $baseElasticMigration->integer('age');
+            })->string('name')
+                ->integer('age');
+        });
     }
 };

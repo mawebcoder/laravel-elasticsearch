@@ -363,7 +363,6 @@ class QueryBuilderTest extends BaseIntegrationTestCase
 
 
     /**
-
      * @throws GuzzleException
      * @throws IndexNamePatternIsNotValidException
      * @throws InvalidSortDirection
@@ -973,7 +972,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
                     'name' => 'groupBy_age'
                 ]
             ],
-            'size'=>0
+            'size' => 0
         ];
 
         $this->assertEquals($expected, $elasticsearchModel->search);
@@ -1019,7 +1018,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
                     ]
                 ]
             ],
-            'size'=>0
+            'size' => 0
         ];
 
         $this->assertEquals($expected, $elasticsearchModel->search);
@@ -1340,7 +1339,7 @@ class QueryBuilderTest extends BaseIntegrationTestCase
      * @throws GuzzleException
      * @throws JsonException
      */
-    public function test_returns_null_if_data_not_set():void
+    public function test_returns_null_if_data_not_set(): void
     {
         $elasticsearchModel = EUserModel::newQuery();
         $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
@@ -1349,10 +1348,32 @@ class QueryBuilderTest extends BaseIntegrationTestCase
         $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
         $elasticsearchModel->mustBeSync()->save();
 
-        $result=EUserModel::newQuery()
+        $result = EUserModel::newQuery()
             ->find(1);
 
         $this->assertNull($result->{EUserModel::KEY_AGE});
+    }
+
+    /**
+     * @throws IndexNamePatternIsNotValidException
+     * @throws RequestException
+     * @throws ReflectionException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function testInRandomOrderWhileGettingData(): void
+    {
+        $elasticsearchModel = EUserModel::newQuery();
+        $elasticsearchModel->{BaseElasticsearchModel::KEY_ID} = 1;
+        $elasticsearchModel->{EUserModel::KEY_NAME} = 'mohammad';
+        $elasticsearchModel->{EUserModel::KEY_IS_ACTIVE} = true;
+        $elasticsearchModel->{EUserModel::KEY_DESCRIPTION} = 'description';
+        $elasticsearchModel->mustBeSync()->save();
+
+        $this->assertNotNull(EUserModel::newQuery()
+            ->inRandomOrder()
+            ->first());
+
     }
 
 
