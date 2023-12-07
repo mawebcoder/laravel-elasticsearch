@@ -153,7 +153,7 @@ abstract class BaseElasticsearchModel
         $hasCustomId = $this->hasCustomId();
 
         $path = $hasCustomId
-            ? sprintf("_doc/%s", $this->attributes['id'])
+            ? sprintf("_doc/%d", $this->attributes['id'])
             : '_doc';
 
         $data = Arr::except($this->attributes, 'id');

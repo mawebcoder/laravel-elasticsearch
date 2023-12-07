@@ -10,8 +10,8 @@ higherarchical nested syntax.
 
 | Elasticsearch Version | Package Version  | PHP Version | Laravel |
 |-----------------------|------------------|-------------|---------|
- | 7.17.9                | 2.6.3  and lower | ^8.1        | ^9.0    |
- | ^8.0                  | ^3.0             | ^8.1        | ^9.0    |
+| 7.17.9                | 2.6.3  and lower | ^8.1        | ^9.0    |
+| ^8.0                  | ^3.0             | ^8.1        | ^9.0    |
 
 # Config file and Elasticsearch migration log
 
@@ -813,6 +813,22 @@ The result will be something like this:
 ]
 ```
 
+
+### inRandomOrder
+
+Sometimes you need to get random data from elasticsearch:
+
+
+
+``` 
+$eArticleModel
+->where('categories.name')
+->inRandomOrder()
+->take(10)
+->get()
+```
+
+
 # Interact With Documentations
 
 ### Drop indices by name
@@ -862,3 +878,4 @@ Elasticsearch::setModel(EArticle::class)->getMappings()
 - Histogram
 - Define normalizer and tokenizer
 - Raw Queries
+  
